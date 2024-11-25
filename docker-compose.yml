@@ -1,0 +1,54 @@
+version: "3.9"
+
+services:
+  migrate:
+    image: "migrate/migrate"
+    networks:
+      - crm-admin-net
+    volumes:
+      - ./migrations:/migrations
+    command: ["-path", "/migrations", "-database", "postgres://postgres:123321@postgres:5432/crm_admin?sslmode=disable", "up"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:16.3
+    container_name: postgres
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=123321
+      - POSTGRES_DB=crm_admin
+
+    networks:
+      - crm-admin-net
+    ports:
+      - 5435:5432
+    volumes:
+      - postgres_data:/postgres/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -d postgres" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  auth:
+    container_name: crm-admin
+    build: .
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - crm-admin-net
+    ports:
+      - "9090:9090"
+
+
+networks:
+  crm-admin-net:
+    name: crm-admin-net
+    driver: bridge
+
+volumes:
+  postgres_data:
+  migrations:
