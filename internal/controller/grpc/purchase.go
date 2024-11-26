@@ -26,8 +26,7 @@ func (p *ProductsGrpc) CreatePurchase(ctx context.Context, in *pb.PurchaseReques
 		return nil, status.Errorf(codes.Internal, "Failed to create purchase: %v", err)
 	}
 
-	// Map the entity purchase to pb response
-	return mapEntityToPurchaseResponse(purchase), nil
+	return purchase, nil
 }
 
 // GetPurchase retrieves a specific purchase.
@@ -43,8 +42,7 @@ func (p *ProductsGrpc) GetPurchase(ctx context.Context, in *pb.PurchaseID) (*pb.
 		return nil, status.Errorf(codes.NotFound, "Purchase not found: %v", err)
 	}
 
-	// Return mapped response
-	return mapEntityToPurchaseResponse(purchase), nil
+	return purchase, nil
 }
 
 // GetListPurchase retrieves a list of purchases.
@@ -63,14 +61,7 @@ func (p *ProductsGrpc) GetListPurchase(ctx context.Context, in *pb.FilterPurchas
 		return nil, status.Errorf(codes.Internal, "Failed to retrieve purchase list: %v", err)
 	}
 
-	// Map to gRPC response format
-	var purchases []*pb.PurchaseResponse
-	// Dereference the pointer to range over the slice
-	for _, purchase := range *purchaseList.Purchases {
-		purchases = append(purchases, mapEntityToPurchaseResponse(&purchase)) // Pass pointer to mapEntityToPurchaseResponse
-	}
-
-	return &pb.PurchaseList{Purchases: purchases}, nil
+	return purchaseList, nil
 }
 
 // UpdatePurchase updates an existing purchase.
@@ -89,7 +80,7 @@ func (p *ProductsGrpc) UpdatePurchase(ctx context.Context, in *pb.PurchaseUpdate
 		return nil, status.Errorf(codes.Internal, "Failed to update purchase: %v", err)
 	}
 
-	return mapEntityToPurchaseResponse(purchase), nil
+	return purchase, nil
 }
 
 // DeletePurchase deletes a purchase.
@@ -119,29 +110,4 @@ func mapPbPurchaseItemToEntity(items []*pb.PurchaseItem) *[]entity.PurchaseItem 
 		})
 	}
 	return &purchaseItems // Return a pointer to the slice
-}
-
-// Helper function to map entity Purchase to pb PurchaseResponse
-func mapEntityToPurchaseResponse(purchase *entity.PurchaseResponse) *pb.PurchaseResponse {
-	var purchaseItems []*pb.PurchaseItemResponse
-	for _, item := range *purchase.PurchaseItem {
-		purchaseItems = append(purchaseItems, &pb.PurchaseItemResponse{
-			Id:            item.ProductID,
-			ProductId:     item.ProductID,
-			Quantity:      int32(item.Quantity),
-			PurchasePrice: item.PurchasePrice,
-			TotalPrice:    item.TotalPrice,
-		})
-	}
-
-	return &pb.PurchaseResponse{
-		Id:            purchase.ID,
-		SupplierId:    purchase.SupplierID,
-		PurchasedBy:   purchase.PurchasedBy,
-		TotalCost:     purchase.TotalCost,
-		Description:   purchase.Description,
-		PaymentMethod: purchase.PaymentMethod,
-		CreatedAt:     purchase.CreatedAt,
-		Items:         purchaseItems,
-	}
 }

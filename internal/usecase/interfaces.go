@@ -1,18 +1,21 @@
 package usecase
 
-import "crm-admin/internal/entity"
+import (
+	"crm-admin/internal/entity"
+	pb "crm-admin/pkg/gednerated/products"
+)
 
 type ProductsRepo interface {
-	CreateProductCategory(in *entity.CategoryName) (*entity.Category, error)
-	DeleteProductCategory(in *entity.CategoryID) (*entity.Message, error)
-	GetProductCategory(in *entity.CategoryID) (*entity.Category, error)
-	GetListProductCategory(in *entity.CategoryName) (*entity.CategoryList, error)
+	CreateProductCategory(in *entity.CategoryName) (*pb.Category, error)
+	DeleteProductCategory(in *entity.CategoryID) (*pb.Message, error)
+	GetProductCategory(in *entity.CategoryID) (*pb.Category, error)
+	GetListProductCategory(in *entity.CategoryName) (*pb.CategoryList, error)
 
-	CreateProduct(in *entity.ProductRequest) (*entity.Product, error)
-	UpdateProduct(in *entity.ProductUpdate) (*entity.Product, error)
-	DeleteProduct(in *entity.ProductID) (*entity.Message, error)
-	GetProduct(in *entity.ProductID) (*entity.Product, error)
-	GetProductList(in *entity.FilterProduct) (*entity.ProductList, error)
+	CreateProduct(in *entity.ProductRequest) (*pb.Product, error)
+	UpdateProduct(in *entity.ProductUpdate) (*pb.Product, error)
+	DeleteProduct(in *entity.ProductID) (*pb.Message, error)
+	GetProduct(in *entity.ProductID) (*pb.Product, error)
+	GetProductList(in *entity.FilterProduct) (*pb.ProductList, error)
 }
 
 type ProductQuantity interface {
@@ -23,19 +26,19 @@ type ProductQuantity interface {
 }
 
 type PurchasesRepo interface {
-	CreatePurchase(in *entity.PurchaseRequest) (*entity.PurchaseResponse, error)
-	UpdatePurchase(in *entity.PurchaseUpdate) (*entity.PurchaseResponse, error)
-	GetPurchase(in *entity.PurchaseID) (*entity.PurchaseResponse, error)
-	GetPurchaseList(in *entity.FilterPurchase) (*entity.PurchaseList, error)
-	DeletePurchase(in *entity.PurchaseID) (*entity.Message, error)
+	CreatePurchase(in *entity.PurchaseRequest) (*pb.PurchaseResponse, error)
+	UpdatePurchase(in *entity.PurchaseUpdate) (*pb.PurchaseResponse, error)
+	GetPurchase(in *entity.PurchaseID) (*pb.PurchaseResponse, error)
+	GetPurchaseList(in *entity.FilterPurchase) (*pb.PurchaseList, error)
+	DeletePurchase(in *entity.PurchaseID) (*pb.Message, error)
 }
 
 type SalesRepo interface {
-	CreateSale(in *entity.SalesTotal) (*entity.SaleResponse, error)
-	UpdateSale(in *entity.SaleUpdate) (*entity.SaleResponse, error)
-	GetSale(in *entity.SaleID) (*entity.SaleResponse, error)
-	GetSaleList(filter *entity.SaleFilter) (*entity.SaleList, error)
-	DeleteSale(in *entity.SaleID) (*entity.Message, error)
+	CreateSale(in *entity.SalesTotal) (*pb.SaleResponse, error)
+	UpdateSale(in *entity.SaleUpdate) (*pb.SaleResponse, error)
+	GetSale(in *entity.SaleID) (*pb.SaleResponse, error)
+	GetSaleList(filter *entity.SaleFilter) (*pb.SaleList, error)
+	DeleteSale(in *entity.SaleID) (*pb.Message, error)
 }
 
 type ReturnedProductsRepo interface {

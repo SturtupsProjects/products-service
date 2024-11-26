@@ -3,6 +3,7 @@ package repo
 import (
 	"crm-admin/internal/entity"
 	"crm-admin/internal/usecase"
+	pb "crm-admin/pkg/gednerated/products"
 	"errors"
 	"fmt"
 	"github.com/jmoiron/sqlx"
@@ -17,8 +18,8 @@ func NewPurchasesRepo(db *sqlx.DB) usecase.PurchasesRepo {
 	return &purchasesRepoImpl{db: db}
 }
 
-func (r *purchasesRepoImpl) CreatePurchase(in *entity.PurchaseRequest) (*entity.PurchaseResponse, error) {
-	purchase := &entity.PurchaseResponse{}
+func (r *purchasesRepoImpl) CreatePurchase(in *entity.PurchaseRequest) (*pb.PurchaseResponse, error) {
+	purchase := &pb.PurchaseResponse{}
 
 	query := `INSERT INTO purchases (supplier_id, purchased_by, total_cost, payment_method, description)
 	          VALUES (:supplier_id, :purchased_by, :total_cost, :payment_method, :description) RETURNING id, created_at`
@@ -30,7 +31,7 @@ func (r *purchasesRepoImpl) CreatePurchase(in *entity.PurchaseRequest) (*entity.
 	for _, item := range *in.PurchaseItem {
 		itemQuery := `INSERT INTO purchase_items (purchase_id, product_id, quantity, purchase_price, total_price)
 		              VALUES ($1, $2, $3, $4, $5)`
-		_, err := r.db.Exec(itemQuery, purchase.ID, item.ProductID, item.Quantity, item.PurchasePrice, item.TotalPrice)
+		_, err := r.db.Exec(itemQuery, purchase.Id, item.ProductID, item.Quantity, item.PurchasePrice, item.TotalPrice)
 		if err != nil {
 			return nil, err
 		}
@@ -39,7 +40,7 @@ func (r *purchasesRepoImpl) CreatePurchase(in *entity.PurchaseRequest) (*entity.
 	return purchase, nil
 }
 
-func (r *purchasesRepoImpl) UpdatePurchase(in *entity.PurchaseUpdate) (*entity.PurchaseResponse, error) {
+func (r *purchasesRepoImpl) UpdatePurchase(in *entity.PurchaseUpdate) (*pb.PurchaseResponse, error) {
 	// Изначальный запрос с условиями
 	query := `UPDATE purchases SET `
 	updates := []string{}
@@ -69,7 +70,7 @@ func (r *purchasesRepoImpl) UpdatePurchase(in *entity.PurchaseUpdate) (*entity.P
 	query += " WHERE id = :id RETURNING id, supplier_id, purchased_by, total_cost, description, payment_method, created_at"
 
 	// Выполняем запрос
-	purchase := &entity.PurchaseResponse{}
+	purchase := &pb.PurchaseResponse{}
 	err := r.db.QueryRowx(query, params).StructScan(purchase)
 	if err != nil {
 		return nil, err
@@ -79,10 +80,10 @@ func (r *purchasesRepoImpl) UpdatePurchase(in *entity.PurchaseUpdate) (*entity.P
 }
 
 // GetPurchase возвращает закупку по ID
-func (r *purchasesRepoImpl) GetPurchase(in *entity.PurchaseID) (*entity.PurchaseResponse, error) {
+func (r *purchasesRepoImpl) GetPurchase(in *entity.PurchaseID) (*pb.PurchaseResponse, error) {
 	query := `SELECT id, supplier_id, purchased_by, total_cost, payment_method, description, created_at
 	          FROM purchases WHERE id = $1`
-	purchase := &entity.PurchaseResponse{}
+	purchase := &pb.PurchaseResponse{}
 	err := r.db.Get(purchase, query, in.ID)
 	if err != nil {
 		return nil, err
@@ -90,7 +91,7 @@ func (r *purchasesRepoImpl) GetPurchase(in *entity.PurchaseID) (*entity.Purchase
 
 	itemsQuery := `SELECT id, purchase_id, product_id, quantity, purchase_price, total_price
 	               FROM purchase_items WHERE purchase_id = $1`
-	err = r.db.Select(&purchase.PurchaseItem, itemsQuery, in.ID)
+	err = r.db.Select(&purchase.Items, itemsQuery, in.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -98,8 +99,8 @@ func (r *purchasesRepoImpl) GetPurchase(in *entity.PurchaseID) (*entity.Purchase
 	return purchase, nil
 }
 
-func (r *purchasesRepoImpl) GetPurchaseList(in *entity.FilterPurchase) (*entity.PurchaseList, error) {
-	var purchases []entity.PurchaseResponse
+func (r *purchasesRepoImpl) GetPurchaseList(in *entity.FilterPurchase) (*pb.PurchaseList, error) {
+	var purchases []*pb.PurchaseResponse
 	var queryBuilder strings.Builder
 	var args []interface{}
 	argIndex := 1
@@ -143,10 +144,10 @@ func (r *purchasesRepoImpl) GetPurchaseList(in *entity.FilterPurchase) (*entity.
 		return nil, fmt.Errorf("failed to list purchases: %w", err)
 	}
 
-	return &entity.PurchaseList{Purchases: &purchases}, nil
+	return &pb.PurchaseList{Purchases: purchases}, nil
 }
 
-func (r *purchasesRepoImpl) DeletePurchase(in *entity.PurchaseID) (*entity.Message, error) {
+func (r *purchasesRepoImpl) DeletePurchase(in *entity.PurchaseID) (*pb.Message, error) {
 	_, err := r.db.Exec(`DELETE FROM purchase_items WHERE purchase_id = $1`, in.ID)
 	if err != nil {
 		return nil, err
@@ -159,5 +160,5 @@ func (r *purchasesRepoImpl) DeletePurchase(in *entity.PurchaseID) (*entity.Messa
 	if rowsAffected == 0 {
 		return nil, errors.New("purchase not found")
 	}
-	return &entity.Message{Message: "Purchase deleted successfully"}, nil
+	return &pb.Message{Message: "Purchase deleted successfully"}, nil
 }

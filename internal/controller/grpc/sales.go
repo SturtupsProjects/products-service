@@ -66,8 +66,7 @@ func (p *ProductsGrpc) CreateSales(ctx context.Context, in *pb.SaleRequest) (*pb
 		return nil, status.Errorf(codes.Internal, "Failed to create sale: %v", err)
 	}
 
-	// Return the SaleResponse
-	return mapSaleResponseToSaleResponse(saleResp), nil
+	return saleResp, nil
 }
 
 // UpdateSales updates the details of an existing sale.
@@ -86,8 +85,7 @@ func (p *ProductsGrpc) UpdateSales(ctx context.Context, in *pb.SaleUpdate) (*pb.
 		return nil, status.Errorf(codes.Internal, "Failed to update sale: %v", err)
 	}
 
-	// Return updated SaleResponse
-	return mapSaleResponseToSaleResponse(saleResp), nil
+	return saleResp, nil
 }
 
 // GetSales retrieves a specific sale by its ID.
@@ -104,8 +102,7 @@ func (p *ProductsGrpc) GetSales(ctx context.Context, in *pb.SaleID) (*pb.SaleRes
 		return nil, status.Errorf(codes.NotFound, "Sale not found: %v", err)
 	}
 
-	// Return the mapped SaleResponse
-	return mapSaleResponseToSaleResponse(saleResp), nil
+	return saleResp, nil
 }
 
 // GetListSales retrieves a list of sales based on filter criteria.
@@ -125,13 +122,7 @@ func (p *ProductsGrpc) GetListSales(ctx context.Context, in *pb.SaleFilter) (*pb
 		return nil, status.Errorf(codes.Internal, "Failed to retrieve sales list: %v", err)
 	}
 
-	// Map list of entity sales to gRPC response
-	var sales []*pb.SaleResponse
-	for _, sale := range salesList.Sales {
-		sales = append(sales, mapSaleResponseToSaleResponse(&sale))
-	}
-
-	return &pb.SaleList{Sales: sales}, nil
+	return salesList, nil
 }
 
 // DeleteSales deletes a sale record.
@@ -148,7 +139,7 @@ func (p *ProductsGrpc) DeleteSales(ctx context.Context, in *pb.SaleID) (*pb.Mess
 		return nil, status.Errorf(codes.Internal, "Failed to delete sale: %v", err)
 	}
 
-	return &pb.Message{Message: message.Message}, nil
+	return message, nil
 }
 
 // Helper function to map SalesTotal entity to SaleResponse
@@ -168,27 +159,6 @@ func mapSalesTotalToSaleResponse(total *entity.SalesTotal) *pb.SaleResponse {
 		SoldBy:         total.SoldBy,
 		TotalSalePrice: total.TotalSalePrice,
 		PaymentMethod:  total.PaymentMethod,
-		SoldProducts:   soldProducts,
-	}
-}
-
-// Helper function to map SaleResponse entity to SaleResponse gRPC
-func mapSaleResponseToSaleResponse(response *entity.SaleResponse) *pb.SaleResponse {
-	var soldProducts []*pb.SalesItem
-	for _, item := range response.SoldProducts {
-		soldProducts = append(soldProducts, &pb.SalesItem{
-			ProductId:  item.ProductID,
-			Quantity:   int32(item.Quantity),
-			SalePrice:  item.SalePrice,
-			TotalPrice: item.TotalPrice,
-		})
-	}
-
-	return &pb.SaleResponse{
-		ClientId:       response.ClientID,
-		SoldBy:         response.SoldBy,
-		TotalSalePrice: response.TotalSalePrice,
-		PaymentMethod:  response.PaymentMethod,
 		SoldProducts:   soldProducts,
 	}
 }

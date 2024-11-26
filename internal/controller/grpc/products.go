@@ -48,13 +48,7 @@ func (p *ProductsGrpc) CreateCategory(ctx context.Context, in *pb.CreateCategory
 		return nil, status.Errorf(codes.Internal, "Failed to create category: %v", err)
 	}
 
-	// Map usecase category to gRPC response type
-	return &pb.Category{
-		Id:        category.ID,
-		Name:      category.Name,
-		CreatedBy: category.CreatedBy,
-		CreatedAt: category.CreatedAt,
-	}, nil
+	return category, nil
 }
 
 func (p *ProductsGrpc) DeleteCategory(ctx context.Context, in *pb.GetCategoryRequest) (*pb.Message, error) {
@@ -72,8 +66,7 @@ func (p *ProductsGrpc) DeleteCategory(ctx context.Context, in *pb.GetCategoryReq
 		return nil, status.Errorf(codes.Internal, "Failed to delete category: %v", err)
 	}
 
-	// Return success message
-	return &pb.Message{Message: message.Message}, nil
+	return message, nil
 }
 
 func (p *ProductsGrpc) GetCategory(ctx context.Context, in *pb.GetCategoryRequest) (*pb.Category, error) {
@@ -91,13 +84,7 @@ func (p *ProductsGrpc) GetCategory(ctx context.Context, in *pb.GetCategoryReques
 		return nil, status.Errorf(codes.NotFound, "Category not found: %v", err)
 	}
 
-	// Map usecase category to gRPC response type
-	return &pb.Category{
-		Id:        category.ID,
-		Name:      category.Name,
-		CreatedBy: category.CreatedBy,
-		CreatedAt: category.CreatedAt,
-	}, nil
+	return category, nil
 }
 
 func (p *ProductsGrpc) GetListCategory(ctx context.Context, in *emptypb.Empty) (*pb.CategoryList, error) {
@@ -111,19 +98,7 @@ func (p *ProductsGrpc) GetListCategory(ctx context.Context, in *emptypb.Empty) (
 		return nil, status.Errorf(codes.Internal, "Failed to retrieve category list: %v", err)
 	}
 
-	// Map usecase category list to gRPC response type
-	var categories []*pb.Category
-	for _, category := range categoryList.Categories {
-		categories = append(categories, &pb.Category{
-			Id:        category.ID,
-			Name:      category.Name,
-			CreatedBy: category.CreatedBy,
-			CreatedAt: category.CreatedAt,
-		})
-	}
-
-	// Return the list of categories
-	return &pb.CategoryList{Categories: categories}, nil
+	return categoryList, nil
 }
 
 // --------------------------------------- Products --------------------------------------------------------------
@@ -148,18 +123,7 @@ func (p *ProductsGrpc) CreateProduct(ctx context.Context, in *pb.CreateProductRe
 		return nil, status.Errorf(codes.Internal, "Failed to create product: %v", err)
 	}
 
-	// Map usecase product to gRPC response type
-	return &pb.Product{
-		Id:            product.ID,
-		CategoryId:    product.CategoryID,
-		Name:          product.Name,
-		BillFormat:    product.BillFormat,
-		IncomingPrice: product.IncomingPrice,
-		StandardPrice: product.StandardPrice,
-		TotalCount:    int64(product.TotalCount),
-		CreatedBy:     product.CreatedBy,
-		CreatedAt:     product.CreatedAt,
-	}, nil
+	return product, nil
 }
 
 func (p *ProductsGrpc) UpdateProduct(ctx context.Context, in *pb.UpdateProductRequest) (*pb.Product, error) {
@@ -182,18 +146,7 @@ func (p *ProductsGrpc) UpdateProduct(ctx context.Context, in *pb.UpdateProductRe
 		return nil, status.Errorf(codes.Internal, "Failed to update product: %v", err)
 	}
 
-	// Map usecase product to gRPC response type
-	return &pb.Product{
-		Id:            product.ID,
-		CategoryId:    product.CategoryID,
-		Name:          product.Name,
-		BillFormat:    product.BillFormat,
-		IncomingPrice: product.IncomingPrice,
-		StandardPrice: product.StandardPrice,
-		TotalCount:    int64(product.TotalCount),
-		CreatedBy:     product.CreatedBy,
-		CreatedAt:     product.CreatedAt,
-	}, nil
+	return product, nil
 }
 
 func (p *ProductsGrpc) DeleteProduct(ctx context.Context, in *pb.GetProductRequest) (*pb.Message, error) {
@@ -211,8 +164,7 @@ func (p *ProductsGrpc) DeleteProduct(ctx context.Context, in *pb.GetProductReque
 		return nil, status.Errorf(codes.Internal, "Failed to delete product: %v", err)
 	}
 
-	// Return success message
-	return &pb.Message{Message: message.Message}, nil
+	return message, nil
 }
 
 func (p *ProductsGrpc) GetProduct(ctx context.Context, in *pb.GetProductRequest) (*pb.Product, error) {
@@ -230,18 +182,7 @@ func (p *ProductsGrpc) GetProduct(ctx context.Context, in *pb.GetProductRequest)
 		return nil, status.Errorf(codes.NotFound, "Product not found: %v", err)
 	}
 
-	// Map usecase product to gRPC response type
-	return &pb.Product{
-		Id:            product.ID,
-		CategoryId:    product.CategoryID,
-		Name:          product.Name,
-		BillFormat:    product.BillFormat,
-		IncomingPrice: product.IncomingPrice,
-		StandardPrice: product.StandardPrice,
-		TotalCount:    int64(product.TotalCount),
-		CreatedBy:     product.CreatedBy,
-		CreatedAt:     product.CreatedAt,
-	}, nil
+	return product, nil
 }
 
 // Continuing from GetProductList method
@@ -263,22 +204,5 @@ func (p *ProductsGrpc) GetProductList(ctx context.Context, in *pb.ProductFilter)
 		return nil, status.Errorf(codes.Internal, "Failed to retrieve product list: %v", err)
 	}
 
-	// Map usecase product list to gRPC response type
-	var products []*pb.Product
-	for _, product := range productList.Products {
-		products = append(products, &pb.Product{
-			Id:            product.ID,
-			CategoryId:    product.CategoryID,
-			Name:          product.Name,
-			BillFormat:    product.BillFormat,
-			IncomingPrice: product.IncomingPrice,
-			StandardPrice: product.StandardPrice,
-			TotalCount:    int64(product.TotalCount),
-			CreatedBy:     product.CreatedBy,
-			CreatedAt:     product.CreatedAt,
-		})
-	}
-
-	// Return the list of products
-	return &pb.ProductList{Products: products}, nil
+	return productList, nil
 }

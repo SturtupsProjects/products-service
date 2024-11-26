@@ -3,6 +3,7 @@ package repo
 import (
 	"crm-admin/internal/entity"
 	"crm-admin/internal/usecase"
+	pb "crm-admin/pkg/gednerated/products"
 	"errors"
 	"fmt"
 	"github.com/jmoiron/sqlx"
@@ -17,8 +18,8 @@ func NewSalesRepo(db *sqlx.DB) usecase.SalesRepo {
 	return &salesRepoImpl{db: db}
 }
 
-func (r *salesRepoImpl) CreateSale(in *entity.SalesTotal) (*entity.SaleResponse, error) {
-	sale := &entity.SaleResponse{}
+func (r *salesRepoImpl) CreateSale(in *entity.SalesTotal) (*pb.SaleResponse, error) {
+	sale := &pb.SaleResponse{}
 
 	query := `INSERT INTO sales (client_id, sold_by, total_sale_price, payment_method)
 	          VALUES (:client_id, :sold_by, :total_sale_price, :payment_method) RETURNING id, created_at`
@@ -28,7 +29,7 @@ func (r *salesRepoImpl) CreateSale(in *entity.SalesTotal) (*entity.SaleResponse,
 	}
 
 	for _, item := range in.SoldProducts {
-		item.SaleID = sale.ID
+		item.SaleID = sale.Id
 		itemQuery := `INSERT INTO sales_items (sale_id, product_id, quantity, sale_price, total_price)
 		              VALUES (:sale_id, :product_id, :quantity, :sale_price, :total_price)`
 		_, err := r.db.NamedExec(itemQuery, item)
@@ -40,7 +41,7 @@ func (r *salesRepoImpl) CreateSale(in *entity.SalesTotal) (*entity.SaleResponse,
 	return sale, nil
 }
 
-func (r *salesRepoImpl) UpdateSale(in *entity.SaleUpdate) (*entity.SaleResponse, error) {
+func (r *salesRepoImpl) UpdateSale(in *entity.SaleUpdate) (*pb.SaleResponse, error) {
 	query := `UPDATE sales SET `
 	updates := []string{}
 	params := map[string]interface{}{"id": in.ID}
@@ -61,7 +62,7 @@ func (r *salesRepoImpl) UpdateSale(in *entity.SaleUpdate) (*entity.SaleResponse,
 	query += strings.Join(updates, ", ")
 	query += " WHERE id = :id RETURNING id, client_id, sold_by, total_sale_price, payment_method, created_at"
 
-	sale := &entity.SaleResponse{}
+	sale := &pb.SaleResponse{}
 	err := r.db.QueryRowx(query, params).StructScan(sale)
 	if err != nil {
 		return nil, err
@@ -70,10 +71,10 @@ func (r *salesRepoImpl) UpdateSale(in *entity.SaleUpdate) (*entity.SaleResponse,
 	return sale, nil
 }
 
-func (r *salesRepoImpl) GetSale(in *entity.SaleID) (*entity.SaleResponse, error) {
+func (r *salesRepoImpl) GetSale(in *entity.SaleID) (*pb.SaleResponse, error) {
 	query := `SELECT id, client_id, sold_by, total_sale_price, payment_method, created_at
 	          FROM sales WHERE id = $1`
-	sale := &entity.SaleResponse{}
+	sale := &pb.SaleResponse{}
 	err := r.db.Get(sale, query, in.ID)
 	if err != nil {
 		return nil, err
@@ -89,8 +90,8 @@ func (r *salesRepoImpl) GetSale(in *entity.SaleID) (*entity.SaleResponse, error)
 	return sale, nil
 }
 
-func (r *salesRepoImpl) GetSaleList(in *entity.SaleFilter) (*entity.SaleList, error) {
-	var sales []entity.SaleResponse
+func (r *salesRepoImpl) GetSaleList(in *entity.SaleFilter) (*pb.SaleList, error) {
+	var sales []*pb.SaleResponse
 	var queryBuilder strings.Builder
 	var args []interface{}
 	argIndex := 1
@@ -134,10 +135,10 @@ func (r *salesRepoImpl) GetSaleList(in *entity.SaleFilter) (*entity.SaleList, er
 		return nil, fmt.Errorf("failed to list sales: %w", err)
 	}
 
-	return &entity.SaleList{Sales: sales}, nil
+	return &pb.SaleList{Sales: sales}, nil
 }
 
-func (r *salesRepoImpl) DeleteSale(in *entity.SaleID) (*entity.Message, error) {
+func (r *salesRepoImpl) DeleteSale(in *entity.SaleID) (*pb.Message, error) {
 	_, err := r.db.Exec(`DELETE FROM sales_items WHERE sale_id = $1`, in.ID)
 	if err != nil {
 		return nil, err
@@ -151,5 +152,5 @@ func (r *salesRepoImpl) DeleteSale(in *entity.SaleID) (*entity.Message, error) {
 		return nil, errors.New("sale not found")
 	}
 
-	return &entity.Message{Message: "Sale deleted successfully"}, nil
+	return &pb.Message{Message: "Sale deleted successfully"}, nil
 }

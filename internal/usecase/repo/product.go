@@ -3,6 +3,7 @@ package repo
 import (
 	"crm-admin/internal/entity"
 	"crm-admin/internal/usecase"
+	pb "crm-admin/pkg/gednerated/products"
 	"fmt"
 	"github.com/jmoiron/sqlx"
 	"strings"
@@ -26,11 +27,11 @@ func NewProductQuantity(db *sqlx.DB) usecase.ProductQuantity {
 
 //---------------- Product Category CRUD -----------------------------------------------------------------------------
 
-func (p *productRepo) CreateProductCategory(in *entity.CategoryName) (*entity.Category, error) {
-	var category entity.Category
+func (p *productRepo) CreateProductCategory(in *entity.CategoryName) (*pb.Category, error) {
+	var category pb.Category
 
 	query := `INSERT INTO product_categories (name, created_by) VALUES ($1, $2) RETURNING id, name,created_by, created_at`
-	err := p.db.QueryRowx(query, in.Name, in.CreatedBy).Scan(&category.ID, &category.Name, &category.CreatedBy, &category.CreatedAt)
+	err := p.db.QueryRowx(query, in.Name, in.CreatedBy).Scan(&category.Id, &category.Name, &category.CreatedBy, &category.CreatedAt)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to create product category: %w", err)
@@ -38,7 +39,7 @@ func (p *productRepo) CreateProductCategory(in *entity.CategoryName) (*entity.Ca
 	return &category, nil
 }
 
-func (p *productRepo) DeleteProductCategory(in *entity.CategoryID) (*entity.Message, error) {
+func (p *productRepo) DeleteProductCategory(in *entity.CategoryID) (*pb.Message, error) {
 	query := `DELETE FROM product_categories WHERE id = $1`
 
 	res, err := p.db.Exec(query, in.ID)
@@ -47,11 +48,11 @@ func (p *productRepo) DeleteProductCategory(in *entity.CategoryID) (*entity.Mess
 	}
 	rows, _ := res.RowsAffected()
 
-	return &entity.Message{Message: fmt.Sprintf("Deleted %d category(ies)", rows)}, nil
+	return &pb.Message{Message: fmt.Sprintf("Deleted %d category(ies)", rows)}, nil
 }
 
-func (p *productRepo) GetProductCategory(in *entity.CategoryID) (*entity.Category, error) {
-	var category *entity.Category
+func (p *productRepo) GetProductCategory(in *entity.CategoryID) (*pb.Category, error) {
+	var category *pb.Category
 	query := `SELECT id, name, created_by, created_at FROM product_categories WHERE id = $1`
 
 	err := p.db.Get(&category, query, in.ID)
@@ -62,8 +63,8 @@ func (p *productRepo) GetProductCategory(in *entity.CategoryID) (*entity.Categor
 	return category, nil
 }
 
-func (p *productRepo) GetListProductCategory(in *entity.CategoryName) (*entity.CategoryList, error) {
-	var categories []entity.Category
+func (p *productRepo) GetListProductCategory(in *entity.CategoryName) (*pb.CategoryList, error) {
+	var categories []*pb.Category
 	query := `SELECT id, name, created_by,created_at FROM product_categories`
 	args := make([]interface{}, 1)
 
@@ -76,15 +77,15 @@ func (p *productRepo) GetListProductCategory(in *entity.CategoryName) (*entity.C
 	if err != nil {
 		return nil, fmt.Errorf("failed to list product categories: %w", err)
 	}
-	return &entity.CategoryList{Categories: categories}, nil
+	return &pb.CategoryList{Categories: categories}, nil
 }
 
 // ---------------- End Product Category CRUD ------------------------------------------------------------------------
 
 // ------------------- Product CRUD ------------------------------------------------------------------------
 
-func (p *productRepo) CreateProduct(in *entity.ProductRequest) (*entity.Product, error) {
-	var product entity.Product
+func (p *productRepo) CreateProduct(in *entity.ProductRequest) (*pb.Product, error) {
+	var product pb.Product
 
 	query := `
 		INSERT INTO products (category_id, name, bill_format, incoming_price, standard_price, created_by)
@@ -92,7 +93,7 @@ func (p *productRepo) CreateProduct(in *entity.ProductRequest) (*entity.Product,
 		RETURNING id, category_id, name, bill_format, incoming_price, standard_price, total_count, created_by, created_at
 	`
 	err := p.db.QueryRowx(query, in.CategoryID, in.Name, in.BillFormat, in.IncomingPrice, in.StandardPrice, in.CreatedBy).
-		Scan(&product.ID, &product.CategoryID, &product.Name, &product.BillFormat, &product.IncomingPrice,
+		Scan(&product.Id, &product.CategoryId, &product.Name, &product.BillFormat, &product.IncomingPrice,
 			&product.StandardPrice, &product.TotalCount, &product.CreatedBy, &product.CreatedAt)
 
 	if err != nil {
@@ -102,8 +103,8 @@ func (p *productRepo) CreateProduct(in *entity.ProductRequest) (*entity.Product,
 	return &product, nil
 }
 
-func (p *productRepo) UpdateProduct(in *entity.ProductUpdate) (*entity.Product, error) {
-	var product *entity.Product
+func (p *productRepo) UpdateProduct(in *entity.ProductUpdate) (*pb.Product, error) {
+	var product *pb.Product
 	query := `UPDATE products SET `
 	var args []interface{}
 	argCounter := 1
@@ -141,7 +142,7 @@ func (p *productRepo) UpdateProduct(in *entity.ProductUpdate) (*entity.Product, 
 	args = append(args, in.ID)
 
 	// Execute the query
-	err := p.db.QueryRowx(query, args...).Scan(&product.ID, &product.CategoryID, &product.Name, &product.BillFormat,
+	err := p.db.QueryRowx(query, args...).Scan(&product.Id, &product.CategoryId, &product.Name, &product.BillFormat,
 		&product.IncomingPrice, &product.StandardPrice, &product.TotalCount, &product.CreatedBy, &product.CreatedAt)
 
 	if err != nil {
@@ -151,7 +152,7 @@ func (p *productRepo) UpdateProduct(in *entity.ProductUpdate) (*entity.Product, 
 	return product, nil
 }
 
-func (p *productRepo) DeleteProduct(in *entity.ProductID) (*entity.Message, error) {
+func (p *productRepo) DeleteProduct(in *entity.ProductID) (*pb.Message, error) {
 	query := `DELETE FROM products WHERE id = $1`
 
 	res, err := p.db.Exec(query, in.ID)
@@ -160,11 +161,11 @@ func (p *productRepo) DeleteProduct(in *entity.ProductID) (*entity.Message, erro
 	}
 	rows, _ := res.RowsAffected()
 
-	return &entity.Message{Message: fmt.Sprintf("Deleted %d product(s)", rows)}, nil
+	return &pb.Message{Message: fmt.Sprintf("Deleted %d product(s)", rows)}, nil
 }
 
-func (p *productRepo) GetProduct(in *entity.ProductID) (*entity.Product, error) {
-	var product *entity.Product
+func (p *productRepo) GetProduct(in *entity.ProductID) (*pb.Product, error) {
+	var product *pb.Product
 
 	query := `SELECT id, category_id, name, bill_format, incoming_price, standard_price,
        total_count, created_by, created_at FROM products WHERE id = $1`
@@ -178,8 +179,8 @@ func (p *productRepo) GetProduct(in *entity.ProductID) (*entity.Product, error) 
 	return product, nil
 }
 
-func (p *productRepo) GetProductList(in *entity.FilterProduct) (*entity.ProductList, error) {
-	var products []entity.Product
+func (p *productRepo) GetProductList(in *entity.FilterProduct) (*pb.ProductList, error) {
+	var products []*pb.Product
 	var args []interface{}
 	var filters []string
 
@@ -220,7 +221,7 @@ func (p *productRepo) GetProductList(in *entity.FilterProduct) (*entity.ProductL
 		return nil, fmt.Errorf("failed to list products: %w", err)
 	}
 
-	return &entity.ProductList{Products: products}, nil
+	return &pb.ProductList{Products: products}, nil
 }
 
 // ------------------- End Product CRUD ------------------------------------------------------------------------

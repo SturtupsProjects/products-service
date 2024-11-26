@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"crm-admin/internal/entity"
+	pb "crm-admin/pkg/gednerated/products"
 	"log/slog"
 )
 
@@ -16,7 +17,7 @@ func NewProductsUseCase(repo ProductsRepo, log *slog.Logger) *ProductsUseCase {
 
 // --------------------  Product Category ----------------------------------------------------------------------
 
-func (p *ProductsUseCase) CreateCategory(in *entity.CategoryName) (*entity.Category, error) {
+func (p *ProductsUseCase) CreateCategory(in *entity.CategoryName) (*pb.Category, error) {
 	res, err := p.repo.CreateProductCategory(in)
 
 	if err != nil {
@@ -27,7 +28,7 @@ func (p *ProductsUseCase) CreateCategory(in *entity.CategoryName) (*entity.Categ
 	return res, nil
 }
 
-func (p *ProductsUseCase) DeleteCategory(in *entity.CategoryID) (*entity.Message, error) {
+func (p *ProductsUseCase) DeleteCategory(in *entity.CategoryID) (*pb.Message, error) {
 	res, err := p.repo.DeleteProductCategory(in)
 
 	if err != nil {
@@ -38,7 +39,7 @@ func (p *ProductsUseCase) DeleteCategory(in *entity.CategoryID) (*entity.Message
 	return res, nil
 }
 
-func (p *ProductsUseCase) GetCategory(in *entity.CategoryID) (*entity.Category, error) {
+func (p *ProductsUseCase) GetCategory(in *entity.CategoryID) (*pb.Category, error) {
 	res, err := p.repo.GetProductCategory(in)
 
 	if err != nil {
@@ -49,7 +50,7 @@ func (p *ProductsUseCase) GetCategory(in *entity.CategoryID) (*entity.Category, 
 	return res, nil
 }
 
-func (p *ProductsUseCase) GetListCategory(in *entity.CategoryName) (*entity.CategoryList, error) {
+func (p *ProductsUseCase) GetListCategory(in *entity.CategoryName) (*pb.CategoryList, error) {
 	res, err := p.repo.GetListProductCategory(in)
 
 	if err != nil {
@@ -62,7 +63,7 @@ func (p *ProductsUseCase) GetListCategory(in *entity.CategoryName) (*entity.Cate
 
 // --------------------------- Products ----------------------------------------------------------------------------
 
-func (p *ProductsUseCase) CreateProduct(in *entity.ProductRequest) (*entity.Product, error) {
+func (p *ProductsUseCase) CreateProduct(in *entity.ProductRequest) (*pb.Product, error) {
 	res, err := p.repo.CreateProduct(in)
 
 	if err != nil {
@@ -73,7 +74,7 @@ func (p *ProductsUseCase) CreateProduct(in *entity.ProductRequest) (*entity.Prod
 	return res, nil
 }
 
-func (p *ProductsUseCase) UpdateProduct(in *entity.ProductUpdate) (*entity.Product, error) {
+func (p *ProductsUseCase) UpdateProduct(in *entity.ProductUpdate) (*pb.Product, error) {
 	res, err := p.repo.UpdateProduct(in)
 
 	if err != nil {
@@ -84,7 +85,7 @@ func (p *ProductsUseCase) UpdateProduct(in *entity.ProductUpdate) (*entity.Produ
 	return res, nil
 }
 
-func (p *ProductsUseCase) DeleteProduct(in *entity.ProductID) (*entity.Message, error) {
+func (p *ProductsUseCase) DeleteProduct(in *entity.ProductID) (*pb.Message, error) {
 	res, err := p.repo.DeleteProduct(in)
 
 	if err != nil {
@@ -95,7 +96,7 @@ func (p *ProductsUseCase) DeleteProduct(in *entity.ProductID) (*entity.Message, 
 	return res, nil
 }
 
-func (p *ProductsUseCase) GetProduct(in *entity.ProductID) (*entity.Product, error) {
+func (p *ProductsUseCase) GetProduct(in *entity.ProductID) (*pb.Product, error) {
 	res, err := p.repo.GetProduct(in)
 
 	if err != nil {
@@ -106,7 +107,7 @@ func (p *ProductsUseCase) GetProduct(in *entity.ProductID) (*entity.Product, err
 	return res, nil
 }
 
-func (p *ProductsUseCase) GetProductList(in *entity.FilterProduct) (*entity.ProductList, error) {
+func (p *ProductsUseCase) GetProductList(in *entity.FilterProduct) (*pb.ProductList, error) {
 	res, err := p.repo.GetProductList(in)
 
 	if err != nil {

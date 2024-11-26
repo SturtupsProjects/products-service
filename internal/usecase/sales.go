@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"crm-admin/internal/entity"
+	pb "crm-admin/pkg/gednerated/products"
 	"fmt"
 	"log/slog"
 	"sync"
@@ -47,7 +48,7 @@ func (s *SalesUseCase) CalculateTotalSales(in *entity.SaleRequest) (*entity.Sale
 }
 
 // CreateSales creates a sale record.
-func (s *SalesUseCase) CreateSales(in *entity.SaleRequest) (*entity.SaleResponse, error) {
+func (s *SalesUseCase) CreateSales(in *entity.SaleRequest) (*pb.SaleResponse, error) {
 	// Calculate total sale cost
 	total, err := s.CalculateTotalSales(in)
 	if err != nil {
@@ -68,14 +69,14 @@ func (s *SalesUseCase) CreateSales(in *entity.SaleRequest) (*entity.SaleResponse
 
 	for _, item := range res.SoldProducts {
 		wg.Add(1)
-		go func(item entity.SalesItem) {
+		go func(item *pb.SalesItem) {
 			defer wg.Done()
 			semaphore <- struct{}{}
 			defer func() { <-semaphore }()
 
 			productQuantityReq := &entity.CountProductReq{
-				Id:    item.ProductID,
-				Count: item.Quantity,
+				Id:    item.ProductId,
+				Count: int(item.Quantity),
 			}
 			if _, err := s.product.RemoveProduct(productQuantityReq); err != nil {
 				s.log.Error("Error removing product quantity during sale", "error", err.Error())
@@ -89,7 +90,7 @@ func (s *SalesUseCase) CreateSales(in *entity.SaleRequest) (*entity.SaleResponse
 }
 
 // UpdateSales updates the details of an existing sale.
-func (s *SalesUseCase) UpdateSales(in *entity.SaleUpdate) (*entity.SaleResponse, error) {
+func (s *SalesUseCase) UpdateSales(in *entity.SaleUpdate) (*pb.SaleResponse, error) {
 	// Update sale in the database
 	res, err := s.repo.UpdateSale(in)
 	if err != nil {
@@ -101,7 +102,7 @@ func (s *SalesUseCase) UpdateSales(in *entity.SaleUpdate) (*entity.SaleResponse,
 }
 
 // GetSales retrieves a specific sale based on the ID.
-func (s *SalesUseCase) GetSales(req *entity.SaleID) (*entity.SaleResponse, error) {
+func (s *SalesUseCase) GetSales(req *entity.SaleID) (*pb.SaleResponse, error) {
 	// Fetch sale from the database
 	res, err := s.repo.GetSale(req)
 	if err != nil {
@@ -113,7 +114,7 @@ func (s *SalesUseCase) GetSales(req *entity.SaleID) (*entity.SaleResponse, error
 }
 
 // GetListSales retrieves a list of sales based on filter criteria.
-func (s *SalesUseCase) GetListSales(req *entity.SaleFilter) (*entity.SaleList, error) {
+func (s *SalesUseCase) GetListSales(req *entity.SaleFilter) (*pb.SaleList, error) {
 	// Fetch sales list from the database
 	res, err := s.repo.GetSaleList(req)
 	if err != nil {
@@ -125,7 +126,7 @@ func (s *SalesUseCase) GetListSales(req *entity.SaleFilter) (*entity.SaleList, e
 }
 
 // DeleteSales deletes a sale record from the system.
-func (s *SalesUseCase) DeleteSales(req *entity.SaleID) (*entity.Message, error) {
+func (s *SalesUseCase) DeleteSales(req *entity.SaleID) (*pb.Message, error) {
 	// Fetch the sale to be deleted
 	sale, err := s.repo.GetSale(req)
 	if err != nil {
@@ -139,14 +140,14 @@ func (s *SalesUseCase) DeleteSales(req *entity.SaleID) (*entity.Message, error) 
 
 	for _, item := range sale.SoldProducts {
 		wg.Add(1)
-		go func(item entity.SalesItem) {
+		go func(item *pb.SalesItem) {
 			defer wg.Done()
 			semaphore <- struct{}{}
 			defer func() { <-semaphore }()
 
 			productQuantityReq := &entity.CountProductReq{
-				Id:    item.ProductID,
-				Count: item.Quantity,
+				Id:    item.ProductId,
+				Count: int(item.Quantity),
 			}
 
 			if _, err := s.product.AddProduct(productQuantityReq); err != nil {

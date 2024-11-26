@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"crm-admin/internal/entity"
+	pb "crm-admin/pkg/gednerated/products"
 	"fmt"
 	"log/slog"
 	"sync"
@@ -52,7 +53,7 @@ func (p *PurchaseUseCase) CalculateTotalPurchases(in *entity.Purchase) (*entity.
 	return &result, nil
 }
 
-func (p *PurchaseUseCase) CreatePurchase(in *entity.Purchase) (*entity.PurchaseResponse, error) {
+func (p *PurchaseUseCase) CreatePurchase(in *entity.Purchase) (*pb.PurchaseResponse, error) {
 	req, err := p.CalculateTotalPurchases(in)
 	if err != nil {
 		p.log.Error("Error calculating total purchase cost", "error", err.Error())
@@ -68,16 +69,16 @@ func (p *PurchaseUseCase) CreatePurchase(in *entity.Purchase) (*entity.PurchaseR
 	var wg sync.WaitGroup
 	semaphore := make(chan struct{}, 10) // limit to 10 goroutines
 
-	for _, item := range *res.PurchaseItem {
+	for _, item := range res.Items {
 		wg.Add(1)
-		go func(item entity.PurchaseItemReq) {
+		go func(item *pb.PurchaseItemResponse) {
 			defer wg.Done()
 			semaphore <- struct{}{}
 			defer func() { <-semaphore }()
 
 			productQuantityReq := &entity.CountProductReq{
-				Id:    item.ProductID,
-				Count: item.Quantity,
+				Id:    item.ProductId,
+				Count: int(item.Quantity),
 			}
 			if _, err := p.product.AddProduct(productQuantityReq); err != nil {
 				p.log.Error("Error adding product quantity", "error", err.Error())
@@ -89,7 +90,7 @@ func (p *PurchaseUseCase) CreatePurchase(in *entity.Purchase) (*entity.PurchaseR
 	return res, nil
 }
 
-func (p *PurchaseUseCase) UpdatePurchase(in *entity.PurchaseUpdate) (*entity.PurchaseResponse, error) {
+func (p *PurchaseUseCase) UpdatePurchase(in *entity.PurchaseUpdate) (*pb.PurchaseResponse, error) {
 	res, err := p.repo.UpdatePurchase(in)
 	if err != nil {
 		p.log.Error("Error updating purchase", "error", err.Error())
@@ -99,7 +100,7 @@ func (p *PurchaseUseCase) UpdatePurchase(in *entity.PurchaseUpdate) (*entity.Pur
 	return res, nil
 }
 
-func (p *PurchaseUseCase) GetPurchase(req *entity.PurchaseID) (*entity.PurchaseResponse, error) {
+func (p *PurchaseUseCase) GetPurchase(req *entity.PurchaseID) (*pb.PurchaseResponse, error) {
 	res, err := p.repo.GetPurchase(req)
 	if err != nil {
 		p.log.Error("Error fetching purchase data", "error", err.Error())
@@ -109,7 +110,7 @@ func (p *PurchaseUseCase) GetPurchase(req *entity.PurchaseID) (*entity.PurchaseR
 	return res, nil
 }
 
-func (p *PurchaseUseCase) GetListPurchase(req *entity.FilterPurchase) (*entity.PurchaseList, error) {
+func (p *PurchaseUseCase) GetListPurchase(req *entity.FilterPurchase) (*pb.PurchaseList, error) {
 	res, err := p.repo.GetPurchaseList(req)
 	if err != nil {
 		p.log.Error("Error fetching purchase list", "error", err.Error())
@@ -119,15 +120,15 @@ func (p *PurchaseUseCase) GetListPurchase(req *entity.FilterPurchase) (*entity.P
 	return res, nil
 }
 
-func (p *PurchaseUseCase) validatePurchaseItems(purchase *entity.PurchaseResponse) error {
-	for _, item := range *purchase.PurchaseItem {
+func (p *PurchaseUseCase) validatePurchaseItems(purchase *pb.PurchaseResponse) error {
+	for _, item := range purchase.Items {
 		if item.Quantity == 0 {
 			item.Quantity = 1
 		}
 
 		productQuantityReq := &entity.CountProductReq{
-			Id:    item.ProductID,
-			Count: item.Quantity,
+			Id:    item.ProductId,
+			Count: int(item.Quantity),
 		}
 
 		check, err := p.product.ProductCountChecker(productQuantityReq)
@@ -143,7 +144,7 @@ func (p *PurchaseUseCase) validatePurchaseItems(purchase *entity.PurchaseRespons
 	return nil
 }
 
-func (p *PurchaseUseCase) DeletePurchase(req *entity.PurchaseID) (*entity.Message, error) {
+func (p *PurchaseUseCase) DeletePurchase(req *entity.PurchaseID) (*pb.Message, error) {
 	purchase, err := p.repo.GetPurchase(req)
 	if err != nil {
 		p.log.Error("Error fetching purchase data", "error", err.Error())
@@ -162,14 +163,14 @@ func (p *PurchaseUseCase) DeletePurchase(req *entity.PurchaseID) (*entity.Messag
 	}
 
 	go func() {
-		for _, item := range *purchase.PurchaseItem {
+		for _, item := range purchase.Items {
 			if item.Quantity == 0 {
 				item.Quantity = 1
 			}
 
 			productQuantityReq := &entity.CountProductReq{
-				Id:    item.ProductID,
-				Count: item.Quantity,
+				Id:    item.ProductId,
+				Count: int(item.Quantity),
 			}
 
 			if _, err := p.product.RemoveProduct(productQuantityReq); err != nil {
