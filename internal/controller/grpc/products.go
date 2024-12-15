@@ -5,10 +5,9 @@ import (
 	"crm-admin/internal/controller"
 	"crm-admin/internal/entity"
 	"crm-admin/internal/usecase"
-	pb "crm-admin/pkg/gednerated/products"
+	pb "crm-admin/pkg/generated/products"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/emptypb"
 	"log/slog"
 )
 
@@ -87,9 +86,13 @@ func (p *ProductsGrpc) GetCategory(ctx context.Context, in *pb.GetCategoryReques
 	return category, nil
 }
 
-func (p *ProductsGrpc) GetListCategory(ctx context.Context, in *emptypb.Empty) (*pb.CategoryList, error) {
+func (p *ProductsGrpc) GetListCategory(ctx context.Context, in *pb.CategoryName) (*pb.CategoryList, error) {
 	// Call usecase to get the list of categories
-	categoryList, err := p.product.GetListCategory(nil) // Adjust if GetListCategory requires parameters
+	req := &entity.CategoryName{
+		Name:      in.Name,
+		CreatedBy: in.CreatedBy,
+	}
+	categoryList, err := p.product.GetListCategory(req) // Adjust if GetListCategory requires parameters
 	if err != nil {
 		// Log the error for debugging
 		p.log.Error("Failed to retrieve category list", "error", err.Error())

@@ -3,7 +3,7 @@ package grpc
 import (
 	"context"
 	"crm-admin/internal/entity"
-	pb "crm-admin/pkg/gednerated/products"
+	pb "crm-admin/pkg/generated/products"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )

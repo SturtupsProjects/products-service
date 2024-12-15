@@ -30,3 +30,41 @@
 {"time":"2024-12-15T19:03:07.971370305+05:00","level":"ERROR","msg":"Failed to create product","error":"pq: value too long for type character varying(5)"}
 {"time":"2024-12-15T19:04:19.38506864+05:00","level":"ERROR","msg":"Error creating purchase","error":"sql: converting argument $1 type: unsupported type entity.PurchaseRequest, a struct"}
 {"time":"2024-12-15T19:04:19.38513461+05:00","level":"ERROR","msg":"Failed to create purchase","error":"error creating purchase: sql: converting argument $1 type: unsupported type entity.PurchaseRequest, a struct"}
+{"time":"2024-12-15T20:38:35.17869585+05:00","level":"ERROR","msg":"GetListCategory","error":"input parameter is nil"}
+{"time":"2024-12-15T20:38:35.178758378+05:00","level":"ERROR","msg":"Failed to retrieve category list","error":"input parameter is nil"}
+{"time":"2024-12-15T21:04:48.645540547+05:00","level":"ERROR","msg":"GetListCategory","error":"failed to list product categories: missing destination name created_by in *[]*products.Category"}
+{"time":"2024-12-15T21:04:48.645597834+05:00","level":"ERROR","msg":"Failed to retrieve category list","error":"failed to list product categories: missing destination name created_by in *[]*products.Category"}
+{"time":"2024-12-15T21:04:57.986687208+05:00","level":"ERROR","msg":"GetListCategory","error":"failed to list product categories: missing destination name created_by in *[]*products.Category"}
+{"time":"2024-12-15T21:04:57.986712415+05:00","level":"ERROR","msg":"Failed to retrieve category list","error":"failed to list product categories: missing destination name created_by in *[]*products.Category"}
+{"time":"2024-12-15T21:07:06.915909675+05:00","level":"ERROR","msg":"GetListCategory","error":"failed to list product categories: missing destination name created_by in *[]*products.Category"}
+{"time":"2024-12-15T21:07:06.9159493+05:00","level":"ERROR","msg":"Failed to retrieve category list","error":"failed to list product categories: missing destination name created_by in *[]*products.Category"}
+{"time":"2024-12-15T21:07:21.215432158+05:00","level":"ERROR","msg":"GetListCategory","error":"failed to list product categories: missing destination name created_by in *[]*products.Category"}
+{"time":"2024-12-15T21:07:21.215496619+05:00","level":"ERROR","msg":"Failed to retrieve category list","error":"failed to list product categories: missing destination name created_by in *[]*products.Category"}
+{"time":"2024-12-15T21:10:44.86343586+05:00","level":"ERROR","msg":"GetCategory","error":"failed to get product category: scannable dest type ptr with >1 columns (4) in result"}
+{"time":"2024-12-15T21:10:44.863500642+05:00","level":"ERROR","msg":"Failed to retrieve category","error":"failed to get product category: scannable dest type ptr with >1 columns (4) in result"}
+{"time":"2024-12-15T21:11:52.694051954+05:00","level":"ERROR","msg":"GetCategory","error":"failed to get product category: missing destination name created_by in *products.Category"}
+{"time":"2024-12-15T21:11:52.694112759+05:00","level":"ERROR","msg":"Failed to retrieve category","error":"failed to get product category: missing destination name created_by in *products.Category"}
+{"time":"2024-12-15T21:14:34.898243624+05:00","level":"ERROR","msg":"GetCategory","error":"failed to get product category: missing destination name created_by in *products.Category"}
+{"time":"2024-12-15T21:14:34.898282597+05:00","level":"ERROR","msg":"Failed to retrieve category","error":"failed to get product category: missing destination name created_by in *products.Category"}
+{"time":"2024-12-15T21:18:32.718289991+05:00","level":"ERROR","msg":"GetCategory","error":"failed to get product category: missing destination name created_by in *products.Category"}
+{"time":"2024-12-15T21:18:32.718348652+05:00","level":"ERROR","msg":"Failed to retrieve category","error":"failed to get product category: missing destination name created_by in *products.Category"}
+{"time":"2024-12-15T21:18:42.680728703+05:00","level":"ERROR","msg":"GetCategory","error":"failed to get product category: missing destination name created_by in *products.Category"}
+{"time":"2024-12-15T21:18:42.680768748+05:00","level":"ERROR","msg":"Failed to retrieve category","error":"failed to get product category: missing destination name created_by in *products.Category"}
+{"time":"2024-12-15T21:22:37.958735942+05:00","level":"ERROR","msg":"DeleteCategory","error":"failed to delete product category: pq: update or delete on table \"product_categories\" violates foreign key constraint \"products_category_id_fkey\" on table \"products\""}
+{"time":"2024-12-15T21:22:37.958774184+05:00","level":"ERROR","msg":"Failed to delete category","error":"failed to delete product category: pq: update or delete on table \"product_categories\" violates foreign key constraint \"products_category_id_fkey\" on table \"products\""}
+{"time":"2024-12-15T21:22:54.464144644+05:00","level":"ERROR","msg":"GetProductList","error":"failed to list products: missing destination name category_id in *[]*products.Product"}
+{"time":"2024-12-15T21:22:54.464182415+05:00","level":"ERROR","msg":"Failed to retrieve product list","error":"failed to list products: missing destination name category_id in *[]*products.Product"}
+{"time":"2024-12-15T21:41:05.531922059+05:00","level":"ERROR","msg":"GetProduct","error":"failed to get product: scannable dest type ptr with >1 columns (9) in result"}
+{"time":"2024-12-15T21:41:05.531961744+05:00","level":"ERROR","msg":"Failed to retrieve product","error":"failed to get product: scannable dest type ptr with >1 columns (9) in result"}
+{"time":"2024-12-15T21:57:40.863739665+05:00","level":"ERROR","msg":"GetProductList","error":"failed to list products: missing destination name category_id in *[]*products.Product"}
+{"time":"2024-12-15T21:57:40.863775082+05:00","level":"ERROR","msg":"Failed to retrieve product list","error":"failed to list products: missing destination name category_id in *[]*products.Product"}
+{"time":"2024-12-15T21:58:24.381387744+05:00","level":"ERROR","msg":"GetProductList","error":"failed to list products: missing destination name category_id in *[]*products.Product"}
+{"time":"2024-12-15T21:58:24.381421017+05:00","level":"ERROR","msg":"Failed to retrieve product list","error":"failed to list products: missing destination name category_id in *[]*products.Product"}
+{"time":"2024-12-15T22:18:38.580849661+05:00","level":"ERROR","msg":"UpdateProduct","error":"failed to update product: pq: invalid input syntax for type uuid: \"string\""}
+{"time":"2024-12-15T22:18:38.580888023+05:00","level":"ERROR","msg":"Failed to update product","error":"failed to update product: pq: invalid input syntax for type uuid: \"string\""}
+{"time":"2024-12-15T22:18:48.61088697+05:00","level":"ERROR","msg":"UpdateProduct","error":"failed to update product: pq: invalid input syntax for type uuid: \"string\""}
+{"time":"2024-12-15T22:18:48.610923759+05:00","level":"ERROR","msg":"Failed to update product","error":"failed to update product: pq: invalid input syntax for type uuid: \"string\""}
+{"time":"2024-12-15T22:19:17.091469834+05:00","level":"ERROR","msg":"UpdateProduct","error":"failed to update product: pq: invalid input syntax for type uuid: \"string\""}
+{"time":"2024-12-15T22:19:17.091508006+05:00","level":"ERROR","msg":"Failed to update product","error":"failed to update product: pq: invalid input syntax for type uuid: \"string\""}
+{"time":"2024-12-15T22:19:23.234694398+05:00","level":"ERROR","msg":"UpdateProduct","error":"failed to update product: pq: value too long for type character varying(5)"}
+{"time":"2024-12-15T22:19:23.234724264+05:00","level":"ERROR","msg":"Failed to update product","error":"failed to update product: pq: value too long for type character varying(5)"}

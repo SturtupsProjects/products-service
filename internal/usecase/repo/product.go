@@ -3,9 +3,12 @@ package repo
 import (
 	"crm-admin/internal/entity"
 	"crm-admin/internal/usecase"
-	pb "crm-admin/pkg/gednerated/products"
+	pb "crm-admin/pkg/generated/products"
+	"database/sql"
+	"errors"
 	"fmt"
 	"github.com/jmoiron/sqlx"
+	"strconv"
 	"strings"
 )
 
@@ -52,12 +55,30 @@ func (p *productRepo) DeleteProductCategory(in *entity.CategoryID) (*pb.Message,
 }
 
 func (p *productRepo) GetProductCategory(in *entity.CategoryID) (*pb.Category, error) {
-	var category *pb.Category
+	// Check if the input parameter is nil
+	if in == nil {
+		return nil, fmt.Errorf("input parameter is nil")
+	}
+
+	// Create an instance of the intermediary struct
+	var dbCat entity.DbCategory
 	query := `SELECT id, name, created_by, created_at FROM product_categories WHERE id = $1`
 
-	err := p.db.Get(&category, query, in.ID)
+	// Execute the query and map the result to dbCategory
+	err := p.db.Get(&dbCat, query, in.ID)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, fmt.Errorf("category not found")
+		}
 		return nil, fmt.Errorf("failed to get product category: %w", err)
+	}
+
+	// Map the dbCategory to the pb.Category
+	category := &pb.Category{
+		Id:        dbCat.Id,
+		Name:      dbCat.Name,
+		CreatedBy: dbCat.CreatedBy,
+		CreatedAt: dbCat.CreatedAt, // Adjust this if needed (e.g., converting to time.Time)
 	}
 
 	return category, nil
@@ -65,18 +86,35 @@ func (p *productRepo) GetProductCategory(in *entity.CategoryID) (*pb.Category, e
 
 func (p *productRepo) GetListProductCategory(in *entity.CategoryName) (*pb.CategoryList, error) {
 	var categories []*pb.Category
-	query := `SELECT id, name, created_by,created_at FROM product_categories`
-	args := make([]interface{}, 1)
+	query := `SELECT id, name, created_by, created_at FROM product_categories`
+	var args []interface{}
 
 	if in.Name != "" {
-		query += "WHERE name LIKE $1"
+		query += " WHERE name LIKE $1"
 		args = append(args, "%"+in.Name+"%")
 	}
 
-	err := p.db.Select(&categories, query, args)
+	// Execute the query
+	rows, err := p.db.Query(query, args...)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list product categories: %w", err)
+		return nil, fmt.Errorf("failed to execute query: %w", err)
 	}
+	defer rows.Close()
+
+	// Iterate through the rows and build the categories list
+	for rows.Next() {
+		var category pb.Category
+		if err := rows.Scan(&category.Id, &category.Name, &category.CreatedBy, &category.CreatedAt); err != nil {
+			return nil, fmt.Errorf("failed to scan row: %w", err)
+		}
+		categories = append(categories, &category)
+	}
+
+	// Check for errors encountered during iteration
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error while iterating rows: %w", err)
+	}
+
 	return &pb.CategoryList{Categories: categories}, nil
 }
 
@@ -104,7 +142,8 @@ func (p *productRepo) CreateProduct(in *entity.ProductRequest) (*pb.Product, err
 }
 
 func (p *productRepo) UpdateProduct(in *entity.ProductUpdate) (*pb.Product, error) {
-	var product *pb.Product
+	// Initialize product struct
+	product := &pb.Product{}
 	query := `UPDATE products SET `
 	var args []interface{}
 	argCounter := 1
@@ -142,8 +181,17 @@ func (p *productRepo) UpdateProduct(in *entity.ProductUpdate) (*pb.Product, erro
 	args = append(args, in.ID)
 
 	// Execute the query
-	err := p.db.QueryRowx(query, args...).Scan(&product.Id, &product.CategoryId, &product.Name, &product.BillFormat,
-		&product.IncomingPrice, &product.StandardPrice, &product.TotalCount, &product.CreatedBy, &product.CreatedAt)
+	err := p.db.QueryRowx(query, args...).Scan(
+		&product.Id,
+		&product.CategoryId,
+		&product.Name,
+		&product.BillFormat,
+		&product.IncomingPrice,
+		&product.StandardPrice,
+		&product.TotalCount,
+		&product.CreatedBy,
+		&product.CreatedAt,
+	)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to update product: %w", err)
@@ -165,15 +213,35 @@ func (p *productRepo) DeleteProduct(in *entity.ProductID) (*pb.Message, error) {
 }
 
 func (p *productRepo) GetProduct(in *entity.ProductID) (*pb.Product, error) {
-	var product *pb.Product
+	if in == nil {
+		return nil, fmt.Errorf("input parameter is nil")
+	}
 
+	// Create an instance of the intermediary struct
+	var DbProd entity.DbProduct
 	query := `SELECT id, category_id, name, bill_format, incoming_price, standard_price,
-       total_count, created_by, created_at FROM products WHERE id = $1`
+              total_count, created_by, created_at FROM products WHERE id = $1`
 
-	err := p.db.Get(&product, query, in.ID)
-
+	// Execute the query and map the result to DbProduct
+	err := p.db.Get(&DbProd, query, in.ID)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, fmt.Errorf("product not found")
+		}
 		return nil, fmt.Errorf("failed to get product: %w", err)
+	}
+
+	// Map the dbProduct to pb.Product
+	product := &pb.Product{
+		Id:            DbProd.Id,
+		CategoryId:    DbProd.CategoryId,
+		Name:          DbProd.Name,
+		BillFormat:    DbProd.BillFormat,
+		IncomingPrice: float32(DbProd.IncomingPrice),
+		StandardPrice: float32(DbProd.StandardPrice),
+		TotalCount:    int64(DbProd.TotalCount),
+		CreatedBy:     DbProd.CreatedBy,
+		CreatedAt:     DbProd.CreatedAt, // Adjust if needed (e.g., to time.Time)
 	}
 
 	return product, nil
@@ -185,25 +253,29 @@ func (p *productRepo) GetProductList(in *entity.FilterProduct) (*pb.ProductList,
 	var filters []string
 
 	query := `
-		SELECT id, category_id, name, bill_format, incoming_price, standard_price, total_count, created_by, created_at
-		FROM products 
-	`
+        SELECT id, category_id, name, bill_format, incoming_price, standard_price, total_count, created_by, created_at
+        FROM products 
+    `
 
 	// Dynamically build the WHERE clause based on filters
 	if in.CategoryId != "" {
-		filters = append(filters, `category_id = ?`)
+		filters = append(filters, `category_id = $1`)
 		args = append(args, in.CategoryId)
 	}
 	if in.Name != "" {
-		filters = append(filters, `name ILIKE ?`)
+		filters = append(filters, `name ILIKE $2`)
 		args = append(args, "%"+in.Name+"%")
 	}
 	if in.TotalCount != "" {
-		filters = append(filters, `total_count = ?`)
-		args = append(args, in.TotalCount)
+		totalCount, err := strconv.Atoi(in.TotalCount)
+		if err != nil {
+			return nil, fmt.Errorf("invalid total_count value: %w", err)
+		}
+		filters = append(filters, `total_count = $3`)
+		args = append(args, totalCount)
 	}
 	if in.CreatedBy != "" {
-		filters = append(filters, `created_by = ?`)
+		filters = append(filters, `created_by = $4`)
 		args = append(args, in.CreatedBy)
 	}
 
@@ -215,10 +287,26 @@ func (p *productRepo) GetProductList(in *entity.FilterProduct) (*pb.ProductList,
 	// Add ordering to the query
 	query += " ORDER BY created_at DESC"
 
-	// Execute the query
-	err := p.db.Select(&products, query, args...)
+	// Execute the query and store the result in dbProduct
+	var dbProducts []entity.DbProduct
+	err := p.db.Select(&dbProducts, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list products: %w", err)
+	}
+
+	// Map dbProduct to pb.Product
+	for _, dbProd := range dbProducts {
+		products = append(products, &pb.Product{
+			Id:            dbProd.Id,
+			CategoryId:    dbProd.CategoryId,
+			Name:          dbProd.Name,
+			BillFormat:    dbProd.BillFormat,
+			IncomingPrice: float32(dbProd.IncomingPrice),
+			StandardPrice: float32(dbProd.StandardPrice),
+			TotalCount:    int64(dbProd.TotalCount),
+			CreatedBy:     dbProd.CreatedBy,
+			CreatedAt:     dbProd.CreatedAt,
+		})
 	}
 
 	return &pb.ProductList{Products: products}, nil

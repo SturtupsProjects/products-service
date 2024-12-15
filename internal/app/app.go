@@ -4,7 +4,7 @@ import (
 	"crm-admin/config"
 	"crm-admin/internal/controller"
 	grpc1 "crm-admin/internal/controller/grpc"
-	"crm-admin/pkg/gednerated/products"
+	"crm-admin/pkg/generated/products"
 	"crm-admin/pkg/logger"
 	"crm-admin/pkg/postgres"
 	"google.golang.org/grpc"

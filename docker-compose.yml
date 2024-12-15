@@ -41,7 +41,7 @@ services:
     networks:
       - CRMNet
     ports:
-      - "9091:9091"
+      - "8070:8070"
 
 
 networks:

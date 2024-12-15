@@ -11,6 +11,25 @@ type CategoryID struct {
 	ID string `json:"id" db:"id"`
 }
 
+// Intermediary struct to match the database columns
+type DbCategory struct {
+	Id        string `db:"id"`
+	Name      string `db:"name"`
+	CreatedBy string `db:"created_by"`
+	CreatedAt string `db:"created_at"`
+}
+type DbProduct struct {
+	Id            string  `db:"id"`
+	CategoryId    string  `db:"category_id"`
+	Name          string  `db:"name"`
+	BillFormat    string  `db:"bill_format"`
+	IncomingPrice float64 `db:"incoming_price"`
+	StandardPrice float64 `db:"standard_price"`
+	TotalCount    int     `db:"total_count"`
+	CreatedBy     string  `db:"created_by"`
+	CreatedAt     string  `db:"created_at"`
+}
+
 type Category struct {
 	ID        string `json:"id" db:"id"`
 	Name      string `json:"name" db:"name"`

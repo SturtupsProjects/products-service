@@ -2,7 +2,7 @@ package usecase
 
 import (
 	"crm-admin/internal/entity"
-	pb "crm-admin/pkg/gednerated/products"
+	pb "crm-admin/pkg/generated/products"
 	"log/slog"
 )
 

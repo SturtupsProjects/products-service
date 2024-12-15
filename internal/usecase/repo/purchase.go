@@ -3,7 +3,7 @@ package repo
 import (
 	"crm-admin/internal/entity"
 	"crm-admin/internal/usecase"
-	pb "crm-admin/pkg/gednerated/products"
+	pb "crm-admin/pkg/generated/products"
 	"errors"
 	"fmt"
 	"github.com/jmoiron/sqlx"
