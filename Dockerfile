@@ -23,7 +23,7 @@ COPY --from=builder /app/main .
 
 RUN mkdir -p pkg/logs
 
-EXPOSE 9090
+EXPOSE 9091
 
 RUN chmod +x ./main
 

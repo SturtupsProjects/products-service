@@ -4,7 +4,7 @@ services:
   migrate:
     image: "migrate/migrate"
     networks:
-      - crm-admin-net
+      - CRMNet
     volumes:
       - ./migrations:/migrations
     command: ["-path", "/migrations", "-database", "postgres://postgres:123321@postgres:5432/crm_admin?sslmode=disable", "up"]
@@ -21,7 +21,7 @@ services:
       - POSTGRES_DB=crm_admin
 
     networks:
-      - crm-admin-net
+      - CRMNet
     ports:
       - 5435:5432
     volumes:
@@ -32,21 +32,21 @@ services:
       timeout: 10s
       retries: 5
 
-  auth:
-    container_name: crm-admin
+  product:
+    container_name: product
     build: .
     depends_on:
       postgres:
         condition: service_healthy
     networks:
-      - crm-admin-net
+      - CRMNet
     ports:
-      - "9090:9090"
+      - "9091:9091"
 
 
 networks:
-  crm-admin-net:
-    name: crm-admin-net
+  CRMNet:
+    name: CRMNet
     driver: bridge
 
 volumes:
