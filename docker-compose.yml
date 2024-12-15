@@ -23,7 +23,7 @@ services:
     networks:
       - CRMNet
     ports:
-      - 5435:5432
+      - 5436:5432
     volumes:
       - postgres_data:/postgres/data
     healthcheck:
