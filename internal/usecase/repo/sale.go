@@ -2,8 +2,8 @@ package repo
 
 import (
 	"crm-admin/internal/entity"
+	pb "crm-admin/internal/generated/products"
 	"crm-admin/internal/usecase"
-	pb "crm-admin/pkg/generated/products"
 	"errors"
 	"fmt"
 	"github.com/jmoiron/sqlx"
@@ -49,6 +49,7 @@ func (r *salesRepoImpl) CreateSale(in *entity.SalesTotal) (*pb.SaleResponse, err
 }
 
 func (r *salesRepoImpl) UpdateSale(in *entity.SaleUpdate) (*pb.SaleResponse, error) {
+
 	query := `UPDATE sales SET `
 	updates := []string{}
 	params := map[string]interface{}{"id": in.ID}
@@ -79,13 +80,12 @@ func (r *salesRepoImpl) UpdateSale(in *entity.SaleUpdate) (*pb.SaleResponse, err
 }
 
 func (r *salesRepoImpl) GetSale(in *entity.SaleID) (*pb.SaleResponse, error) {
+
 	query := `SELECT id, client_id, sold_by, total_sale_price, payment_method, created_at
 	          FROM sales WHERE id = $1`
 
-	// Создаем объект для ответа
 	sale := &pb.SaleResponse{}
 
-	// Используем QueryRowx и Scan для основной записи
 	err := r.db.QueryRowx(query, in.ID).Scan(
 		&sale.Id,
 		&sale.ClientId,
@@ -98,14 +98,11 @@ func (r *salesRepoImpl) GetSale(in *entity.SaleID) (*pb.SaleResponse, error) {
 		return nil, err
 	}
 
-	// Выполняем запрос для связанных данных (проданные продукты)
 	itemsQuery := `SELECT id, sale_id, product_id, quantity, sale_price, total_price
 	               FROM sales_items WHERE sale_id = $1`
 
-	// Объявляем слайс для проданных продуктов
 	var soldProducts []*pb.SalesItem
 
-	// Выполняем Select и сохраняем результат в soldProducts
 	rows, err := r.db.Queryx(itemsQuery, in.ID)
 	if err != nil {
 		return nil, err
@@ -128,7 +125,6 @@ func (r *salesRepoImpl) GetSale(in *entity.SaleID) (*pb.SaleResponse, error) {
 		soldProducts = append(soldProducts, &item)
 	}
 
-	// Присваиваем найденные продукты к результату
 	sale.SoldProducts = soldProducts
 
 	return sale, nil
@@ -147,7 +143,6 @@ func (r *salesRepoImpl) GetSaleList(in *entity.SaleFilter) (*pb.SaleList, error)
 		WHERE 1=1
 	`)
 
-	// Условия фильтрации
 	if in.ClientID != "" {
 		queryBuilder.WriteString(" AND s.client_id ILIKE '%' || $" + fmt.Sprint(argIndex) + " || '%'")
 		args = append(args, in.ClientID)
@@ -175,14 +170,12 @@ func (r *salesRepoImpl) GetSaleList(in *entity.SaleFilter) (*pb.SaleList, error)
 	queryBuilder.WriteString(" ORDER BY s.created_at DESC")
 	query := queryBuilder.String()
 
-	// Выполнение запроса
 	rows, err := r.db.Queryx(query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list sales: %w", err)
 	}
 	defer rows.Close()
 
-	// Чтение данных из результата
 	for rows.Next() {
 		var sale pb.SaleResponse
 		err = rows.Scan(
@@ -199,7 +192,6 @@ func (r *salesRepoImpl) GetSaleList(in *entity.SaleFilter) (*pb.SaleList, error)
 		sales = append(sales, &sale)
 	}
 
-	// Проверка на ошибки при чтении строк
 	if err = rows.Err(); err != nil {
 		return nil, fmt.Errorf("error iterating over sales: %w", err)
 	}

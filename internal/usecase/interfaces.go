@@ -2,20 +2,20 @@ package usecase
 
 import (
 	"crm-admin/internal/entity"
-	pb "crm-admin/pkg/generated/products"
+	pb "crm-admin/internal/generated/products"
 )
 
 type ProductsRepo interface {
-	CreateProductCategory(in *entity.CategoryName) (*pb.Category, error)
-	DeleteProductCategory(in *entity.CategoryID) (*pb.Message, error)
-	GetProductCategory(in *entity.CategoryID) (*pb.Category, error)
-	GetListProductCategory(in *entity.CategoryName) (*pb.CategoryList, error)
+	CreateProductCategory(in *pb.CreateCategoryRequest) (*pb.Category, error)
+	DeleteProductCategory(in *pb.GetCategoryRequest) (*pb.Message, error)
+	GetProductCategory(in *pb.GetCategoryRequest) (*pb.Category, error)
+	GetListProductCategory(in *pb.CategoryName) (*pb.CategoryList, error)
 
-	CreateProduct(in *entity.ProductRequest) (*pb.Product, error)
-	UpdateProduct(in *entity.ProductUpdate) (*pb.Product, error)
-	DeleteProduct(in *entity.ProductID) (*pb.Message, error)
-	GetProduct(in *entity.ProductID) (*pb.Product, error)
-	GetProductList(in *entity.FilterProduct) (*pb.ProductList, error)
+	CreateProduct(in *pb.CreateProductRequest) (*pb.Product, error)
+	UpdateProduct(in *pb.UpdateProductRequest) (*pb.Product, error)
+	DeleteProduct(in *pb.GetProductRequest) (*pb.Message, error)
+	GetProduct(in *pb.GetProductRequest) (*pb.Product, error)
+	GetProductList(in *pb.ProductFilter) (*pb.ProductList, error)
 }
 
 type ProductQuantity interface {

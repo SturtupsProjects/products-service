@@ -2,7 +2,7 @@ package usecase
 
 import (
 	"crm-admin/internal/entity"
-	pb "crm-admin/pkg/generated/products"
+	pb "crm-admin/internal/generated/products"
 	"fmt"
 	"log/slog"
 	"sync"
@@ -24,17 +24,17 @@ func NewSalesUseCase(repo SalesRepo, pr ProductQuantity, log *slog.Logger) *Sale
 
 // CalculateTotalSales calculates the total sale price from the sale request.
 func (s *SalesUseCase) CalculateTotalSales(in *entity.SaleRequest) (*entity.SalesTotal, error) {
-	var totalPrice float64
+	var totalPrice int64
 	var soldProducts []entity.SalesItem
 
 	// Calculate total price and fill sold products
 	for _, item := range in.SoldProducts {
-		totalPrice += float64(item.Quantity) * item.SalePrice
+		totalPrice += item.Quantity * item.SalePrice
 		soldProducts = append(soldProducts, entity.SalesItem{
 			ProductID:  item.ProductID,
 			Quantity:   item.Quantity,
 			SalePrice:  item.SalePrice,
-			TotalPrice: float64(item.Quantity) * item.SalePrice,
+			TotalPrice: item.Quantity * item.SalePrice,
 		})
 	}
 

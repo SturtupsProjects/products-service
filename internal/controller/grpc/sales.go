@@ -3,7 +3,7 @@ package grpc
 import (
 	"context"
 	"crm-admin/internal/entity"
-	pb "crm-admin/pkg/generated/products"
+	pb "crm-admin/internal/generated/products"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -22,7 +22,7 @@ func (p *ProductsGrpc) CalculateTotalSales(ctx context.Context, in *pb.SaleReque
 	for _, item := range in.GetSoldProducts() {
 		soldProducts = append(soldProducts, entity.SalesItem{
 			ProductID: item.GetProductId(),
-			Quantity:  int(item.GetQuantity()),
+			Quantity:  int64(item.GetQuantity()),
 			SalePrice: item.GetSalePrice(),
 		})
 	}
@@ -53,7 +53,7 @@ func (p *ProductsGrpc) CreateSales(ctx context.Context, in *pb.SaleRequest) (*pb
 	for _, item := range in.GetSoldProducts() {
 		soldProducts = append(soldProducts, entity.SalesItem{
 			ProductID: item.GetProductId(),
-			Quantity:  int(item.GetQuantity()),
+			Quantity:  int64(item.GetQuantity()),
 			SalePrice: item.GetSalePrice(),
 		})
 	}

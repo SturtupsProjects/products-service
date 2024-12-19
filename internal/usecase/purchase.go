@@ -2,7 +2,7 @@ package usecase
 
 import (
 	"crm-admin/internal/entity"
-	pb "crm-admin/pkg/generated/products"
+	pb "crm-admin/internal/generated/products"
 	"fmt"
 	"log/slog"
 	"sync"
@@ -24,7 +24,7 @@ func NewPurchaseUseCase(repo PurchasesRepo, pr ProductQuantity, log *slog.Logger
 
 func (p *PurchaseUseCase) CalculateTotalPurchases(in *entity.Purchase) (*entity.PurchaseRequest, error) {
 	var result entity.PurchaseRequest
-	var totalSum float64
+	var totalSum int64
 	var purchaseList []entity.PurchaseItemReq
 
 	for _, pr := range *in.PurchaseItem {
@@ -36,7 +36,7 @@ func (p *PurchaseUseCase) CalculateTotalPurchases(in *entity.Purchase) (*entity.
 			PurchasePrice: pr.PurchasePrice,
 			ProductID:     pr.ProductID,
 			Quantity:      pr.Quantity,
-			TotalPrice:    float64(pr.Quantity) * pr.PurchasePrice,
+			TotalPrice:    int64(pr.Quantity) * pr.PurchasePrice,
 		}
 
 		purchaseList = append(purchaseList, purchase)

@@ -3,9 +3,8 @@ package grpc
 import (
 	"context"
 	"crm-admin/internal/controller"
-	"crm-admin/internal/entity"
+	pb "crm-admin/internal/generated/products"
 	"crm-admin/internal/usecase"
-	pb "crm-admin/pkg/generated/products"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"log/slog"
@@ -31,19 +30,11 @@ func NewProductGrpc(ctrl *controller.Controller, log *slog.Logger) *ProductsGrpc
 // ---------------------------------- Product Category --------------------------------------------------------------
 
 func (p *ProductsGrpc) CreateCategory(ctx context.Context, in *pb.CreateCategoryRequest) (*pb.Category, error) {
-	// Map gRPC request to internal use case structure
-	categoryName := &entity.CategoryName{
-		Name:      in.GetName(),
-		CreatedBy: in.GetCreatedBy(),
-	}
 
-	// Call the usecase layer to create the category
-	category, err := p.product.CreateCategory(categoryName)
+	category, err := p.product.CreateCategory(in)
+
 	if err != nil {
-		// Log the error for debugging
 		p.log.Error("Failed to create category", "error", err.Error())
-
-		// Return a gRPC status error with internal code
 		return nil, status.Errorf(codes.Internal, "Failed to create category: %v", err)
 	}
 
@@ -51,17 +42,11 @@ func (p *ProductsGrpc) CreateCategory(ctx context.Context, in *pb.CreateCategory
 }
 
 func (p *ProductsGrpc) DeleteCategory(ctx context.Context, in *pb.GetCategoryRequest) (*pb.Message, error) {
-	categoryID := &entity.CategoryID{
-		ID: in.GetId(),
-	}
 
-	// Call usecase to delete the category
-	message, err := p.product.DeleteCategory(categoryID)
+	message, err := p.product.DeleteCategory(in)
+
 	if err != nil {
-		// Log the error for debugging
 		p.log.Error("Failed to delete category", "error", err.Error())
-
-		// Return a gRPC status error with internal code
 		return nil, status.Errorf(codes.Internal, "Failed to delete category: %v", err)
 	}
 
@@ -69,17 +54,11 @@ func (p *ProductsGrpc) DeleteCategory(ctx context.Context, in *pb.GetCategoryReq
 }
 
 func (p *ProductsGrpc) GetCategory(ctx context.Context, in *pb.GetCategoryRequest) (*pb.Category, error) {
-	categoryID := &entity.CategoryID{
-		ID: in.GetId(),
-	}
 
-	// Call usecase to retrieve category details
-	category, err := p.product.GetCategory(categoryID)
+	category, err := p.product.GetCategory(in)
+
 	if err != nil {
-		// Log the error for debugging
 		p.log.Error("Failed to retrieve category", "error", err.Error())
-
-		// Return a gRPC status error with not found code if no category found
 		return nil, status.Errorf(codes.NotFound, "Category not found: %v", err)
 	}
 
@@ -87,17 +66,11 @@ func (p *ProductsGrpc) GetCategory(ctx context.Context, in *pb.GetCategoryReques
 }
 
 func (p *ProductsGrpc) GetListCategory(ctx context.Context, in *pb.CategoryName) (*pb.CategoryList, error) {
-	// Call usecase to get the list of categories
-	req := &entity.CategoryName{
-		Name:      in.Name,
-		CreatedBy: in.CreatedBy,
-	}
-	categoryList, err := p.product.GetListCategory(req) // Adjust if GetListCategory requires parameters
-	if err != nil {
-		// Log the error for debugging
-		p.log.Error("Failed to retrieve category list", "error", err.Error())
 
-		// Return a gRPC status error with internal code
+	categoryList, err := p.product.GetListCategory(in)
+
+	if err != nil {
+		p.log.Error("Failed to retrieve category list", "error", err.Error())
 		return nil, status.Errorf(codes.Internal, "Failed to retrieve category list: %v", err)
 	}
 
@@ -107,22 +80,11 @@ func (p *ProductsGrpc) GetListCategory(ctx context.Context, in *pb.CategoryName)
 // --------------------------------------- Products --------------------------------------------------------------
 
 func (p *ProductsGrpc) CreateProduct(ctx context.Context, in *pb.CreateProductRequest) (*pb.Product, error) {
-	productReq := &entity.ProductRequest{
-		CategoryID:    in.GetCategoryId(),
-		Name:          in.GetName(),
-		BillFormat:    in.GetBillFormat(),
-		IncomingPrice: in.GetIncomingPrice(),
-		StandardPrice: in.GetStandardPrice(),
-		CreatedBy:     in.GetCreatedBy(),
-	}
 
-	// Call usecase to create product
-	product, err := p.product.CreateProduct(productReq)
+	product, err := p.product.CreateProduct(in)
+
 	if err != nil {
-		// Log the error for debugging
 		p.log.Error("Failed to create product", "error", err.Error())
-
-		// Return a gRPC status error with internal code
 		return nil, status.Errorf(codes.Internal, "Failed to create product: %v", err)
 	}
 
@@ -130,22 +92,11 @@ func (p *ProductsGrpc) CreateProduct(ctx context.Context, in *pb.CreateProductRe
 }
 
 func (p *ProductsGrpc) UpdateProduct(ctx context.Context, in *pb.UpdateProductRequest) (*pb.Product, error) {
-	productUpdate := &entity.ProductUpdate{
-		ID:            in.GetId(),
-		CategoryID:    in.GetCategoryId(),
-		Name:          in.GetName(),
-		BillFormat:    in.GetBillFormat(),
-		IncomingPrice: in.GetIncomingPrice(),
-		StandardPrice: in.GetStandardPrice(),
-	}
 
-	// Call usecase to update the product
-	product, err := p.product.UpdateProduct(productUpdate)
+	product, err := p.product.UpdateProduct(in)
+
 	if err != nil {
-		// Log the error for debugging
 		p.log.Error("Failed to update product", "error", err.Error())
-
-		// Return a gRPC status error with internal code
 		return nil, status.Errorf(codes.Internal, "Failed to update product: %v", err)
 	}
 
@@ -153,17 +104,11 @@ func (p *ProductsGrpc) UpdateProduct(ctx context.Context, in *pb.UpdateProductRe
 }
 
 func (p *ProductsGrpc) DeleteProduct(ctx context.Context, in *pb.GetProductRequest) (*pb.Message, error) {
-	productID := &entity.ProductID{
-		ID: in.GetId(),
-	}
 
-	// Call usecase to delete the product
-	message, err := p.product.DeleteProduct(productID)
+	message, err := p.product.DeleteProduct(in)
+
 	if err != nil {
-		// Log the error for debugging
 		p.log.Error("Failed to delete product", "error", err.Error())
-
-		// Return a gRPC status error with internal code
 		return nil, status.Errorf(codes.Internal, "Failed to delete product: %v", err)
 	}
 
@@ -171,39 +116,23 @@ func (p *ProductsGrpc) DeleteProduct(ctx context.Context, in *pb.GetProductReque
 }
 
 func (p *ProductsGrpc) GetProduct(ctx context.Context, in *pb.GetProductRequest) (*pb.Product, error) {
-	productID := &entity.ProductID{
-		ID: in.GetId(),
-	}
 
-	// Call usecase to retrieve product details
-	product, err := p.product.GetProduct(productID)
+	product, err := p.product.GetProduct(in)
+
 	if err != nil {
-		// Log the error for debugging
 		p.log.Error("Failed to retrieve product", "error", err.Error())
-
-		// Return a gRPC status error with not found code if product not found
 		return nil, status.Errorf(codes.NotFound, "Product not found: %v", err)
 	}
 
 	return product, nil
 }
 
-// Continuing from GetProductList method
-
 func (p *ProductsGrpc) GetProductList(ctx context.Context, in *pb.ProductFilter) (*pb.ProductList, error) {
-	filter := &entity.FilterProduct{
-		CategoryId: in.GetCategoryId(),
-		Name:       in.GetName(),
-		CreatedBy:  in.GetCreatedBy(),
-	}
 
-	// Call the usecase to retrieve the filtered product list
-	productList, err := p.product.GetProductList(filter)
+	productList, err := p.product.GetProductList(in)
+
 	if err != nil {
-		// Log the error for debugging
 		p.log.Error("Failed to retrieve product list", "error", err.Error())
-
-		// Return a gRPC status error with internal code
 		return nil, status.Errorf(codes.Internal, "Failed to retrieve product list: %v", err)
 	}
 

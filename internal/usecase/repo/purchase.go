@@ -2,8 +2,8 @@ package repo
 
 import (
 	"crm-admin/internal/entity"
+	pb "crm-admin/internal/generated/products"
 	"crm-admin/internal/usecase"
-	pb "crm-admin/pkg/generated/products"
 	"errors"
 	"fmt"
 	"github.com/jmoiron/sqlx"
@@ -41,7 +41,7 @@ func (r *purchasesRepoImpl) CreatePurchase(in *entity.PurchaseRequest) (*pb.Purc
 }
 
 func (r *purchasesRepoImpl) UpdatePurchase(in *entity.PurchaseUpdate) (*pb.PurchaseResponse, error) {
-	// Изначальный запрос с условиями
+
 	query := `UPDATE purchases SET `
 	updates := []string{}
 	params := map[string]interface{}{"id": in.ID}
@@ -60,16 +60,13 @@ func (r *purchasesRepoImpl) UpdatePurchase(in *entity.PurchaseUpdate) (*pb.Purch
 		params["payment_method"] = in.PaymentMethod
 	}
 
-	// Если нет полей для обновления, возвращаем ошибку
 	if len(updates) == 0 {
 		return nil, errors.New("no fields to update")
 	}
 
-	// Объединяем части обновляемых полей
 	query += strings.Join(updates, ", ")
 	query += " WHERE id = :id RETURNING id, supplier_id, purchased_by, total_cost, description, payment_method, created_at"
 
-	// Выполняем запрос
 	purchase := &pb.PurchaseResponse{}
 	err := r.db.QueryRowx(query, params).StructScan(purchase)
 	if err != nil {
@@ -105,7 +102,6 @@ func (r *purchasesRepoImpl) GetPurchaseList(in *entity.FilterPurchase) (*pb.Purc
 	var args []interface{}
 	argIndex := 1
 
-	// Базовый запрос
 	queryBuilder.WriteString(`
 		SELECT p.id, p.supplier_id, p.purchased_by, p.total_cost, p.description, 
 		       p.payment_method, p.created_at 
@@ -113,31 +109,26 @@ func (r *purchasesRepoImpl) GetPurchaseList(in *entity.FilterPurchase) (*pb.Purc
 		WHERE 1=1
 	`)
 
-	// Фильтр по SupplierID с использованием ILIKE
 	if in.SupplierID != "" {
 		queryBuilder.WriteString(" AND p.supplier_id ILIKE '%' || $" + fmt.Sprint(argIndex) + " || '%'")
 		args = append(args, in.SupplierID)
 		argIndex++
 	}
 
-	// Фильтр по PurchasedBy с использованием ILIKE
 	if in.PurchasedBy != "" {
 		queryBuilder.WriteString(" AND p.purchased_by ILIKE '%' || $" + fmt.Sprint(argIndex) + " || '%'")
 		args = append(args, in.PurchasedBy)
 		argIndex++
 	}
 
-	// Фильтр по CreatedAt
 	if in.CreatedAt != "" {
 		queryBuilder.WriteString(" AND DATE(p.created_at) = DATE($" + fmt.Sprint(argIndex) + ")")
 		args = append(args, in.CreatedAt)
 		argIndex++
 	}
 
-	// Сортировка по дате создания
 	queryBuilder.WriteString(" ORDER BY p.created_at DESC")
 
-	// Выполнение запроса
 	query := queryBuilder.String()
 	err := r.db.Select(&purchases, query, args...)
 	if err != nil {
@@ -152,13 +143,16 @@ func (r *purchasesRepoImpl) DeletePurchase(in *entity.PurchaseID) (*pb.Message, 
 	if err != nil {
 		return nil, err
 	}
+
 	result, err := r.db.Exec(`DELETE FROM purchases WHERE id = $1`, in.ID)
 	if err != nil {
 		return nil, err
 	}
+
 	rowsAffected, _ := result.RowsAffected()
 	if rowsAffected == 0 {
 		return nil, errors.New("purchase not found")
 	}
+
 	return &pb.Message{Message: "Purchase deleted successfully"}, nil
 }

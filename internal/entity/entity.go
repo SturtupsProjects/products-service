@@ -1,35 +1,5 @@
 package entity
 
-// ----------------- ProductCategory structs for Repo -----------------------------
-
-type CategoryName struct {
-	Name      string `json:"name" db:"name"`
-	CreatedBy string `json:"created_by" db:"created_by"`
-}
-
-type CategoryID struct {
-	ID string `json:"id" db:"id"`
-}
-
-// Intermediary struct to match the database columns
-type DbCategory struct {
-	Id        string `db:"id"`
-	Name      string `db:"name"`
-	CreatedBy string `db:"created_by"`
-	CreatedAt string `db:"created_at"`
-}
-type DbProduct struct {
-	Id            string  `db:"id"`
-	CategoryId    string  `db:"category_id"`
-	Name          string  `db:"name"`
-	BillFormat    string  `db:"bill_format"`
-	IncomingPrice float64 `db:"incoming_price"`
-	StandardPrice float64 `db:"standard_price"`
-	TotalCount    int     `db:"total_count"`
-	CreatedBy     string  `db:"created_by"`
-	CreatedAt     string  `db:"created_at"`
-}
-
 type Category struct {
 	ID        string `json:"id" db:"id"`
 	Name      string `json:"name" db:"name"`
@@ -136,17 +106,17 @@ type PurchaseItemResponse struct {
 type PurchaseRequest struct {
 	SupplierID    string             `json:"supplier_id" db:"supplier_id"`
 	PurchasedBy   string             `json:"purchased_by" db:"purchased_by"`
-	TotalCost     float64            `json:"total_cost" db:"total_cost"`
+	TotalCost     int64              `json:"total_cost" db:"total_cost"`
 	Description   string             `json:"description" db:"description"`
 	PaymentMethod string             `json:"payment_method" db:"payment_method"`
 	PurchaseItem  *[]PurchaseItemReq `json:"purchase_item" db:"purchase_item"`
 }
 
 type PurchaseItemReq struct {
-	ProductID     string  `json:"product_id" db:"product_id"`
-	Quantity      int     `json:"quantity" db:"quantity"`
-	PurchasePrice float64 `json:"purchase_price" db:"purchase_price"`
-	TotalPrice    float64 `json:"total_price" db:"total_price"`
+	ProductID     string `json:"product_id" db:"product_id"`
+	Quantity      int    `json:"quantity" db:"quantity"`
+	PurchasePrice int64  `json:"purchase_price" db:"purchase_price"`
+	TotalPrice    int64  `json:"total_price" db:"total_price"`
 }
 
 type Purchase struct {
@@ -158,9 +128,9 @@ type Purchase struct {
 }
 
 type PurchaseItem struct {
-	ProductID     string  `json:"product_id" db:"product_id"`
-	Quantity      int     `json:"quantity" db:"quantity"`
-	PurchasePrice float64 `json:"purchase_price" db:"purchase_price"`
+	ProductID     string `json:"product_id" db:"product_id"`
+	Quantity      int    `json:"quantity" db:"quantity"`
+	PurchasePrice int64  `json:"purchase_price" db:"purchase_price"`
 }
 
 type PurchaseID struct {
@@ -197,7 +167,7 @@ type SalesItemRequest struct {
 type SalesTotal struct {
 	ClientID       string      `json:"client_id" db:"client_id"`
 	SoldBy         string      `json:"sold_by" db:"sold_by"`
-	TotalSalePrice float64     `json:"total_sale_price" db:"total_sale_price"`
+	TotalSalePrice int64       `json:"total_sale_price" db:"total_sale_price"`
 	PaymentMethod  string      `json:"payment_method" db:"payment_method"`
 	SoldProducts   []SalesItem `json:"products" db:"products"`
 }
@@ -221,12 +191,12 @@ type SaleResponse struct {
 }
 
 type SalesItem struct {
-	ID         string  `json:"id" db:"id"`
-	SaleID     string  `json:"sale_id" db:"sale_id"`
-	ProductID  string  `json:"product_id" db:"product_id"`
-	Quantity   int     `json:"quantity" db:"quantity"`
-	SalePrice  float64 `json:"sale_price" db:"sale_price"`
-	TotalPrice float64 `json:"total_price" db:"total_price"`
+	ID         string `json:"id" db:"id"`
+	SaleID     string `json:"sale_id" db:"sale_id"`
+	ProductID  string `json:"product_id" db:"product_id"`
+	Quantity   int64  `json:"quantity" db:"quantity"`
+	SalePrice  int64  `json:"sale_price" db:"sale_price"`
+	TotalPrice int64  `json:"total_price" db:"total_price"`
 }
 
 type SaleUpdate struct {
@@ -248,8 +218,4 @@ type SaleFilter struct {
 	EndDate   string `json:"end_date" db:"end_date"`
 	ClientID  string `json:"client_id" db:"client_id"`
 	SoldBy    string `json:"sold_by" db:"sold_by"`
-}
-
-type Error struct {
-	Error error
 }
