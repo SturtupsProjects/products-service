@@ -23,7 +23,8 @@ func (r *salesRepoImpl) CreateSale(in *entity.SalesTotal) (*pb.SaleResponse, err
 
 	query := `INSERT INTO sales (client_id, sold_by, total_sale_price, payment_method)
 	          VALUES ($1, $2, $3, $4) RETURNING id, created_at`
-	err := r.db.QueryRowx(query, in.ClientID, in.SoldBy, in.TotalSalePrice, in.PaymentMethod).StructScan(sale)
+
+	err := r.db.QueryRowx(query, in.ClientID, in.SoldBy, in.TotalSalePrice, in.PaymentMethod).Scan(&sale.Id, &sale.CreatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -37,6 +38,12 @@ func (r *salesRepoImpl) CreateSale(in *entity.SalesTotal) (*pb.SaleResponse, err
 			return nil, err
 		}
 	}
+
+	sale.TotalSalePrice = in.TotalSalePrice
+	sale.ClientId = in.ClientID
+	sale.SoldBy = in.SoldBy
+	sale.TotalSalePrice = in.TotalSalePrice
+	sale.PaymentMethod = in.PaymentMethod
 
 	return sale, nil
 }
@@ -63,7 +70,7 @@ func (r *salesRepoImpl) UpdateSale(in *entity.SaleUpdate) (*pb.SaleResponse, err
 	query += " WHERE id = :id RETURNING id, client_id, sold_by, total_sale_price, payment_method, created_at"
 
 	sale := &pb.SaleResponse{}
-	err := r.db.QueryRowx(query, params).StructScan(sale)
+	err := r.db.QueryRowx(query, params).Scan(&sale.Id, &sale.ClientId, &sale.SoldBy, &sale.TotalSalePrice, &sale.PaymentMethod, &sale.CreatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -74,18 +81,55 @@ func (r *salesRepoImpl) UpdateSale(in *entity.SaleUpdate) (*pb.SaleResponse, err
 func (r *salesRepoImpl) GetSale(in *entity.SaleID) (*pb.SaleResponse, error) {
 	query := `SELECT id, client_id, sold_by, total_sale_price, payment_method, created_at
 	          FROM sales WHERE id = $1`
+
+	// Создаем объект для ответа
 	sale := &pb.SaleResponse{}
-	err := r.db.Get(sale, query, in.ID)
+
+	// Используем QueryRowx и Scan для основной записи
+	err := r.db.QueryRowx(query, in.ID).Scan(
+		&sale.Id,
+		&sale.ClientId,
+		&sale.SoldBy,
+		&sale.TotalSalePrice,
+		&sale.PaymentMethod,
+		&sale.CreatedAt,
+	)
 	if err != nil {
 		return nil, err
 	}
 
+	// Выполняем запрос для связанных данных (проданные продукты)
 	itemsQuery := `SELECT id, sale_id, product_id, quantity, sale_price, total_price
 	               FROM sales_items WHERE sale_id = $1`
-	err = r.db.Select(&sale.SoldProducts, itemsQuery, in.ID)
+
+	// Объявляем слайс для проданных продуктов
+	var soldProducts []*pb.SalesItem
+
+	// Выполняем Select и сохраняем результат в soldProducts
+	rows, err := r.db.Queryx(itemsQuery, in.ID)
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var item pb.SalesItem
+		err = rows.Scan(
+			&item.Id,
+			&item.SaleId,
+			&item.ProductId,
+			&item.Quantity,
+			&item.SalePrice,
+			&item.TotalPrice,
+		)
+		if err != nil {
+			return nil, err
+		}
+		soldProducts = append(soldProducts, &item)
+	}
+
+	// Присваиваем найденные продукты к результату
+	sale.SoldProducts = soldProducts
 
 	return sale, nil
 }
@@ -99,10 +143,11 @@ func (r *salesRepoImpl) GetSaleList(in *entity.SaleFilter) (*pb.SaleList, error)
 	queryBuilder.WriteString(`
 		SELECT s.id, s.client_id, s.sold_by, s.total_sale_price, 
 		       s.payment_method, s.created_at 
-		FROM sales s JOIN sales_items i ON s.id = i.sale_id
+		FROM sales s
 		WHERE 1=1
 	`)
 
+	// Условия фильтрации
 	if in.ClientID != "" {
 		queryBuilder.WriteString(" AND s.client_id ILIKE '%' || $" + fmt.Sprint(argIndex) + " || '%'")
 		args = append(args, in.ClientID)
@@ -128,25 +173,52 @@ func (r *salesRepoImpl) GetSaleList(in *entity.SaleFilter) (*pb.SaleList, error)
 	}
 
 	queryBuilder.WriteString(" ORDER BY s.created_at DESC")
-
 	query := queryBuilder.String()
-	err := r.db.Select(&sales, query, args...)
+
+	// Выполнение запроса
+	rows, err := r.db.Queryx(query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list sales: %w", err)
+	}
+	defer rows.Close()
+
+	// Чтение данных из результата
+	for rows.Next() {
+		var sale pb.SaleResponse
+		err = rows.Scan(
+			&sale.Id,
+			&sale.ClientId,
+			&sale.SoldBy,
+			&sale.TotalSalePrice,
+			&sale.PaymentMethod,
+			&sale.CreatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan sale: %w", err)
+		}
+		sales = append(sales, &sale)
+	}
+
+	// Проверка на ошибки при чтении строк
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating over sales: %w", err)
 	}
 
 	return &pb.SaleList{Sales: sales}, nil
 }
 
 func (r *salesRepoImpl) DeleteSale(in *entity.SaleID) (*pb.Message, error) {
+
 	_, err := r.db.Exec(`DELETE FROM sales_items WHERE sale_id = $1`, in.ID)
 	if err != nil {
 		return nil, err
 	}
+
 	result, err := r.db.Exec(`DELETE FROM sales WHERE id = $1`, in.ID)
 	if err != nil {
 		return nil, err
 	}
+
 	rowsAffected, _ := result.RowsAffected()
 	if rowsAffected == 0 {
 		return nil, errors.New("sale not found")
