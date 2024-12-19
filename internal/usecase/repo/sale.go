@@ -22,8 +22,8 @@ func (r *salesRepoImpl) CreateSale(in *entity.SalesTotal) (*pb.SaleResponse, err
 	sale := &pb.SaleResponse{}
 
 	query := `INSERT INTO sales (client_id, sold_by, total_sale_price, payment_method)
-	          VALUES (:client_id, :sold_by, :total_sale_price, :payment_method) RETURNING id, created_at`
-	err := r.db.QueryRowx(query, in).StructScan(sale)
+	          VALUES ($1, $2, $3, $4) RETURNING id, created_at`
+	err := r.db.QueryRowx(query, in.ClientID, in.SoldBy, in.TotalSalePrice, in.PaymentMethod).StructScan(sale)
 	if err != nil {
 		return nil, err
 	}
@@ -31,8 +31,8 @@ func (r *salesRepoImpl) CreateSale(in *entity.SalesTotal) (*pb.SaleResponse, err
 	for _, item := range in.SoldProducts {
 		item.SaleID = sale.Id
 		itemQuery := `INSERT INTO sales_items (sale_id, product_id, quantity, sale_price, total_price)
-		              VALUES (:sale_id, :product_id, :quantity, :sale_price, :total_price)`
-		_, err := r.db.NamedExec(itemQuery, item)
+		              VALUES ($1, $2, $3, $4, $5)`
+		_, err := r.db.Exec(itemQuery, item.SaleID, item.ProductID, item.Quantity, item.SalePrice, item.TotalPrice)
 		if err != nil {
 			return nil, err
 		}

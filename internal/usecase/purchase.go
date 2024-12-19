@@ -54,6 +54,7 @@ func (p *PurchaseUseCase) CalculateTotalPurchases(in *entity.Purchase) (*entity.
 }
 
 func (p *PurchaseUseCase) CreatePurchase(in *entity.Purchase) (*pb.PurchaseResponse, error) {
+
 	req, err := p.CalculateTotalPurchases(in)
 	if err != nil {
 		p.log.Error("Error calculating total purchase cost", "error", err.Error())
