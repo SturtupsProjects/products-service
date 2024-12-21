@@ -32,8 +32,8 @@ func NewProductQuantity(db *sqlx.DB) usecase.ProductQuantity {
 func (p *productRepo) CreateProductCategory(in *pb.CreateCategoryRequest) (*pb.Category, error) {
 	var category pb.Category
 
-	query := `INSERT INTO product_categories (name, created_by) VALUES ($1, $2) RETURNING id, name,created_by, created_at`
-	err := p.db.QueryRowx(query, in.Name, in.CreatedBy).Scan(&category.Id, &category.Name, &category.CreatedBy, &category.CreatedAt)
+	query := `INSERT INTO product_categories (name, image_url, created_by) VALUES ($1, $2, $3) RETURNING id, name, image_url, created_by, created_at`
+	err := p.db.QueryRowx(query, in.Name, in.ImageUrl, in.CreatedBy).Scan(&category.Id, &category.Name, &category.ImageUrl, &category.CreatedBy, &category.CreatedAt)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to create product category: %w", err)
@@ -59,13 +59,14 @@ func (p *productRepo) GetProductCategory(in *pb.GetCategoryRequest) (*pb.Categor
 		return nil, fmt.Errorf("input parameter is nil")
 	}
 
-	query := `SELECT id, name, created_by, created_at FROM product_categories WHERE id = $1`
+	query := `SELECT id, name, image_url,created_by, created_at FROM product_categories WHERE id = $1`
 
 	var res pb.Category
 
 	err := p.db.QueryRowx(query, in.Id).Scan(
 		&res.Id,
 		&res.Name,
+		&res.ImageUrl,
 		&res.CreatedBy,
 		&res.CreatedAt,
 	)
@@ -78,7 +79,7 @@ func (p *productRepo) GetProductCategory(in *pb.GetCategoryRequest) (*pb.Categor
 
 func (p *productRepo) GetListProductCategory(in *pb.CategoryName) (*pb.CategoryList, error) {
 	var categories []*pb.Category
-	query := `SELECT id, name, created_by, created_at FROM product_categories`
+	query := `SELECT id, name, image_url, created_by, created_at FROM product_categories`
 	var args []interface{}
 
 	if in.Name != "" {
@@ -96,7 +97,7 @@ func (p *productRepo) GetListProductCategory(in *pb.CategoryName) (*pb.CategoryL
 	// Iterate through the rows and build the categories list
 	for rows.Next() {
 		var category pb.Category
-		if err := rows.Scan(&category.Id, &category.Name, &category.CreatedBy, &category.CreatedAt); err != nil {
+		if err := rows.Scan(&category.Id, &category.Name, &category.ImageUrl, &category.CreatedBy, &category.CreatedAt); err != nil {
 			return nil, fmt.Errorf("failed to scan row: %w", err)
 		}
 		categories = append(categories, &category)
@@ -118,12 +119,12 @@ func (p *productRepo) CreateProduct(in *pb.CreateProductRequest) (*pb.Product, e
 	var product pb.Product
 
 	query := `
-		INSERT INTO products (category_id, name, bill_format, incoming_price, standard_price, created_by)
-		VALUES ($1, $2, $3, $4, $5, $6)
-		RETURNING id, category_id, name, bill_format, incoming_price, standard_price, total_count, created_by, created_at
+		INSERT INTO products (category_id, name, image_url, bill_format, incoming_price, standard_price, created_by)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		RETURNING id, category_id, name, image_url, bill_format, incoming_price, standard_price, total_count, created_by, created_at
 	`
-	err := p.db.QueryRowx(query, in.CategoryId, in.Name, in.BillFormat, in.IncomingPrice, in.StandardPrice, in.CreatedBy).
-		Scan(&product.Id, &product.CategoryId, &product.Name, &product.BillFormat, &product.IncomingPrice,
+	err := p.db.QueryRowx(query, in.CategoryId, in.Name, in.ImageUrl, in.BillFormat, in.IncomingPrice, in.StandardPrice, in.CreatedBy).
+		Scan(&product.Id, &product.CategoryId, &product.Name, &product.ImageUrl, &product.BillFormat, &product.IncomingPrice,
 			&product.StandardPrice, &product.TotalCount, &product.CreatedBy, &product.CreatedAt)
 
 	if err != nil {
@@ -166,6 +167,11 @@ func (p *productRepo) UpdateProduct(in *pb.UpdateProductRequest) (*pb.Product, e
 		args = append(args, in.StandardPrice)
 		argCounter++
 	}
+	if in.ImageUrl != "" {
+		query += fmt.Sprintf("image_url = $%d, ", argCounter)
+		args = append(args, in.ImageUrl)
+		argCounter++
+	}
 
 	// Remove trailing comma and space, add WHERE clause
 	query = query[:len(query)-2] + fmt.Sprintf(" WHERE id = $%d "+
@@ -177,6 +183,7 @@ func (p *productRepo) UpdateProduct(in *pb.UpdateProductRequest) (*pb.Product, e
 		&product.Id,
 		&product.CategoryId,
 		&product.Name,
+		&product.ImageUrl,
 		&product.BillFormat,
 		&product.IncomingPrice,
 		&product.StandardPrice,
@@ -210,7 +217,7 @@ func (p *productRepo) GetProduct(in *pb.GetProductRequest) (*pb.Product, error) 
 	}
 
 	var res pb.Product
-	query := `SELECT id, category_id, name, bill_format, incoming_price, standard_price,
+	query := `SELECT id, category_id, name, image_url, bill_format, incoming_price, standard_price,
           total_count, created_by, created_at FROM products WHERE id = $1`
 
 	// Используем QueryRowx и вручную маппим результат через Scan
@@ -218,6 +225,7 @@ func (p *productRepo) GetProduct(in *pb.GetProductRequest) (*pb.Product, error) 
 		&res.Id,
 		&res.CategoryId,
 		&res.Name,
+		&res.ImageUrl,
 		&res.BillFormat,
 		&res.IncomingPrice,
 		&res.StandardPrice,
@@ -243,7 +251,7 @@ func (p *productRepo) GetProductList(in *pb.ProductFilter) (*pb.ProductList, err
 	argIndex := 1
 
 	query := `
-    SELECT id, category_id, name, bill_format, incoming_price, standard_price, total_count, created_by, created_at
+    SELECT id, category_id, name, image_url, bill_format, incoming_price, standard_price, total_count, created_by, created_at
     FROM products
 `
 
@@ -281,6 +289,7 @@ func (p *productRepo) GetProductList(in *pb.ProductFilter) (*pb.ProductList, err
 			&product.Id,
 			&product.CategoryId,
 			&product.Name,
+			&product.ImageUrl,
 			&product.BillFormat,
 			&product.IncomingPrice,
 			&product.StandardPrice,
