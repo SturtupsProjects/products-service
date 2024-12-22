@@ -10,53 +10,60 @@ import (
 	"strings"
 )
 
-type salesRepoImpl struct {
+type purchasesRepoImpl struct {
 	db *sqlx.DB
 }
 
-func NewSalesRepo(db *sqlx.DB) usecase.SalesRepo {
-	return &salesRepoImpl{db: db}
+func NewPurchasesRepo(db *sqlx.DB) usecase.PurchasesRepo {
+	return &purchasesRepoImpl{db: db}
 }
 
-func (r *salesRepoImpl) CreateSale(in *entity.SalesTotal) (*pb.SaleResponse, error) {
-	sale := &pb.SaleResponse{}
+func (r *purchasesRepoImpl) CreatePurchase(in *entity.PurchaseRequest) (*pb.PurchaseResponse, error) {
+	purchase := &pb.PurchaseResponse{}
 
-	query := `INSERT INTO sales (client_id, sold_by, total_sale_price, payment_method)
-	          VALUES ($1, $2, $3, $4) RETURNING id, created_at`
+	// Insert into purchases table and get the ID and created_at
+	query := `INSERT INTO purchases (supplier_id, purchased_by, total_cost, payment_method, description)
+	          VALUES ($1, $2, $3, $4, $5) RETURNING id, created_at`
 
-	err := r.db.QueryRowx(query, in.ClientID, in.SoldBy, in.TotalSalePrice, in.PaymentMethod).Scan(&sale.Id, &sale.CreatedAt)
+	err := r.db.QueryRowx(query, in.SupplierID, in.PurchasedBy, in.TotalCost, in.PaymentMethod, in.Description).Scan(&purchase.Id, &purchase.CreatedAt)
 	if err != nil {
 		return nil, err
 	}
 
-	for _, item := range in.SoldProducts {
-		item.SaleID = sale.Id
-		itemQuery := `INSERT INTO sales_items (sale_id, product_id, quantity, sale_price, total_price)
+	// Insert purchase items
+	for _, item := range in.Items {
+		itemQuery := `INSERT INTO purchase_items (purchase_id, product_id, quantity, purchase_price, total_price)
 		              VALUES ($1, $2, $3, $4, $5)`
-		_, err := r.db.Exec(itemQuery, item.SaleID, item.ProductID, item.Quantity, item.SalePrice, item.TotalPrice)
+		_, err := r.db.Exec(itemQuery, purchase.Id, item.ProductID, item.Quantity, item.PurchasePrice, item.TotalPrice)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	sale.TotalSalePrice = in.TotalSalePrice
-	sale.ClientId = in.ClientID
-	sale.SoldBy = in.SoldBy
-	sale.TotalSalePrice = in.TotalSalePrice
-	sale.PaymentMethod = in.PaymentMethod
+	// Fill the response object
+	purchase.SupplierId = in.SupplierID
+	purchase.PurchasedBy = in.PurchasedBy
+	purchase.TotalCost = in.TotalCost
+	purchase.PaymentMethod = in.PaymentMethod
+	purchase.Description = in.Description
 
-	return sale, nil
+	return purchase, nil
 }
 
-func (r *salesRepoImpl) UpdateSale(in *entity.SaleUpdate) (*pb.SaleResponse, error) {
+func (r *purchasesRepoImpl) UpdatePurchase(in *entity.PurchaseUpdate) (*pb.PurchaseResponse, error) {
 
-	query := `UPDATE sales SET `
+	query := `UPDATE purchases SET `
 	updates := []string{}
 	params := map[string]interface{}{"id": in.ID}
 
-	if in.ClientID != "" {
-		updates = append(updates, "client_id = :client_id")
-		params["client_id"] = in.ClientID
+	// Add fields if they are provided
+	if in.SupplierID != "" {
+		updates = append(updates, "supplier_id = :supplier_id")
+		params["supplier_id"] = in.SupplierID
+	}
+	if in.Description != "" {
+		updates = append(updates, "description = :description")
+		params["description"] = in.Description
 	}
 	if in.PaymentMethod != "" {
 		updates = append(updates, "payment_method = :payment_method")
@@ -68,38 +75,40 @@ func (r *salesRepoImpl) UpdateSale(in *entity.SaleUpdate) (*pb.SaleResponse, err
 	}
 
 	query += strings.Join(updates, ", ")
-	query += " WHERE id = :id RETURNING id, client_id, sold_by, total_sale_price, payment_method, created_at"
+	query += " WHERE id = :id RETURNING id, supplier_id, purchased_by, total_cost, description, payment_method, created_at"
 
-	sale := &pb.SaleResponse{}
-	err := r.db.QueryRowx(query, params).Scan(&sale.Id, &sale.ClientId, &sale.SoldBy, &sale.TotalSalePrice, &sale.PaymentMethod, &sale.CreatedAt)
+	purchase := &pb.PurchaseResponse{}
+	err := r.db.QueryRowx(query, params).Scan(&purchase.Id, &purchase.SupplierId, &purchase.PurchasedBy, &purchase.TotalCost, &purchase.Description, &purchase.PaymentMethod, &purchase.CreatedAt)
 	if err != nil {
 		return nil, err
 	}
 
-	return sale, nil
+	return purchase, nil
 }
 
-func (r *salesRepoImpl) GetSale(in *entity.SaleID) (*pb.SaleResponse, error) {
+// GetPurchase returns the purchase by ID
+func (r *purchasesRepoImpl) GetPurchase(in *entity.PurchaseID) (*pb.PurchaseResponse, error) {
 	query := `
         SELECT 
-            s.id, 
-            s.client_id, 
-            s.sold_by, 
-            s.total_sale_price, 
-            s.payment_method, 
-            s.created_at, 
+            p.id, 
+            p.supplier_id, 
+            p.purchased_by, 
+            p.total_cost, 
+            p.payment_method, 
+            p.description, 
+            p.created_at, 
             i.id AS item_id, 
             i.product_id, 
             i.quantity, 
-            i.sale_price, 
+            i.purchase_price, 
             i.total_price
-        FROM sales s
-        LEFT JOIN sales_items i ON s.id = i.sale_id
-        WHERE s.id = $1
+        FROM purchases p
+        LEFT JOIN purchase_items i ON p.id = i.purchase_id
+        WHERE p.id = $1
     `
 
-	sale := &pb.SaleResponse{}
-	var soldProducts []*pb.SalesItem
+	purchase := &pb.PurchaseResponse{}
+	var items []*pb.PurchaseItemResponse
 
 	rows, err := r.db.Queryx(query, in.ID)
 	if err != nil {
@@ -108,142 +117,144 @@ func (r *salesRepoImpl) GetSale(in *entity.SaleID) (*pb.SaleResponse, error) {
 	defer rows.Close()
 
 	for rows.Next() {
-		var item pb.SalesItem
+		var item pb.PurchaseItemResponse
 		err = rows.Scan(
-			&sale.Id,
-			&sale.ClientId,
-			&sale.SoldBy,
-			&sale.TotalSalePrice,
-			&sale.PaymentMethod,
-			&sale.CreatedAt,
+			&purchase.Id,
+			&purchase.SupplierId,
+			&purchase.PurchasedBy,
+			&purchase.TotalCost,
+			&purchase.PaymentMethod,
+			&purchase.Description,
+			&purchase.CreatedAt,
 			&item.Id,
 			&item.ProductId,
 			&item.Quantity,
-			&item.SalePrice,
+			&item.PurchasePrice,
 			&item.TotalPrice,
 		)
 		if err != nil {
 			return nil, err
 		}
 
-		if item.Id != "" { // If item exists, append it to soldProducts
-			soldProducts = append(soldProducts, &item)
+		// If item exists, append it to items list
+		if item.Id != "" {
+			items = append(items, &item)
 		}
 	}
 
-	sale.SoldProducts = soldProducts
+	purchase.Items = items
 
 	// Handle any errors that occurred while iterating over rows
 	if err = rows.Err(); err != nil {
 		return nil, err
 	}
 
-	return sale, nil
+	return purchase, nil
 }
 
-func (r *salesRepoImpl) GetSaleList(in *entity.SaleFilter) (*pb.SaleList, error) {
-	var sales []*pb.SaleResponse
+func (r *purchasesRepoImpl) GetPurchaseList(in *entity.FilterPurchase) (*pb.PurchaseList, error) {
+	var purchases []*pb.PurchaseResponse
 	var queryBuilder strings.Builder
 	var args []interface{}
 	argIndex := 1
 
 	queryBuilder.WriteString(`
-        SELECT s.id, s.client_id, s.sold_by, s.total_sale_price, s.payment_method, s.created_at,
-               i.id AS item_id, i.product_id, i.quantity, i.sale_price, i.total_price 
-        FROM sales s 
-        JOIN sales_items i ON s.id = i.sale_id
+        SELECT p.id, p.supplier_id, p.purchased_by, p.total_cost, p.description, 
+               p.payment_method, p.created_at, 
+               i.id AS item_id, i.product_id, i.quantity, i.purchase_price, i.total_price
+        FROM purchases p 
+        LEFT JOIN purchase_items i ON p.id = i.purchase_id
         WHERE 1=1
     `)
 
-	if in.ClientID != "" {
-		queryBuilder.WriteString(" AND s.client_id ILIKE '%' || $" + fmt.Sprint(argIndex) + " || '%'")
-		args = append(args, in.ClientID)
+	if in.SupplierID != "" {
+		queryBuilder.WriteString(" AND p.supplier_id ILIKE '%' || $" + fmt.Sprint(argIndex) + " || '%'")
+		args = append(args, in.SupplierID)
 		argIndex++
 	}
 
-	if in.SoldBy != "" {
-		queryBuilder.WriteString(" AND s.sold_by ILIKE '%' || $" + fmt.Sprint(argIndex) + " || '%'")
-		args = append(args, in.SoldBy)
+	if in.PurchasedBy != "" {
+		queryBuilder.WriteString(" AND p.purchased_by ILIKE '%' || $" + fmt.Sprint(argIndex) + " || '%'")
+		args = append(args, in.PurchasedBy)
 		argIndex++
 	}
 
-	if in.StartDate != "" {
-		queryBuilder.WriteString(" AND DATE(s.created_at) >= DATE($" + fmt.Sprint(argIndex) + ")")
-		args = append(args, in.StartDate)
+	if in.CreatedAt != "" {
+		queryBuilder.WriteString(" AND DATE(p.created_at) = DATE($" + fmt.Sprint(argIndex) + ")")
+		args = append(args, in.CreatedAt)
 		argIndex++
 	}
 
-	if in.EndDate != "" {
-		queryBuilder.WriteString(" AND DATE(s.created_at) <= DATE($" + fmt.Sprint(argIndex) + ")")
-		args = append(args, in.EndDate)
-		argIndex++
-	}
+	queryBuilder.WriteString(" ORDER BY p.created_at DESC")
 
-	queryBuilder.WriteString(" ORDER BY s.created_at DESC")
 	query := queryBuilder.String()
 
 	rows, err := r.db.Queryx(query, args...)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list sales: %w", err)
+		return nil, fmt.Errorf("failed to list purchases: %w", err)
 	}
 	defer rows.Close()
 
-	salesMap := make(map[string]*pb.SaleResponse)
+	purchasesMap := make(map[string]*pb.PurchaseResponse)
 
+	// Iterate over the result set and populate the purchases
 	for rows.Next() {
-		var sale pb.SaleResponse
-		var item pb.SalesItem
-		err = rows.Scan(
-			&sale.Id,
-			&sale.ClientId,
-			&sale.SoldBy,
-			&sale.TotalSalePrice,
-			&sale.PaymentMethod,
-			&sale.CreatedAt,
+		var purchase pb.PurchaseResponse
+		var item pb.PurchaseItemResponse
+		err := rows.Scan(
+			&purchase.Id,
+			&purchase.SupplierId,
+			&purchase.PurchasedBy,
+			&purchase.TotalCost,
+			&purchase.Description,
+			&purchase.PaymentMethod,
+			&purchase.CreatedAt,
 			&item.Id,
 			&item.ProductId,
 			&item.Quantity,
-			&item.SalePrice,
+			&item.PurchasePrice,
 			&item.TotalPrice,
 		)
 		if err != nil {
-			return nil, fmt.Errorf("failed to scan sale: %w", err)
+			return nil, fmt.Errorf("failed to scan purchase: %w", err)
 		}
 
-		if _, exists := salesMap[sale.Id]; !exists {
-			salesMap[sale.Id] = &sale
+		// If purchase is not in the map, add it
+		if _, exists := purchasesMap[purchase.Id]; !exists {
+			purchasesMap[purchase.Id] = &purchase
 		}
 
-		salesMap[sale.Id].SoldProducts = append(salesMap[sale.Id].SoldProducts, &item)
+		// Append items to the purchase
+		purchasesMap[purchase.Id].Items = append(purchasesMap[purchase.Id].Items, &item)
 	}
 
-	if err = rows.Err(); err != nil {
-		return nil, fmt.Errorf("error iterating over sales: %w", err)
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating over purchases: %w", err)
 	}
 
-	for _, sale := range salesMap {
-		sales = append(sales, sale)
+	// Convert map to slice
+	for _, purchase := range purchasesMap {
+		purchases = append(purchases, purchase)
 	}
 
-	return &pb.SaleList{Sales: sales}, nil
+	return &pb.PurchaseList{Purchases: purchases}, nil
 }
 
-func (r *salesRepoImpl) DeleteSale(in *entity.SaleID) (*pb.Message, error) {
-
-	_, err := r.db.Exec(`DELETE FROM sales_items WHERE sale_id = $1`, in.ID)
+func (r *purchasesRepoImpl) DeletePurchase(in *entity.PurchaseID) (*pb.Message, error) {
+	_, err := r.db.Exec(`DELETE FROM purchase_items WHERE purchase_id = $1`, in.ID)
 	if err != nil {
 		return nil, err
 	}
 
-	result, err := r.db.Exec(`DELETE FROM sales WHERE id = $1`, in.ID)
+	result, err := r.db.Exec(`DELETE FROM purchases WHERE id = $1`, in.ID)
 	if err != nil {
 		return nil, err
 	}
 
 	rowsAffected, _ := result.RowsAffected()
 	if rowsAffected == 0 {
-		return nil, errors.New("sale not found")
+		return nil, errors.New("purchase not found")
 	}
 
-	return &pb.Message{Message: "Sale deleted successfully"}, nil
+	return &pb.Message{Message: "Purchase deleted successfully"}, nil
 }
