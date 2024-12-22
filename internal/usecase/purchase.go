@@ -82,12 +82,17 @@ func (p *PurchaseUseCase) CreatePurchase(in *entity.Purchase) (*pb.PurchaseRespo
 				Id:    item.ProductId,
 				Count: int(item.Quantity),
 			}
+
+			log.Println("Mana keldi ku")
+			log.Println("Mana keldi ku")
 			if _, err := p.product.AddProduct(productQuantityReq); err != nil {
 				log.Println("Mana err", err)
 				log.Println("Mana err", err)
 				log.Println("Mana err", err)
 				p.log.Error("Error adding product quantity", "error", err.Error())
 			}
+			log.Println("Mana otib ketti ku")
+			log.Println("Mana otib ketti ku")
 		}(item)
 	}
 

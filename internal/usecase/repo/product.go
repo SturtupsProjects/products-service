@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/jmoiron/sqlx"
+	"log"
 	"strings"
 )
 
@@ -318,6 +319,12 @@ func (p *productRepo) GetProductList(in *pb.ProductFilter) (*pb.ProductList, err
 
 func (p *productQuantity) AddProduct(in *entity.CountProductReq) (*entity.ProductNumber, error) {
 	product := &entity.ProductNumber{}
+
+	log.Println("Rego gayam keldi mana ")
+	log.Println("Rego gayam keldi mana ")
+	log.Println("Rego gayam keldi mana ")
+	log.Println("Rego gayam keldi mana ")
+	log.Println("Rego gayam keldi mana ")
 
 	query := `
 		UPDATE products
