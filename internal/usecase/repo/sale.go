@@ -80,30 +80,28 @@ func (r *salesRepoImpl) UpdateSale(in *entity.SaleUpdate) (*pb.SaleResponse, err
 }
 
 func (r *salesRepoImpl) GetSale(in *entity.SaleID) (*pb.SaleResponse, error) {
-
-	query := `SELECT id, client_id, sold_by, total_sale_price, payment_method, created_at
-	          FROM sales WHERE id = $1`
+	query := `
+        SELECT 
+            s.id, 
+            s.client_id, 
+            s.sold_by, 
+            s.total_sale_price, 
+            s.payment_method, 
+            s.created_at, 
+            i.id AS item_id, 
+            i.product_id, 
+            i.quantity, 
+            i.sale_price, 
+            i.total_price
+        FROM sales s
+        LEFT JOIN sales_items i ON s.id = i.sale_id
+        WHERE s.id = $1
+    `
 
 	sale := &pb.SaleResponse{}
-
-	err := r.db.QueryRowx(query, in.ID).Scan(
-		&sale.Id,
-		&sale.ClientId,
-		&sale.SoldBy,
-		&sale.TotalSalePrice,
-		&sale.PaymentMethod,
-		&sale.CreatedAt,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	itemsQuery := `SELECT id, sale_id, product_id, quantity, sale_price, total_price
-	               FROM sales_items WHERE sale_id = $1`
-
 	var soldProducts []*pb.SalesItem
 
-	rows, err := r.db.Queryx(itemsQuery, in.ID)
+	rows, err := r.db.Queryx(query, in.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -112,8 +110,13 @@ func (r *salesRepoImpl) GetSale(in *entity.SaleID) (*pb.SaleResponse, error) {
 	for rows.Next() {
 		var item pb.SalesItem
 		err = rows.Scan(
+			&sale.Id,
+			&sale.ClientId,
+			&sale.SoldBy,
+			&sale.TotalSalePrice,
+			&sale.PaymentMethod,
+			&sale.CreatedAt,
 			&item.Id,
-			&item.SaleId,
 			&item.ProductId,
 			&item.Quantity,
 			&item.SalePrice,
@@ -122,10 +125,18 @@ func (r *salesRepoImpl) GetSale(in *entity.SaleID) (*pb.SaleResponse, error) {
 		if err != nil {
 			return nil, err
 		}
-		soldProducts = append(soldProducts, &item)
+
+		if item.Id != "" { // If item exists, append it to soldProducts
+			soldProducts = append(soldProducts, &item)
+		}
 	}
 
 	sale.SoldProducts = soldProducts
+
+	// Handle any errors that occurred while iterating over rows
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
 
 	return sale, nil
 }
@@ -137,11 +148,12 @@ func (r *salesRepoImpl) GetSaleList(in *entity.SaleFilter) (*pb.SaleList, error)
 	argIndex := 1
 
 	queryBuilder.WriteString(`
-		SELECT s.id, s.client_id, s.sold_by, s.total_sale_price, 
-		       s.payment_method, s.created_at 
-		FROM sales s
-		WHERE 1=1
-	`)
+        SELECT s.id, s.client_id, s.sold_by, s.total_sale_price, s.payment_method, s.created_at,
+               i.id AS item_id, i.product_id, i.quantity, i.sale_price, i.total_price 
+        FROM sales s 
+        JOIN sales_items i ON s.id = i.sale_id
+        WHERE 1=1
+    `)
 
 	if in.ClientID != "" {
 		queryBuilder.WriteString(" AND s.client_id ILIKE '%' || $" + fmt.Sprint(argIndex) + " || '%'")
@@ -176,8 +188,11 @@ func (r *salesRepoImpl) GetSaleList(in *entity.SaleFilter) (*pb.SaleList, error)
 	}
 	defer rows.Close()
 
+	salesMap := make(map[string]*pb.SaleResponse)
+
 	for rows.Next() {
 		var sale pb.SaleResponse
+		var item pb.SalesItem
 		err = rows.Scan(
 			&sale.Id,
 			&sale.ClientId,
@@ -185,15 +200,29 @@ func (r *salesRepoImpl) GetSaleList(in *entity.SaleFilter) (*pb.SaleList, error)
 			&sale.TotalSalePrice,
 			&sale.PaymentMethod,
 			&sale.CreatedAt,
+			&item.Id,
+			&item.ProductId,
+			&item.Quantity,
+			&item.SalePrice,
+			&item.TotalPrice,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan sale: %w", err)
 		}
-		sales = append(sales, &sale)
+
+		if _, exists := salesMap[sale.Id]; !exists {
+			salesMap[sale.Id] = &sale
+		}
+
+		salesMap[sale.Id].SoldProducts = append(salesMap[sale.Id].SoldProducts, &item)
 	}
 
 	if err = rows.Err(); err != nil {
 		return nil, fmt.Errorf("error iterating over sales: %w", err)
+	}
+
+	for _, sale := range salesMap {
+		sales = append(sales, sale)
 	}
 
 	return &pb.SaleList{Sales: sales}, nil
