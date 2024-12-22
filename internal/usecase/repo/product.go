@@ -317,7 +317,7 @@ func (p *productRepo) GetProductList(in *pb.ProductFilter) (*pb.ProductList, err
 // -------------------------------------------- Must fix end Do Reflect -------------------------------------
 
 func (p *productQuantity) AddProduct(in *entity.CountProductReq) (*entity.ProductNumber, error) {
-	var product *entity.ProductNumber
+	product := &entity.ProductNumber{}
 
 	query := `
 		UPDATE products
@@ -325,8 +325,9 @@ func (p *productQuantity) AddProduct(in *entity.CountProductReq) (*entity.Produc
 		WHERE id = $2
 		RETURNING id, total_count
 	`
+
 	err := p.db.QueryRowx(query, in.Count, in.Id).
-		Scan(product.ID, &product.TotalCount)
+		Scan(&product.ID, &product.TotalCount)
 	if err != nil {
 		return nil, fmt.Errorf("failed to add product stock: %w", err)
 	}
@@ -335,7 +336,7 @@ func (p *productQuantity) AddProduct(in *entity.CountProductReq) (*entity.Produc
 }
 
 func (p *productQuantity) RemoveProduct(in *entity.CountProductReq) (*entity.ProductNumber, error) {
-	var res *entity.ProductNumber
+	res := &entity.ProductNumber{}
 
 	query := `UPDATE products SET total_count = total_count - $1
 		RETURNING id, total_count`
@@ -349,7 +350,7 @@ func (p *productQuantity) RemoveProduct(in *entity.CountProductReq) (*entity.Pro
 }
 
 func (p *productQuantity) GetProductCount(in *entity.ProductID) (*entity.ProductNumber, error) {
-	var res *entity.ProductNumber
+	res := &entity.ProductNumber{}
 
 	query := `SELECT id, total_count from products WHERE id = $1`
 
