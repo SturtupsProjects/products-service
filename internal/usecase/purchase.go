@@ -4,6 +4,7 @@ import (
 	"crm-admin/internal/entity"
 	pb "crm-admin/internal/generated/products"
 	"fmt"
+	"log"
 	"log/slog"
 	"sync"
 )
@@ -82,6 +83,9 @@ func (p *PurchaseUseCase) CreatePurchase(in *entity.Purchase) (*pb.PurchaseRespo
 				Count: int(item.Quantity),
 			}
 			if _, err := p.product.AddProduct(productQuantityReq); err != nil {
+				log.Println("Mana err", err)
+				log.Println("Mana err", err)
+				log.Println("Mana err", err)
 				p.log.Error("Error adding product quantity", "error", err.Error())
 			}
 		}(item)

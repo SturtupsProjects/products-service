@@ -201,6 +201,13 @@ func (r *purchasesRepoImpl) GetPurchaseList(in *entity.FilterPurchase) (*pb.Purc
 	for rows.Next() {
 		var purchase pb.PurchaseResponse
 		var item pb.PurchaseItemResponse
+
+		var itemID sql.NullString
+		var productID sql.NullString
+		var quantity int
+		var purchasePrice float64
+		var totalPrice float64
+
 		err := rows.Scan(
 			&purchase.Id,
 			&purchase.SupplierId,
@@ -209,15 +216,26 @@ func (r *purchasesRepoImpl) GetPurchaseList(in *entity.FilterPurchase) (*pb.Purc
 			&purchase.Description,
 			&purchase.PaymentMethod,
 			&purchase.CreatedAt,
-			&item.Id,
-			&item.ProductId,
-			&item.Quantity,
-			&item.PurchasePrice,
-			&item.TotalPrice,
+			&itemID,
+			&productID,
+			&quantity,
+			&purchasePrice,
+			&totalPrice,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan purchase: %w", err)
 		}
+
+		// Handle nullable values
+		if itemID.Valid {
+			item.Id = itemID.String
+		}
+		if productID.Valid {
+			item.ProductId = productID.String
+		}
+		item.Quantity = quantity
+		item.PurchasePrice = purchasePrice
+		item.TotalPrice = totalPrice
 
 		// If purchase is not in the map, add it
 		if _, exists := purchasesMap[purchase.Id]; !exists {
