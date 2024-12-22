@@ -9,6 +9,7 @@ CREATE TABLE product_categories
     id         UUID      DEFAULT gen_random_uuid() PRIMARY KEY,
     name       VARCHAR(50)                  NOT NULL,
     image_url  VARCHAR   DEFAULT 'no image' NOT NULL,
+    company_id UUID                         NOT NULL,
     created_by UUID                         NOT NULL,
     created_at TIMESTAMP DEFAULT NOW()
 );
@@ -24,6 +25,7 @@ CREATE TABLE products
     incoming_price BIGINT                                  NOT NULL,
     standard_price BIGINT                                  NOT NULL,
     total_count    INT       DEFAULT 0,
+    company_id     UUID                                    NOT NULL,
     created_by     UUID                                    NOT NULL,
     created_at     TIMESTAMP DEFAULT NOW()
 );
@@ -67,6 +69,7 @@ CREATE TABLE cash_flow
     transaction_type transaction_type                   NOT NULL,
     category_id      UUID REFERENCES cash_category (id) NOT NULL,
     description      VARCHAR(255),
+    company_id       UUID                               NOT NULL,
     payment_method   payment_method DEFAULT 'uzs'
 );
 
@@ -82,6 +85,7 @@ CREATE TABLE debts
     last_paid_day TIMESTAMP DEFAULT NOW(),
     is_fully_paid BOOLEAN   DEFAULT FALSE,
     recipient_id  UUID                       NOT NULL, -- Кто принял платёж
+    company_id    UUID                       NOT NULL,
     created_at    TIMESTAMP DEFAULT NOW()
 );
 
@@ -92,7 +96,8 @@ CREATE TABLE debt_payments
     debt_id      UUID REFERENCES debts (id) NOT NULL, -- Привязка к задолженности
     payment_date TIMESTAMP DEFAULT NOW(),
     amount       BIGINT                     NOT NULL, -- Сумма частичного платежа
-    paid_by      UUID                       NOT NULL  -- Кто внес платёж
+    paid_by      UUID                       NOT NULL,  -- Кто внес платёж
+    company_id    UUID                       NOT NULL
 );
 
 -- Таблица закупок
@@ -104,6 +109,7 @@ CREATE TABLE purchases
     total_cost     BIGINT NOT NULL,              -- Общая сумма закупки
     payment_method payment_method DEFAULT 'uzs', -- Способ оплаты
     description    TEXT,
+    company_id     UUID   NOT NULL,
     created_at     TIMESTAMP      DEFAULT NOW()  -- Время создания записи
 );
 
@@ -115,5 +121,6 @@ CREATE TABLE purchase_items
     product_id     UUID REFERENCES products (id)  NOT NULL, -- Ссылка на товар
     quantity       INT                            NOT NULL, -- Количество закупленного товара
     purchase_price BIGINT                         NOT NULL, -- Цена закупки за единицу товара
-    total_price    BIGINT                         NOT NULL  -- Общая стоимость конкретного товара в закупке
+    total_price    BIGINT                         NOT NULL,  -- Общая стоимость конкретного товара в закупке
+    company_id     UUID                          NOT NULL
 );
