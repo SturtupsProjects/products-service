@@ -99,12 +99,12 @@ CREATE TABLE debt_payments
 CREATE TABLE purchases
 (
     id             UUID           DEFAULT gen_random_uuid() PRIMARY KEY,
-    supplier_id    UUID   NOT NULL,              -- Название поставщика или имя компании
-    purchased_by   UUID   NOT NULL,              -- Кто произвел закупку
-    total_cost     BIGINT NOT NULL,              -- Общая сумма закупки
-    payment_method payment_method DEFAULT 'uzs', -- Способ оплаты
-    description    TEXT,
-    created_at     TIMESTAMP      DEFAULT NOW()  -- Время создания записи
+    supplier_id    UUID                         NOT NULL, -- Название поставщика или имя компании
+    purchased_by   UUID                         NOT NULL, -- Кто произвел закупку
+    total_cost     BIGINT                       NOT NULL, -- Общая сумма закупки
+    payment_method payment_method DEFAULT 'uzs' NOT NULL, -- Способ оплаты
+    description    TEXT           DEFAULT ''    NOT NULL,
+    created_at     TIMESTAMP      DEFAULT NOW() NOT NULL  -- Время создания записи
 );
 
 -- Таблица товаров, закупленных в рамках конкретной закупки
