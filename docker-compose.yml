@@ -7,7 +7,7 @@ services:
       - CRMNet
     volumes:
       - ./migrations:/migrations
-    command: ["-path", "/migrations", "-database", "postgres://postgres:123321@postgres:5432/crm_admin?sslmode=disable", "up"]
+    command: [ "-path", "/migrations", "-database", "postgres://postgres:123321@postgres:5432/crm_admin?sslmode=disable", "up" ]
     depends_on:
       postgres:
         condition: service_healthy
@@ -19,15 +19,14 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=123321
       - POSTGRES_DB=crm_admin
-
     networks:
       - CRMNet
     ports:
-      - 5436:5432
+      - "5436:5432"  # Expose 5432 inside the container as 5436 on the host (change if you want to use 5432 outside)
     volumes:
       - postgres_data:/postgres/data
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -d postgres" ]
+      test: [ "CMD-SHELL", "pg_isready -d crm_admin -U postgres" ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -43,11 +42,11 @@ services:
     ports:
       - "8070:8070"
 
-
 networks:
   CRMNet:
     name: CRMNet
     driver: bridge
+    external: true  # Change to `false` if you want Docker to manage the network
 
 volumes:
   postgres_data:

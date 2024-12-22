@@ -4,6 +4,7 @@ import (
 	"crm-admin/internal/entity"
 	pb "crm-admin/internal/generated/products"
 	"fmt"
+	"log"
 	"log/slog"
 	"sync"
 )
@@ -70,20 +71,32 @@ func (p *PurchaseUseCase) CreatePurchase(in *entity.Purchase) (*pb.PurchaseRespo
 	var wg sync.WaitGroup
 	semaphore := make(chan struct{}, 10) // limit to 10 goroutines
 
-	for _, item := range res.Items {
+	log.Println("Mana Fordan oldin chiqdi")
+	log.Println("Mana Fordan oldin chiqdi")
+	log.Println("Mana Fordan oldin chiqdi")
+
+	for _, item := range *in.PurchaseItem {
 		wg.Add(1)
-		go func(item *pb.PurchaseItemResponse) {
+		go func(entity.PurchaseItem) {
 			defer wg.Done()
 			semaphore <- struct{}{}
 			defer func() { <-semaphore }()
 
 			productQuantityReq := &entity.CountProductReq{
-				Id:    item.ProductId,
-				Count: int(item.Quantity),
+				Id:    item.ProductID,
+				Count: item.Quantity,
 			}
+
+			log.Println("Mana keldi ku")
+			log.Println("Mana keldi ku")
 			if _, err := p.product.AddProduct(productQuantityReq); err != nil {
+				log.Println("Mana err", err)
+				log.Println("Mana err", err)
+				log.Println("Mana err", err)
 				p.log.Error("Error adding product quantity", "error", err.Error())
 			}
+			log.Println("Mana otib ketti ku")
+			log.Println("Mana otib ketti ku")
 		}(item)
 	}
 
