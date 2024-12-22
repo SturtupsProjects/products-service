@@ -71,6 +71,10 @@ func (p *PurchaseUseCase) CreatePurchase(in *entity.Purchase) (*pb.PurchaseRespo
 	var wg sync.WaitGroup
 	semaphore := make(chan struct{}, 10) // limit to 10 goroutines
 
+	log.Println("Mana Fordan oldin chiqdi")
+	log.Println("Mana Fordan oldin chiqdi")
+	log.Println("Mana Fordan oldin chiqdi")
+
 	for _, item := range res.Items {
 		wg.Add(1)
 		go func(item *pb.PurchaseItemResponse) {
