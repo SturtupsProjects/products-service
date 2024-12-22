@@ -77,14 +77,14 @@ func (p *PurchaseUseCase) CreatePurchase(in *entity.Purchase) (*pb.PurchaseRespo
 
 	for _, item := range *in.PurchaseItem {
 		wg.Add(1)
-		go func(item *pb.PurchaseItemResponse) {
+		go func(entity.PurchaseItem) {
 			defer wg.Done()
 			semaphore <- struct{}{}
 			defer func() { <-semaphore }()
 
 			productQuantityReq := &entity.CountProductReq{
-				Id:    item.ProductId,
-				Count: int(item.Quantity),
+				Id:    item.ProductID,
+				Count: item.Quantity,
 			}
 
 			log.Println("Mana keldi ku")
