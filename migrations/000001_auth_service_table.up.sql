@@ -38,6 +38,7 @@ CREATE TABLE sales
     sold_by          UUID   NOT NULL,
     total_sale_price BIGINT NOT NULL, -- общая сумма заказа
     payment_method   payment_method DEFAULT 'uzs',
+    company_id       UUID           NOT NULL,
     created_at       TIMESTAMP      DEFAULT NOW()
 );
 
@@ -49,6 +50,8 @@ CREATE TABLE sales_items
     product_id  UUID REFERENCES products (id) NOT NULL,
     quantity    INT  DEFAULT 1                NOT NULL,
     sale_price  BIGINT                        NOT NULL,
+    created_at  TIMESTAMP DEFAULT NOW(),
+    company_id  UUID                          NOT NULL,
     total_price BIGINT                        NOT NULL -- общая цена за конкретный товар в заказе
 );
 
