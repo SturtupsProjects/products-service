@@ -7,9 +7,7 @@ services:
       - CRMNet
     volumes:
       - ./migrations:/migrations
-    command: >
-      sh -c "until pg_isready -h postgres -p 5432; do sleep 5; done; 
-             migrate -path /migrations -database postgres://postgres:123321@postgres:5432/crm_admin?sslmode=disable up"
+    command: ["-path", "/migrations", "-database", "postgres://postgres:123321@postgres:5432/crm_admin?sslmode=disable", "up"]
     depends_on:
       postgres:
         condition: service_healthy
@@ -21,17 +19,18 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=123321
       - POSTGRES_DB=crm_admin
+
     networks:
       - CRMNet
     ports:
       - 5436:5432
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/postgres/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -h localhost -p 5432"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
+      test: [ "CMD-SHELL", "pg_isready -d postgres" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
 
   product:
     container_name: product
@@ -43,6 +42,7 @@ services:
       - CRMNet
     ports:
       - "8070:8070"
+
 
 networks:
   CRMNet:
