@@ -49,6 +49,7 @@ func (p *PurchaseUseCase) CalculateTotalPurchases(in *entity.Purchase) (*entity.
 	result.TotalCost = totalSum
 	result.PaymentMethod = in.PaymentMethod
 	result.Description = in.Description
+	result.CompanyID = in.CompanyID
 
 	return &result, nil
 }

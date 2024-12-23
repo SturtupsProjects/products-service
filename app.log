@@ -68,3 +68,19 @@
 {"time":"2024-12-15T22:19:17.091508006+05:00","level":"ERROR","msg":"Failed to update product","error":"failed to update product: pq: invalid input syntax for type uuid: \"string\""}
 {"time":"2024-12-15T22:19:23.234694398+05:00","level":"ERROR","msg":"UpdateProduct","error":"failed to update product: pq: value too long for type character varying(5)"}
 {"time":"2024-12-15T22:19:23.234724264+05:00","level":"ERROR","msg":"Failed to update product","error":"failed to update product: pq: value too long for type character varying(5)"}
+{"time":"2024-12-23T22:34:56.764903554+05:00","level":"ERROR","msg":"CreateProduct","error":"pq: insert or update on table \"products\" violates foreign key constraint \"products_category_id_fkey\""}
+{"time":"2024-12-23T22:34:56.76598706+05:00","level":"ERROR","msg":"Failed to create product","error":"pq: insert or update on table \"products\" violates foreign key constraint \"products_category_id_fkey\""}
+{"time":"2024-12-23T22:36:23.075278506+05:00","level":"ERROR","msg":"Error creating purchase","error":"sql: converting argument $1 type: unsupported type entity.PurchaseRequest, a struct"}
+{"time":"2024-12-23T22:36:23.075331821+05:00","level":"ERROR","msg":"Failed to create purchase","error":"error creating purchase: sql: converting argument $1 type: unsupported type entity.PurchaseRequest, a struct"}
+{"time":"2024-12-23T22:44:23.815534907+05:00","level":"ERROR","msg":"Error creating purchase","error":"pq: invalid input syntax for type uuid: \"\""}
+{"time":"2024-12-23T22:44:23.815661387+05:00","level":"ERROR","msg":"Failed to create purchase","error":"error creating purchase: pq: invalid input syntax for type uuid: \"\""}
+{"time":"2024-12-23T22:46:17.30961012+05:00","level":"ERROR","msg":"Error creating purchase","error":"pq: invalid input syntax for type uuid: \"\""}
+{"time":"2024-12-23T22:46:17.309726786+05:00","level":"ERROR","msg":"Failed to create purchase","error":"error creating purchase: pq: invalid input syntax for type uuid: \"\""}
+{"time":"2024-12-23T22:46:45.551718832+05:00","level":"ERROR","msg":"Error creating purchase","error":"pq: invalid input syntax for type uuid: \"\""}
+{"time":"2024-12-23T22:46:45.551803552+05:00","level":"ERROR","msg":"Failed to create purchase","error":"error creating purchase: pq: invalid input syntax for type uuid: \"\""}
+{"time":"2024-12-23T22:49:07.04403006+05:00","level":"ERROR","msg":"Error creating purchase","error":"pq: invalid input syntax for type uuid: \"\""}
+{"time":"2024-12-23T22:49:07.044107506+05:00","level":"ERROR","msg":"Failed to create purchase","error":"error creating purchase: pq: invalid input syntax for type uuid: \"\""}
+{"time":"2024-12-23T22:50:01.795165153+05:00","level":"ERROR","msg":"Error creating purchase","error":"pq: invalid input syntax for type uuid: \"\""}
+{"time":"2024-12-23T22:50:01.795285059+05:00","level":"ERROR","msg":"Failed to create purchase","error":"error creating purchase: pq: invalid input syntax for type uuid: \"\""}
+{"time":"2024-12-23T22:52:50.299833251+05:00","level":"ERROR","msg":"Error creating purchase","error":"pq: invalid input syntax for type uuid: \"\""}
+{"time":"2024-12-23T22:52:50.300036342+05:00","level":"ERROR","msg":"Failed to create purchase","error":"error creating purchase: pq: invalid input syntax for type uuid: \"\""}

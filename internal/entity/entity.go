@@ -130,6 +130,7 @@ type Purchase struct {
 	PurchasedBy   string         `json:"purchased_by" db:"purchased_by"`
 	Description   string         `json:"description" db:"description"`
 	PaymentMethod string         `json:"payment_method" db:"payment_method"`
+	CompanyID     string         `json:"company_id" db:"company_id"`
 	PurchaseItems []PurchaseItem `json:"purchase_items" db:"purchase_items"`
 }
 
