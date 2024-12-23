@@ -43,6 +43,22 @@ func (p *productRepo) CreateProductCategory(in *pb.CreateCategoryRequest) (*pb.C
 	return &category, nil
 }
 
+func (p *productRepo) UpdateProductCategory(in *pb.UpdateCategoryRequest) (*pb.Category, error) {
+	var category pb.Category
+
+	query := `UPDATE product_categories 
+              SET name = COALESCE($1, name), image_url = COALESCE($2, image_url) 
+              WHERE id = $3 and company_id = $4
+              RETURNING id, name, image_url, created_by, company_id, created_at`
+	err := p.db.QueryRowx(query, in.Name, in.ImageUrl, in.Id, in.CompanyId).Scan(&category.Id, &category.Name, &category.ImageUrl, &category.CreatedBy, &category.CompanyId, &category.CreatedAt)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to update product category: %w", err)
+	}
+
+	return &category, nil
+}
+
 func (p *productRepo) DeleteProductCategory(in *pb.GetCategoryRequest) (*pb.Message, error) {
 	query := `DELETE FROM product_categories WHERE id = $1`
 

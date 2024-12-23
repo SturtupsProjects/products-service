@@ -41,6 +41,18 @@ func (p *ProductsGrpc) CreateCategory(ctx context.Context, in *pb.CreateCategory
 	return category, nil
 }
 
+func (p *ProductsGrpc) UpdateCategory(ctx context.Context, in *pb.UpdateCategoryRequest) (*pb.Category, error) {
+
+	category, err := p.product.UpdateCategory(in)
+
+	if err != nil {
+		p.log.Error("Failed to update category", "error", err.Error())
+		return nil, status.Errorf(codes.Internal, "Failed to update category: %v", err)
+	}
+
+	return category, nil
+}
+
 func (p *ProductsGrpc) DeleteCategory(ctx context.Context, in *pb.GetCategoryRequest) (*pb.Message, error) {
 
 	message, err := p.product.DeleteCategory(in)

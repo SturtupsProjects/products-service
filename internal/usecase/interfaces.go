@@ -7,6 +7,7 @@ import (
 
 type ProductsRepo interface {
 	CreateProductCategory(in *pb.CreateCategoryRequest) (*pb.Category, error)
+	UpdateProductCategory(in *pb.UpdateCategoryRequest) (*pb.Category, error)
 	DeleteProductCategory(in *pb.GetCategoryRequest) (*pb.Message, error)
 	GetProductCategory(in *pb.GetCategoryRequest) (*pb.Category, error)
 	GetListProductCategory(in *pb.CategoryName) (*pb.CategoryList, error)

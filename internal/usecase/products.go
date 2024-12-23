@@ -27,6 +27,17 @@ func (p *ProductsUseCase) CreateCategory(in *pb.CreateCategoryRequest) (*pb.Cate
 	return res, nil
 }
 
+func (p *ProductsUseCase) UpdateCategory(in *pb.UpdateCategoryRequest) (*pb.Category, error) {
+	res, err := p.repo.UpdateProductCategory(in)
+
+	if err != nil {
+		p.log.Error("UpdateCategory", "error", err.Error())
+		return nil, err
+	}
+
+	return res, nil
+}
+
 func (p *ProductsUseCase) DeleteCategory(in *pb.GetCategoryRequest) (*pb.Message, error) {
 	res, err := p.repo.DeleteProductCategory(in)
 
