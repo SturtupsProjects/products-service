@@ -293,7 +293,7 @@ func (p *productQuantity) AddProduct(in *entity.CountProductReq) (*entity.Produc
 		RETURNING id, total_count
 	`
 
-	err := p.db.QueryRowx(query, in.Count, in.Id).
+	err := p.db.QueryRowx(query, in.Count, in.ID).
 		Scan(&product.ID, &product.TotalCount)
 	if err != nil {
 		return nil, fmt.Errorf("failed to add product stock: %w", err)
@@ -334,7 +334,7 @@ func (p *productQuantity) ProductCountChecker(in *entity.CountProductReq) (bool,
 
 	query := `select 'true' from products where id = $1 and total_count >= $2`
 
-	err := p.db.Get(&res, query, in.Id, in.Count)
+	err := p.db.Get(&res, query, in.ID, in.Count)
 	if err != nil {
 		return false, err
 	}

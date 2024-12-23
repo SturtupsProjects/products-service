@@ -50,4 +50,5 @@ networks:
 
 volumes:
   postgres_data:
+    name: products_volume
   migrations:

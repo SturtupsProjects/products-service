@@ -145,15 +145,16 @@ func (r *salesRepoImpl) GetSaleList(in *entity.SaleFilter) (*pb.SaleList, error)
 	var sales []*pb.SaleResponse
 	var queryBuilder strings.Builder
 	var args []interface{}
-	argIndex := 1
+	argIndex := 2 // Start from 2 because $1 is for CompanyID
 
 	queryBuilder.WriteString(`
         SELECT s.id, s.client_id, s.sold_by, s.total_sale_price, s.payment_method, s.created_at,
                i.id AS item_id, i.product_id, i.quantity, i.sale_price, i.total_price 
         FROM sales s 
         JOIN sales_items i ON s.id = i.sale_id
-        WHERE s.company_id = $1 AND 1=1
+        WHERE s.company_id = $1
     `)
+	args = append(args, in.CompanyID) // Add CompanyID as the first argument
 
 	if in.ClientID != "" {
 		queryBuilder.WriteString(" AND s.client_id ILIKE '%' || $" + fmt.Sprint(argIndex) + " || '%'")
@@ -182,7 +183,8 @@ func (r *salesRepoImpl) GetSaleList(in *entity.SaleFilter) (*pb.SaleList, error)
 	queryBuilder.WriteString(" ORDER BY s.created_at DESC")
 	query := queryBuilder.String()
 
-	rows, err := r.db.Queryx(query, in.CompanyID, args...)
+	// Unpack args using ... operator
+	rows, err := r.db.Queryx(query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list sales: %w", err)
 	}
@@ -214,7 +216,9 @@ func (r *salesRepoImpl) GetSaleList(in *entity.SaleFilter) (*pb.SaleList, error)
 			salesMap[sale.Id] = &sale
 		}
 
-		salesMap[sale.Id].SoldProducts = append(salesMap[sale.Id].SoldProducts, &item)
+		if item.Id != "" { // If item exists, append it to soldProducts
+			salesMap[sale.Id].SoldProducts = append(salesMap[sale.Id].SoldProducts, &item)
+		}
 	}
 
 	if err = rows.Err(); err != nil {

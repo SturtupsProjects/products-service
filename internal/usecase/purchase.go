@@ -4,7 +4,6 @@ import (
 	"crm-admin/internal/entity"
 	pb "crm-admin/internal/generated/products"
 	"fmt"
-	"log"
 	"log/slog"
 	"sync"
 )
@@ -28,7 +27,7 @@ func (p *PurchaseUseCase) CalculateTotalPurchases(in *entity.Purchase) (*entity.
 	var totalSum int64
 	var purchaseList []entity.PurchaseItemReq
 
-	for _, pr := range *in.PurchaseItem {
+	for _, pr := range in.PurchaseItems {
 		if pr.Quantity == 0 {
 			continue
 		}
@@ -46,7 +45,7 @@ func (p *PurchaseUseCase) CalculateTotalPurchases(in *entity.Purchase) (*entity.
 
 	result.PurchasedBy = in.PurchasedBy
 	result.SupplierID = in.SupplierID
-	result.PurchaseItem = &purchaseList
+	result.PurchaseItems = purchaseList
 	result.TotalCost = totalSum
 	result.PaymentMethod = in.PaymentMethod
 	result.Description = in.Description
@@ -55,48 +54,36 @@ func (p *PurchaseUseCase) CalculateTotalPurchases(in *entity.Purchase) (*entity.
 }
 
 func (p *PurchaseUseCase) CreatePurchase(in *entity.Purchase) (*pb.PurchaseResponse, error) {
-
 	req, err := p.CalculateTotalPurchases(in)
 	if err != nil {
-		p.log.Error("Error calculating total purchase cost", "error", err.Error())
+		p.log.Error("Error calculating total purchase cost", "error", err)
 		return nil, fmt.Errorf("error calculating total purchase cost: %w", err)
 	}
 
 	res, err := p.repo.CreatePurchase(req)
 	if err != nil {
-		p.log.Error("Error creating purchase", "error", err.Error())
+		p.log.Error("Error creating purchase", "error", err)
 		return nil, fmt.Errorf("error creating purchase: %w", err)
 	}
 
 	var wg sync.WaitGroup
 	semaphore := make(chan struct{}, 10) // limit to 10 goroutines
 
-	log.Println("Mana Fordan oldin chiqdi")
-	log.Println("Mana Fordan oldin chiqdi")
-	log.Println("Mana Fordan oldin chiqdi")
-
-	for _, item := range *in.PurchaseItem {
+	for _, item := range in.PurchaseItems {
 		wg.Add(1)
-		go func(entity.PurchaseItem) {
+		go func(item entity.PurchaseItem) {
 			defer wg.Done()
 			semaphore <- struct{}{}
 			defer func() { <-semaphore }()
 
 			productQuantityReq := &entity.CountProductReq{
-				Id:    item.ProductID,
+				ID:    item.ProductID,
 				Count: item.Quantity,
 			}
 
-			log.Println("Mana keldi ku")
-			log.Println("Mana keldi ku")
 			if _, err := p.product.AddProduct(productQuantityReq); err != nil {
-				log.Println("Mana err", err)
-				log.Println("Mana err", err)
-				log.Println("Mana err", err)
-				p.log.Error("Error adding product quantity", "error", err.Error())
+				p.log.Error("Error adding product quantity", "productID", item.ProductID, "error", err)
 			}
-			log.Println("Mana otib ketti ku")
-			log.Println("Mana otib ketti ku")
 		}(item)
 	}
 
@@ -107,7 +94,7 @@ func (p *PurchaseUseCase) CreatePurchase(in *entity.Purchase) (*pb.PurchaseRespo
 func (p *PurchaseUseCase) UpdatePurchase(in *entity.PurchaseUpdate) (*pb.PurchaseResponse, error) {
 	res, err := p.repo.UpdatePurchase(in)
 	if err != nil {
-		p.log.Error("Error updating purchase", "error", err.Error())
+		p.log.Error("Error updating purchase", "error", err)
 		return nil, fmt.Errorf("error updating purchase: %w", err)
 	}
 
@@ -117,7 +104,7 @@ func (p *PurchaseUseCase) UpdatePurchase(in *entity.PurchaseUpdate) (*pb.Purchas
 func (p *PurchaseUseCase) GetPurchase(req *entity.PurchaseID) (*pb.PurchaseResponse, error) {
 	res, err := p.repo.GetPurchase(req)
 	if err != nil {
-		p.log.Error("Error fetching purchase data", "error", err.Error())
+		p.log.Error("Error fetching purchase data", "error", err)
 		return nil, fmt.Errorf("error fetching purchase data: %w", err)
 	}
 
@@ -127,7 +114,7 @@ func (p *PurchaseUseCase) GetPurchase(req *entity.PurchaseID) (*pb.PurchaseRespo
 func (p *PurchaseUseCase) GetListPurchase(req *entity.FilterPurchase) (*pb.PurchaseList, error) {
 	res, err := p.repo.GetPurchaseList(req)
 	if err != nil {
-		p.log.Error("Error fetching purchase list", "error", err.Error())
+		p.log.Error("Error fetching purchase list", "error", err)
 		return nil, fmt.Errorf("error fetching purchase list: %w", err)
 	}
 
@@ -141,13 +128,13 @@ func (p *PurchaseUseCase) validatePurchaseItems(purchase *pb.PurchaseResponse) e
 		}
 
 		productQuantityReq := &entity.CountProductReq{
-			Id:    item.ProductId,
+			ID:    item.ProductId,
 			Count: int(item.Quantity),
 		}
 
 		check, err := p.product.ProductCountChecker(productQuantityReq)
 		if err != nil {
-			p.log.Error("Error checking product quantity", "error", err.Error())
+			p.log.Error("Error checking product quantity", "productID", item.ProductId, "error", err)
 			return fmt.Errorf("error checking product quantity: %w", err)
 		}
 
@@ -161,34 +148,30 @@ func (p *PurchaseUseCase) validatePurchaseItems(purchase *pb.PurchaseResponse) e
 func (p *PurchaseUseCase) DeletePurchase(req *entity.PurchaseID) (*pb.Message, error) {
 	purchase, err := p.repo.GetPurchase(req)
 	if err != nil {
-		p.log.Error("Error fetching purchase data", "error", err.Error())
+		p.log.Error("Error fetching purchase data", "error", err)
 		return nil, fmt.Errorf("error fetching purchase data: %w", err)
 	}
 
 	if err := p.validatePurchaseItems(purchase); err != nil {
-		p.log.Error("Purchase validation failed before deletion", "error", err.Error())
+		p.log.Error("Purchase validation failed before deletion", "error", err)
 		return nil, err
 	}
 
 	res, err := p.repo.DeletePurchase(req)
 	if err != nil {
-		p.log.Error("Error deleting purchase", "error", err.Error())
+		p.log.Error("Error deleting purchase", "error", err)
 		return nil, fmt.Errorf("error deleting purchase: %w", err)
 	}
 
 	go func() {
 		for _, item := range purchase.Items {
-			if item.Quantity == 0 {
-				item.Quantity = 1
-			}
-
 			productQuantityReq := &entity.CountProductReq{
-				Id:    item.ProductId,
+				ID:    item.ProductId,
 				Count: int(item.Quantity),
 			}
 
 			if _, err := p.product.RemoveProduct(productQuantityReq); err != nil {
-				p.log.Error("Error removing product in DeletePurchase", "error", err.Error())
+				p.log.Error("Error removing product in DeletePurchase", "productID", item.ProductId, "error", err)
 			}
 		}
 	}()

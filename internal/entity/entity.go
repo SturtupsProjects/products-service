@@ -29,35 +29,35 @@ type FilterProduct struct {
 
 // ProductRequest represents data for creating a new product.
 type ProductRequest struct {
-	CategoryID    string  `json:"category_id" db:"category_id"`
-	Name          string  `json:"name" db:"name"`
-	BillFormat    string  `json:"bill_format" db:"bill_format"`
-	IncomingPrice float64 `json:"incoming_price" db:"incoming_price"`
-	StandardPrice float64 `json:"standard_price" db:"standard_price"`
-	CreatedBy     string  `json:"created_by" db:"created_by"`
+	CategoryID    string `json:"category_id" db:"category_id"`
+	Name          string `json:"name" db:"name"`
+	BillFormat    string `json:"bill_format" db:"bill_format"`
+	IncomingPrice int64  `json:"incoming_price" db:"incoming_price"`
+	StandardPrice int64  `json:"standard_price" db:"standard_price"`
+	CreatedBy     string `json:"created_by" db:"created_by"`
 }
 
 // ProductUpdate represents data for updating an existing product.
 type ProductUpdate struct {
-	ID            string  `json:"id" db:"id"`
-	CategoryID    string  `json:"category_id" db:"category_id"`
-	Name          string  `json:"name" db:"name"`
-	BillFormat    string  `json:"bill_format" db:"bill_format"`
-	IncomingPrice float64 `json:"incoming_price" db:"incoming_price"`
-	StandardPrice float64 `json:"standard_price" db:"standard_price"`
+	ID            string `json:"id" db:"id"`
+	CategoryID    string `json:"category_id" db:"category_id"`
+	Name          string `json:"name" db:"name"`
+	BillFormat    string `json:"bill_format" db:"bill_format"`
+	IncomingPrice int64  `json:"incoming_price" db:"incoming_price"`
+	StandardPrice int64  `json:"standard_price" db:"standard_price"`
 }
 
 // Product represents a product with complete data.
 type Product struct {
-	ID            string  `json:"id" db:"id"`
-	CategoryID    string  `json:"category_id" db:"category_id"`
-	Name          string  `json:"name" db:"name"`
-	BillFormat    string  `json:"bill_format" db:"bill_format"`
-	IncomingPrice float64 `json:"incoming_price" db:"incoming_price"`
-	StandardPrice float64 `json:"standard_price" db:"standard_price"`
-	TotalCount    int     `json:"total_count" db:"total_count"`
-	CreatedBy     string  `json:"created_by" db:"created_by"`
-	CreatedAt     string  `json:"created_at" db:"created_at"`
+	ID            string `json:"id" db:"id"`
+	CategoryID    string `json:"category_id" db:"category_id"`
+	Name          string `json:"name" db:"name"`
+	BillFormat    string `json:"bill_format" db:"bill_format"`
+	IncomingPrice int64  `json:"incoming_price" db:"incoming_price"`
+	StandardPrice int64  `json:"standard_price" db:"standard_price"`
+	TotalCount    int    `json:"total_count" db:"total_count"`
+	CreatedBy     string `json:"created_by" db:"created_by"`
+	CreatedAt     string `json:"created_at" db:"created_at"`
 }
 
 // ProductList contains a list of products.
@@ -98,7 +98,7 @@ type PurchaseResponse struct {
 	ID            string            `json:"id" db:"id"`
 	SupplierID    string            `json:"supplier_id" db:"supplier_id"`
 	PurchasedBy   string            `json:"purchased_by" db:"purchased_by"`
-	TotalCost     float64           `json:"total_cost" db:"total_cost"`
+	TotalCost     int64             `json:"total_cost" db:"total_cost"`
 	Description   string            `json:"description" db:"description"`
 	PaymentMethod string            `json:"payment_method" db:"payment_method"`
 	CreatedAt     string            `json:"created_at" db:"created_at"`
@@ -109,7 +109,7 @@ type PurchaseResponse struct {
 type PurchaseRequest struct {
 	SupplierID    string            `json:"supplier_id" db:"supplier_id"`
 	PurchasedBy   string            `json:"purchased_by" db:"purchased_by"`
-	TotalCost     float64           `json:"total_cost" db:"total_cost"`
+	TotalCost     int64             `json:"total_cost" db:"total_cost"`
 	CompanyID     string            `json:"company_id" db:"company_id"`
 	Description   string            `json:"description" db:"description"`
 	PaymentMethod string            `json:"payment_method" db:"payment_method"`
@@ -118,10 +118,10 @@ type PurchaseRequest struct {
 
 // PurchaseItemReq represents an item in a purchase request.
 type PurchaseItemReq struct {
-	ProductID     string  `json:"product_id" db:"product_id"`
-	Quantity      int     `json:"quantity" db:"quantity"`
-	PurchasePrice float64 `json:"purchase_price" db:"purchase_price"`
-	TotalPrice    float64 `json:"total_price" db:"total_price"`
+	ProductID     string `json:"product_id" db:"product_id"`
+	Quantity      int    `json:"quantity" db:"quantity"`
+	PurchasePrice int64  `json:"purchase_price" db:"purchase_price"`
+	TotalPrice    int64  `json:"total_price" db:"total_price"`
 }
 
 // Purchase represents a complete purchase entity.
@@ -135,9 +135,9 @@ type Purchase struct {
 
 // PurchaseItem represents an item within a purchase.
 type PurchaseItem struct {
-	ProductID     string  `json:"product_id" db:"product_id"`
-	Quantity      int     `json:"quantity" db:"quantity"`
-	PurchasePrice float64 `json:"purchase_price" db:"purchase_price"`
+	ProductID     string `json:"product_id" db:"product_id"`
+	Quantity      int    `json:"quantity" db:"quantity"`
+	PurchasePrice int64  `json:"purchase_price" db:"purchase_price"`
 }
 
 // PurchaseID represents a purchase ID.
@@ -172,10 +172,10 @@ type SaleRequest struct {
 
 // SalesItemRequest represents an item in a sale request.
 type SalesItemRequest struct {
-	SaleID    string  `json:"sale_id" db:"sale_id"`
-	ProductID string  `json:"product_id" db:"product_id"`
-	Quantity  int     `json:"quantity" db:"quantity"`
-	SalePrice float64 `json:"sale_price" db:"sale_price"`
+	SaleID    string `json:"sale_id" db:"sale_id"`
+	ProductID string `json:"product_id" db:"product_id"`
+	Quantity  int    `json:"quantity" db:"quantity"`
+	SalePrice int64  `json:"sale_price" db:"sale_price"`
 }
 
 // SalesTotal represents the total sale details.
@@ -183,18 +183,18 @@ type SalesTotal struct {
 	ClientID       string      `json:"client_id" db:"client_id"`
 	CompanyID      string      `json:"company_id" db:"company_id"`
 	SoldBy         string      `json:"sold_by" db:"sold_by"`
-	TotalSalePrice float64     `json:"total_sale_price" db:"total_sale_price"`
+	TotalSalePrice int64       `json:"total_sale_price" db:"total_sale_price"`
 	PaymentMethod  string      `json:"payment_method" db:"payment_method"`
 	SoldProducts   []SalesItem `json:"products" db:"products"`
 }
 
 // SalesItemTotal represents an item with total sales info.
 type SalesItemTotal struct {
-	SaleID     string  `json:"sale_id" db:"sale_id"`
-	ProductID  string  `json:"product_id" db:"product_id"`
-	Quantity   int     `json:"quantity" db:"quantity"`
-	SalePrice  float64 `json:"sale_price" db:"sale_price"`
-	TotalPrice float64 `json:"total_price" db:"total_price"`
+	SaleID     string `json:"sale_id" db:"sale_id"`
+	ProductID  string `json:"product_id" db:"product_id"`
+	Quantity   int    `json:"quantity" db:"quantity"`
+	SalePrice  int64  `json:"sale_price" db:"sale_price"`
+	TotalPrice int64  `json:"total_price" db:"total_price"`
 }
 
 // SaleResponse represents the response for a sale.
@@ -202,7 +202,7 @@ type SaleResponse struct {
 	ID             string      `json:"id" db:"id"`
 	ClientID       string      `json:"client_id" db:"client_id"`
 	SoldBy         string      `json:"sold_by" db:"sold_by"`
-	TotalSalePrice float64     `json:"total_sale_price" db:"total_sale_price"`
+	TotalSalePrice int64       `json:"total_sale_price" db:"total_sale_price"`
 	PaymentMethod  string      `json:"payment_method" db:"payment_method"`
 	CreatedAt      string      `json:"created_at" db:"created_at"`
 	SoldProducts   []SalesItem `json:"products" db:"products"`
@@ -210,18 +210,19 @@ type SaleResponse struct {
 
 // SalesItem represents a sold product in a sale.
 type SalesItem struct {
-	ID         string  `json:"id" db:"id"`
-	SaleID     string  `json:"sale_id" db:"sale_id"`
-	ProductID  string  `json:"product_id" db:"product_id"`
-	Quantity   int     `json:"quantity" db:"quantity"`
-	SalePrice  float64 `json:"sale_price" db:"sale_price"`
-	TotalPrice float64 `json:"total_price" db:"total_price"`
+	ID         string `json:"id" db:"id"`
+	SaleID     string `json:"sale_id" db:"sale_id"`
+	ProductID  string `json:"product_id" db:"product_id"`
+	Quantity   int64  `json:"quantity" db:"quantity"`
+	SalePrice  int64  `json:"sale_price" db:"sale_price"`
+	TotalPrice int64  `json:"total_price" db:"total_price"`
 }
 
 // SaleUpdate represents data to update a sale.
 type SaleUpdate struct {
 	ID            string `json:"id" db:"id"`
 	ClientID      string `json:"client_id" db:"client_id"`
+	CompanyID     string `json:"company_id" db:"company_id"`
 	PaymentMethod string `json:"payment_method" db:"payment_method"`
 }
 
@@ -232,7 +233,8 @@ type SaleList struct {
 
 // SaleID represents a sale's ID.
 type SaleID struct {
-	ID string `json:"id" db:"id"`
+	ID        string `json:"id" db:"id"`
+	CompanyID string `json:"company_id" db:"company_id"`
 }
 
 // SaleFilter provides filtering options for sales.
@@ -241,4 +243,5 @@ type SaleFilter struct {
 	EndDate   string `json:"end_date" db:"end_date"`
 	ClientID  string `json:"client_id" db:"client_id"`
 	SoldBy    string `json:"sold_by" db:"sold_by"`
+	CompanyID string `json:"company_id" db:"company_id"`
 }
