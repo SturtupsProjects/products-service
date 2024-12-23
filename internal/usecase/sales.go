@@ -50,7 +50,6 @@ func (s *SalesUseCase) CalculateTotalSales(in *entity.SaleRequest) (*entity.Sale
 	}, nil
 }
 
-// CreateSales creates a sale record and updates product stock.
 func (s *SalesUseCase) CreateSales(in *entity.SaleRequest) (*pb.SaleResponse, error) {
 	total, err := s.CalculateTotalSales(in)
 	if err != nil {

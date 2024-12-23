@@ -46,6 +46,7 @@ func (p *ProductsGrpc) CreateSales(ctx context.Context, in *pb.SaleRequest) (*pb
 		ClientID:      in.GetClientId(),
 		SoldBy:        in.GetSoldBy(),
 		PaymentMethod: in.GetPaymentMethod(),
+		CompanyID:     in.GetCompanyId(),
 	}
 
 	// Map SaleItems

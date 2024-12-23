@@ -168,6 +168,7 @@ type SaleRequest struct {
 	ClientID      string      `json:"client_id" db:"client_id"`
 	SoldBy        string      `json:"sold_by" db:"sold_by"`
 	PaymentMethod string      `json:"payment_method" db:"payment_method"`
+	CompanyID     string      `json:"company_id" db:"company_id"`
 	SoldProducts  []SalesItem `json:"products" db:"products"`
 }
 
