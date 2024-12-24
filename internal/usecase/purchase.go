@@ -74,7 +74,15 @@ func (p *PurchaseUseCase) CreatePurchase(in *entity.Purchase) (*pb.PurchaseRespo
 		wg.Add(1)
 		go func(item entity.PurchaseItem) {
 			defer wg.Done()
-			semaphore <- struct{}{}
+
+			select {
+			case semaphore <- struct{}{}:
+				// Continue with the operation
+			default:
+				p.log.Error("Semaphore channel is full, skipping operation", "productID", item.ProductID)
+				return
+			}
+
 			defer func() { <-semaphore }()
 
 			productQuantityReq := &entity.CountProductReq{
@@ -92,7 +100,7 @@ func (p *PurchaseUseCase) CreatePurchase(in *entity.Purchase) (*pb.PurchaseRespo
 	return res, nil
 }
 
-func (p *PurchaseUseCase) UpdatePurchase(in *entity.PurchaseUpdate) (*pb.PurchaseResponse, error) {
+func (p *PurchaseUseCase) UpdatePurchase(in *pb.PurchaseUpdate) (*pb.PurchaseResponse, error) {
 	res, err := p.repo.UpdatePurchase(in)
 	if err != nil {
 		p.log.Error("Error updating purchase", "error", err)
@@ -102,7 +110,7 @@ func (p *PurchaseUseCase) UpdatePurchase(in *entity.PurchaseUpdate) (*pb.Purchas
 	return res, nil
 }
 
-func (p *PurchaseUseCase) GetPurchase(req *entity.PurchaseID) (*pb.PurchaseResponse, error) {
+func (p *PurchaseUseCase) GetPurchase(req *pb.PurchaseID) (*pb.PurchaseResponse, error) {
 	res, err := p.repo.GetPurchase(req)
 	if err != nil {
 		p.log.Error("Error fetching purchase data", "error", err)
@@ -112,7 +120,7 @@ func (p *PurchaseUseCase) GetPurchase(req *entity.PurchaseID) (*pb.PurchaseRespo
 	return res, nil
 }
 
-func (p *PurchaseUseCase) GetListPurchase(req *entity.FilterPurchase) (*pb.PurchaseList, error) {
+func (p *PurchaseUseCase) GetListPurchase(req *pb.FilterPurchase) (*pb.PurchaseList, error) {
 	res, err := p.repo.GetPurchaseList(req)
 	if err != nil {
 		p.log.Error("Error fetching purchase list", "error", err)
@@ -125,7 +133,7 @@ func (p *PurchaseUseCase) GetListPurchase(req *entity.FilterPurchase) (*pb.Purch
 func (p *PurchaseUseCase) validatePurchaseItems(purchase *pb.PurchaseResponse) error {
 	for _, item := range purchase.Items {
 		if item.Quantity == 0 {
-			item.Quantity = 1
+			return fmt.Errorf("item quantity cannot be zero for product %v", item.ProductId)
 		}
 
 		productQuantityReq := &entity.CountProductReq{
@@ -146,7 +154,7 @@ func (p *PurchaseUseCase) validatePurchaseItems(purchase *pb.PurchaseResponse) e
 	return nil
 }
 
-func (p *PurchaseUseCase) DeletePurchase(req *entity.PurchaseID) (*pb.Message, error) {
+func (p *PurchaseUseCase) DeletePurchase(req *pb.PurchaseID) (*pb.Message, error) {
 	purchase, err := p.repo.GetPurchase(req)
 	if err != nil {
 		p.log.Error("Error fetching purchase data", "error", err)

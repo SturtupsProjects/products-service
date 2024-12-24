@@ -90,7 +90,7 @@ func (s *SalesUseCase) CreateSales(in *entity.SaleRequest) (*pb.SaleResponse, er
 }
 
 // UpdateSales updates an existing sale record.
-func (s *SalesUseCase) UpdateSales(in *entity.SaleUpdate) (*pb.SaleResponse, error) {
+func (s *SalesUseCase) UpdateSales(in *pb.SaleUpdate) (*pb.SaleResponse, error) {
 	res, err := s.repo.UpdateSale(in)
 	if err != nil {
 		s.log.Error("Error updating sale", "error", err)
@@ -100,17 +100,17 @@ func (s *SalesUseCase) UpdateSales(in *entity.SaleUpdate) (*pb.SaleResponse, err
 }
 
 // GetSales retrieves a specific sale by ID.
-func (s *SalesUseCase) GetSales(req *entity.SaleID) (*pb.SaleResponse, error) {
+func (s *SalesUseCase) GetSales(req *pb.SaleID) (*pb.SaleResponse, error) {
 	res, err := s.repo.GetSale(req)
 	if err != nil {
-		s.log.Error("Error fetching sale", "saleID", req.ID, "error", err)
+		s.log.Error("Error fetching sale", "saleID", req.Id, "error", err)
 		return nil, fmt.Errorf("error fetching sale: %w", err)
 	}
 	return res, nil
 }
 
 // GetListSales retrieves a list of sales based on filters.
-func (s *SalesUseCase) GetListSales(req *entity.SaleFilter) (*pb.SaleList, error) {
+func (s *SalesUseCase) GetListSales(req *pb.SaleFilter) (*pb.SaleList, error) {
 	res, err := s.repo.GetSaleList(req)
 	if err != nil {
 		s.log.Error("Error fetching sales list", "filter", req, "error", err)
@@ -120,10 +120,10 @@ func (s *SalesUseCase) GetListSales(req *entity.SaleFilter) (*pb.SaleList, error
 }
 
 // DeleteSales deletes a sale record and restores product stock.
-func (s *SalesUseCase) DeleteSales(req *entity.SaleID) (*pb.Message, error) {
+func (s *SalesUseCase) DeleteSales(req *pb.SaleID) (*pb.Message, error) {
 	sale, err := s.repo.GetSale(req)
 	if err != nil {
-		s.log.Error("Error fetching sale for deletion", "saleID", req.ID, "error", err)
+		s.log.Error("Error fetching sale for deletion", "saleID", req.Id, "error", err)
 		return nil, fmt.Errorf("error fetching sale for deletion: %w", err)
 	}
 
@@ -152,7 +152,7 @@ func (s *SalesUseCase) DeleteSales(req *entity.SaleID) (*pb.Message, error) {
 
 	res, err := s.repo.DeleteSale(req)
 	if err != nil {
-		s.log.Error("Error deleting sale", "saleID", req.ID, "error", err)
+		s.log.Error("Error deleting sale", "saleID", req.Id, "error", err)
 		return nil, fmt.Errorf("error deleting sale: %w", err)
 	}
 

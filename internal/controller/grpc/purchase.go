@@ -32,12 +32,8 @@ func (p *ProductsGrpc) CreatePurchase(ctx context.Context, in *pb.PurchaseReques
 
 // GetPurchase retrieves a specific purchase.
 func (p *ProductsGrpc) GetPurchase(ctx context.Context, in *pb.PurchaseID) (*pb.PurchaseResponse, error) {
-	purchaseID := &entity.PurchaseID{
-		ID: in.GetId(),
-	}
 
-	// Get purchase via usecase
-	purchase, err := p.purchase.GetPurchase(purchaseID)
+	purchase, err := p.purchase.GetPurchase(in)
 	if err != nil {
 		p.log.Error("Failed to retrieve purchase", "error", err.Error())
 		return nil, status.Errorf(codes.NotFound, "Purchase not found: %v", err)
@@ -48,16 +44,8 @@ func (p *ProductsGrpc) GetPurchase(ctx context.Context, in *pb.PurchaseID) (*pb.
 
 // GetListPurchase retrieves a list of purchases.
 func (p *ProductsGrpc) GetListPurchase(ctx context.Context, in *pb.FilterPurchase) (*pb.PurchaseList, error) {
-	filter := &entity.FilterPurchase{
-		ProductID:   in.GetProductId(),
-		SupplierID:  in.GetSupplierId(),
-		PurchasedBy: in.GetPurchasedBy(),
-		CreatedAt:   in.GetCreatedAt(),
-		CompanyID:   in.CompanyId,
-	}
 
-	// Get list of purchases via usecase
-	purchaseList, err := p.purchase.GetListPurchase(filter)
+	purchaseList, err := p.purchase.GetListPurchase(in)
 	if err != nil {
 		p.log.Error("Failed to retrieve purchase list", "error", err.Error())
 		return nil, status.Errorf(codes.Internal, "Failed to retrieve purchase list: %v", err)
@@ -68,15 +56,8 @@ func (p *ProductsGrpc) GetListPurchase(ctx context.Context, in *pb.FilterPurchas
 
 // UpdatePurchase updates an existing purchase.
 func (p *ProductsGrpc) UpdatePurchase(ctx context.Context, in *pb.PurchaseUpdate) (*pb.PurchaseResponse, error) {
-	purchaseUpdate := &entity.PurchaseUpdate{
-		ID:            in.GetId(),
-		SupplierID:    in.GetSupplierId(),
-		Description:   in.GetDescription(),
-		PaymentMethod: in.GetPaymentMethod(),
-	}
 
-	// Update purchase via usecase
-	purchase, err := p.purchase.UpdatePurchase(purchaseUpdate)
+	purchase, err := p.purchase.UpdatePurchase(in)
 	if err != nil {
 		p.log.Error("Failed to update purchase", "error", err.Error())
 		return nil, status.Errorf(codes.Internal, "Failed to update purchase: %v", err)
@@ -87,12 +68,8 @@ func (p *ProductsGrpc) UpdatePurchase(ctx context.Context, in *pb.PurchaseUpdate
 
 // DeletePurchase deletes a purchase.
 func (p *ProductsGrpc) DeletePurchase(ctx context.Context, in *pb.PurchaseID) (*pb.Message, error) {
-	purchaseID := &entity.PurchaseID{
-		ID: in.GetId(),
-	}
 
-	// Delete purchase via usecase
-	message, err := p.purchase.DeletePurchase(purchaseID)
+	message, err := p.purchase.DeletePurchase(in)
 	if err != nil {
 		p.log.Error("Failed to delete purchase", "error", err.Error())
 		return nil, status.Errorf(codes.Internal, "Failed to delete purchase: %v", err)

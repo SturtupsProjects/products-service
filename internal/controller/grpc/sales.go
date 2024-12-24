@@ -72,15 +72,8 @@ func (p *ProductsGrpc) CreateSales(ctx context.Context, in *pb.SaleRequest) (*pb
 
 // UpdateSales updates the details of an existing sale.
 func (p *ProductsGrpc) UpdateSales(ctx context.Context, in *pb.SaleUpdate) (*pb.SaleResponse, error) {
-	// Map incoming gRPC request to entity struct
-	saleUpdate := &entity.SaleUpdate{
-		ID:            in.GetId(),
-		ClientID:      in.GetClientId(),
-		PaymentMethod: in.GetPaymentMethod(),
-	}
 
-	// Update sale
-	saleResp, err := p.sales.UpdateSales(saleUpdate)
+	saleResp, err := p.sales.UpdateSales(in)
 	if err != nil {
 		p.log.Error("Failed to update sale", "error", err.Error())
 		return nil, status.Errorf(codes.Internal, "Failed to update sale: %v", err)
@@ -91,13 +84,8 @@ func (p *ProductsGrpc) UpdateSales(ctx context.Context, in *pb.SaleUpdate) (*pb.
 
 // GetSales retrieves a specific sale by its ID.
 func (p *ProductsGrpc) GetSales(ctx context.Context, in *pb.SaleID) (*pb.SaleResponse, error) {
-	// Map incoming gRPC SaleID to entity SaleID
-	saleID := &entity.SaleID{
-		ID: in.GetId(),
-	}
 
-	// Fetch the sale from usecase
-	saleResp, err := p.sales.GetSales(saleID)
+	saleResp, err := p.sales.GetSales(in)
 	if err != nil {
 		p.log.Error("Failed to retrieve sale", "error", err.Error())
 		return nil, status.Errorf(codes.NotFound, "Sale not found: %v", err)
@@ -108,17 +96,8 @@ func (p *ProductsGrpc) GetSales(ctx context.Context, in *pb.SaleID) (*pb.SaleRes
 
 // GetListSales retrieves a list of sales based on filter criteria.
 func (p *ProductsGrpc) GetListSales(ctx context.Context, in *pb.SaleFilter) (*pb.SaleList, error) {
-	// Map incoming gRPC filter to entity filter
-	filter := &entity.SaleFilter{
-		StartDate: in.GetStartDate(),
-		EndDate:   in.GetEndDate(),
-		ClientID:  in.GetClientId(),
-		SoldBy:    in.GetSoldBy(),
-		CompanyID: in.GetCompanyId(),
-	}
 
-	// Fetch the list of sales from usecase
-	salesList, err := p.sales.GetListSales(filter)
+	salesList, err := p.sales.GetListSales(in)
 	if err != nil {
 		p.log.Error("Failed to retrieve sales list", "error", err.Error())
 		return nil, status.Errorf(codes.Internal, "Failed to retrieve sales list: %v", err)
@@ -129,13 +108,8 @@ func (p *ProductsGrpc) GetListSales(ctx context.Context, in *pb.SaleFilter) (*pb
 
 // DeleteSales deletes a sale record.
 func (p *ProductsGrpc) DeleteSales(ctx context.Context, in *pb.SaleID) (*pb.Message, error) {
-	// Map SaleID from gRPC to entity
-	saleID := &entity.SaleID{
-		ID: in.GetId(),
-	}
 
-	// Delete sale via usecase
-	message, err := p.sales.DeleteSales(saleID)
+	message, err := p.sales.DeleteSales(in)
 	if err != nil {
 		p.log.Error("Failed to delete sale", "error", err.Error())
 		return nil, status.Errorf(codes.Internal, "Failed to delete sale: %v", err)

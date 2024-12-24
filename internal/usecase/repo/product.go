@@ -6,7 +6,6 @@ import (
 	"crm-admin/internal/usecase"
 	"fmt"
 	"github.com/jmoiron/sqlx"
-	"log"
 	"strings"
 )
 
@@ -49,7 +48,6 @@ func (p *productRepo) UpdateProductCategory(in *pb.UpdateCategoryRequest) (*pb.C
 	var args []interface{}
 	argCounter := 1
 
-	// Динамическое добавление полей в запрос
 	if in.Name != "" {
 		query += fmt.Sprintf("name = $%d, ", argCounter)
 		args = append(args, in.Name)
@@ -61,11 +59,14 @@ func (p *productRepo) UpdateProductCategory(in *pb.UpdateCategoryRequest) (*pb.C
 		argCounter++
 	}
 
+	if len(args) == 0 {
+		return nil, fmt.Errorf("no fields to update")
+	}
+
 	query = query[:len(query)-2] + fmt.Sprintf(" WHERE id = $%d AND company_id = $%d "+
 		"RETURNING id, name, image_url, created_by, company_id, created_at", argCounter, argCounter+1)
 	args = append(args, in.Id, in.CompanyId)
 
-	// Выполнение запроса
 	err := p.db.QueryRowx(query, args...).Scan(
 		&category.Id,
 		&category.Name,
@@ -82,13 +83,16 @@ func (p *productRepo) UpdateProductCategory(in *pb.UpdateCategoryRequest) (*pb.C
 }
 
 func (p *productRepo) DeleteProductCategory(in *pb.GetCategoryRequest) (*pb.Message, error) {
-	query := `DELETE FROM product_categories WHERE id = $1`
+	query := `DELETE FROM product_categories WHERE id = $1 AND company_id = $2`
 
-	res, err := p.db.Exec(query, in.Id)
+	res, err := p.db.Exec(query, in.Id, in.CompanyId)
 	if err != nil {
 		return nil, fmt.Errorf("failed to delete product category: %w", err)
 	}
 	rows, _ := res.RowsAffected()
+	if rows == 0 {
+		return nil, fmt.Errorf("no records deleted")
+	}
 
 	return &pb.Message{Message: fmt.Sprintf("Deleted %d category(ies)", rows)}, nil
 }
@@ -98,11 +102,11 @@ func (p *productRepo) GetProductCategory(in *pb.GetCategoryRequest) (*pb.Categor
 		return nil, fmt.Errorf("input parameter is nil")
 	}
 
-	query := `SELECT id, name, image_url, created_by, created_at FROM product_categories WHERE id = $1`
+	query := `SELECT id, name, image_url, created_by, created_at FROM product_categories WHERE id = $1 AND company_id = $2`
 
 	var res pb.Category
 
-	err := p.db.QueryRowx(query, in.Id).Scan(
+	err := p.db.QueryRowx(query, in.Id, in.CompanyId).Scan(
 		&res.Id,
 		&res.Name,
 		&res.ImageUrl,
@@ -118,15 +122,17 @@ func (p *productRepo) GetProductCategory(in *pb.GetCategoryRequest) (*pb.Categor
 
 func (p *productRepo) GetListProductCategory(in *pb.CategoryName) (*pb.CategoryList, error) {
 	var categories []*pb.Category
-	query := `SELECT id, name, image_url, created_by, created_at FROM product_categories`
+	query := `SELECT id, name, image_url, created_by, created_at FROM product_categories WHERE company_id = $1`
 	var args []interface{}
 
+	args = append(args, in.CompanyId)
+
 	if in.Name != "" {
-		query += " WHERE name LIKE $1"
+		query += " AND name LIKE $2"
 		args = append(args, "%"+in.Name+"%")
 	}
 
-	rows, err := p.db.Query(query, args...)
+	rows, err := p.db.Queryx(query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute query: %w", err)
 	}
@@ -164,7 +170,7 @@ func (p *productRepo) CreateProduct(in *pb.CreateProductRequest) (*pb.Product, e
 			&product.StandardPrice, &product.TotalCount, &product.CreatedBy, &product.CreatedAt)
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create product: %w", err)
 	}
 
 	return &product, nil
@@ -207,9 +213,14 @@ func (p *productRepo) UpdateProduct(in *pb.UpdateProductRequest) (*pb.Product, e
 		argCounter++
 	}
 
-	query = query[:len(query)-2] + fmt.Sprintf(" WHERE id = $%d "+
-		"RETURNING id, category_id, name, bill_format, incoming_price, standard_price, total_count, created_by, created_at, image_url", argCounter)
-	args = append(args, in.Id)
+	if len(args) == 0 {
+		return nil, fmt.Errorf("no fields to update")
+	}
+
+	query = query[:len(query)-2] + fmt.Sprintf(" WHERE id = $%d AND company_id = $%d "+
+		"RETURNING id, category_id, name, bill_format, incoming_price, standard_price, total_count, created_by, created_at, image_url",
+		argCounter, argCounter+1)
+	args = append(args, in.Id, in.CompanyId)
 
 	err := p.db.QueryRowx(query, args...).Scan(
 		&product.Id,
@@ -232,13 +243,16 @@ func (p *productRepo) UpdateProduct(in *pb.UpdateProductRequest) (*pb.Product, e
 }
 
 func (p *productRepo) DeleteProduct(in *pb.GetProductRequest) (*pb.Message, error) {
-	query := `DELETE FROM products WHERE id = $1`
+	query := `DELETE FROM products WHERE id = $1 AND company_id = $2`
 
-	res, err := p.db.Exec(query, in.Id)
+	res, err := p.db.Exec(query, in.Id, in.CompanyId)
 	if err != nil {
 		return nil, fmt.Errorf("failed to delete product: %w", err)
 	}
 	rows, _ := res.RowsAffected()
+	if rows == 0 {
+		return nil, fmt.Errorf("no records deleted")
+	}
 
 	return &pb.Message{Message: fmt.Sprintf("Deleted %d product(s)", rows)}, nil
 }
@@ -250,9 +264,9 @@ func (p *productRepo) GetProduct(in *pb.GetProductRequest) (*pb.Product, error) 
 
 	var res pb.Product
 	query := `SELECT id, category_id, name, image_url, bill_format, incoming_price, standard_price,
-          total_count, created_by, created_at FROM products WHERE id = $1`
+          total_count, created_by, created_at FROM products WHERE id = $1 AND company_id = $2`
 
-	err := p.db.QueryRowx(query, in.Id).Scan(
+	err := p.db.QueryRowx(query, in.Id, in.CompanyId).Scan(
 		&res.Id,
 		&res.CategoryId,
 		&res.Name,
@@ -273,9 +287,14 @@ func (p *productRepo) GetProduct(in *pb.GetProductRequest) (*pb.Product, error) 
 
 func (p *productRepo) GetProductList(in *pb.ProductFilter) (*pb.ProductList, error) {
 	var products []*pb.Product
-	query := `SELECT id, category_id, name, image_url, bill_format, incoming_price, standard_price, total_count, created_by, created_at FROM products`
+	baseQuery := `
+		SELECT id, category_id, name, image_url, bill_format, incoming_price, standard_price, total_count, created_by, created_at
+		FROM products
+		WHERE company_id = $1` // Жёсткое условие для company_id
 	var args []interface{}
-	conditions := []string{}
+	args = append(args, in.CompanyId) // Первым параметром всегда будет company_id
+
+	var conditions []string
 
 	if in.CategoryId != "" {
 		conditions = append(conditions, fmt.Sprintf("category_id = $%d", len(args)+1))
@@ -285,11 +304,12 @@ func (p *productRepo) GetProductList(in *pb.ProductFilter) (*pb.ProductList, err
 		conditions = append(conditions, fmt.Sprintf("name ILIKE $%d", len(args)+1))
 		args = append(args, "%"+in.Name+"%")
 	}
+
 	if len(conditions) > 0 {
-		query += " WHERE " + strings.Join(conditions, " AND ")
+		baseQuery += " AND " + strings.Join(conditions, " AND ")
 	}
 
-	rows, err := p.db.Query(query, args...)
+	rows, err := p.db.Query(baseQuery, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute query: %w", err)
 	}
@@ -311,18 +331,11 @@ func (p *productRepo) GetProductList(in *pb.ProductFilter) (*pb.ProductList, err
 }
 
 // ---------------- End Product CRUD ------------------------------------------------------------------------
-// ------------------- End Product CRUD ------------------------------------------------------------------------
 
 // -------------------------------------------- Must fix end Do Reflect -------------------------------------
 
 func (p *productQuantity) AddProduct(in *entity.CountProductReq) (*entity.ProductNumber, error) {
 	product := &entity.ProductNumber{}
-
-	log.Println("Rego gayam keldi mana ")
-	log.Println("Rego gayam keldi mana ")
-	log.Println("Rego gayam keldi mana ")
-	log.Println("Rego gayam keldi mana ")
-	log.Println("Rego gayam keldi mana ")
 
 	query := `
 		UPDATE products

@@ -42,21 +42,19 @@ func (r *salesRepoImpl) CreateSale(in *entity.SalesTotal) (*pb.SaleResponse, err
 	sale.TotalSalePrice = in.TotalSalePrice
 	sale.ClientId = in.ClientID
 	sale.SoldBy = in.SoldBy
-	sale.TotalSalePrice = in.TotalSalePrice
 	sale.PaymentMethod = in.PaymentMethod
 
 	return sale, nil
 }
 
-func (r *salesRepoImpl) UpdateSale(in *entity.SaleUpdate) (*pb.SaleResponse, error) {
-
+func (r *salesRepoImpl) UpdateSale(in *pb.SaleUpdate) (*pb.SaleResponse, error) {
 	query := `UPDATE sales SET `
 	updates := []string{}
-	params := map[string]interface{}{"id": in.ID, "company_id": in.CompanyID}
+	params := map[string]interface{}{"id": in.Id, "company_id": in.CompanyId}
 
-	if in.ClientID != "" {
+	if in.ClientId != "" {
 		updates = append(updates, "client_id = :client_id")
-		params["client_id"] = in.ClientID
+		params["client_id"] = in.ClientId
 	}
 	if in.PaymentMethod != "" {
 		updates = append(updates, "payment_method = :payment_method")
@@ -79,7 +77,7 @@ func (r *salesRepoImpl) UpdateSale(in *entity.SaleUpdate) (*pb.SaleResponse, err
 	return sale, nil
 }
 
-func (r *salesRepoImpl) GetSale(in *entity.SaleID) (*pb.SaleResponse, error) {
+func (r *salesRepoImpl) GetSale(in *pb.SaleID) (*pb.SaleResponse, error) {
 	query := `
         SELECT 
             s.id, 
@@ -101,7 +99,7 @@ func (r *salesRepoImpl) GetSale(in *entity.SaleID) (*pb.SaleResponse, error) {
 	sale := &pb.SaleResponse{}
 	var soldProducts []*pb.SalesItem
 
-	rows, err := r.db.Queryx(query, in.ID, in.CompanyID)
+	rows, err := r.db.Queryx(query, in.Id, in.CompanyId)
 	if err != nil {
 		return nil, err
 	}
@@ -126,14 +124,13 @@ func (r *salesRepoImpl) GetSale(in *entity.SaleID) (*pb.SaleResponse, error) {
 			return nil, err
 		}
 
-		if item.Id != "" { // If item exists, append it to soldProducts
+		if item.Id != "" {
 			soldProducts = append(soldProducts, &item)
 		}
 	}
 
 	sale.SoldProducts = soldProducts
 
-	// Handle any errors that occurred while iterating over rows
 	if err = rows.Err(); err != nil {
 		return nil, err
 	}
@@ -141,11 +138,11 @@ func (r *salesRepoImpl) GetSale(in *entity.SaleID) (*pb.SaleResponse, error) {
 	return sale, nil
 }
 
-func (r *salesRepoImpl) GetSaleList(in *entity.SaleFilter) (*pb.SaleList, error) {
+func (r *salesRepoImpl) GetSaleList(in *pb.SaleFilter) (*pb.SaleList, error) {
 	var sales []*pb.SaleResponse
 	var queryBuilder strings.Builder
 	var args []interface{}
-	argIndex := 2 // Start from 2 because $1 is for CompanyID
+	argIndex := 2
 
 	queryBuilder.WriteString(`
         SELECT s.id, s.client_id, s.sold_by, s.total_sale_price, s.payment_method, s.created_at,
@@ -154,11 +151,11 @@ func (r *salesRepoImpl) GetSaleList(in *entity.SaleFilter) (*pb.SaleList, error)
         JOIN sales_items i ON s.id = i.sale_id
         WHERE s.company_id = $1
     `)
-	args = append(args, in.CompanyID) // Add CompanyID as the first argument
+	args = append(args, in.CompanyId)
 
-	if in.ClientID != "" {
+	if in.ClientId != "" {
 		queryBuilder.WriteString(" AND s.client_id ILIKE '%' || $" + fmt.Sprint(argIndex) + " || '%'")
-		args = append(args, in.ClientID)
+		args = append(args, in.ClientId)
 		argIndex++
 	}
 
@@ -183,7 +180,6 @@ func (r *salesRepoImpl) GetSaleList(in *entity.SaleFilter) (*pb.SaleList, error)
 	queryBuilder.WriteString(" ORDER BY s.created_at DESC")
 	query := queryBuilder.String()
 
-	// Unpack args using ... operator
 	rows, err := r.db.Queryx(query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list sales: %w", err)
@@ -216,7 +212,7 @@ func (r *salesRepoImpl) GetSaleList(in *entity.SaleFilter) (*pb.SaleList, error)
 			salesMap[sale.Id] = &sale
 		}
 
-		if item.Id != "" { // If item exists, append it to soldProducts
+		if item.Id != "" {
 			salesMap[sale.Id].SoldProducts = append(salesMap[sale.Id].SoldProducts, &item)
 		}
 	}
@@ -232,14 +228,13 @@ func (r *salesRepoImpl) GetSaleList(in *entity.SaleFilter) (*pb.SaleList, error)
 	return &pb.SaleList{Sales: sales}, nil
 }
 
-func (r *salesRepoImpl) DeleteSale(in *entity.SaleID) (*pb.Message, error) {
-
-	_, err := r.db.Exec(`DELETE FROM sales_items WHERE sale_id = $1 AND company_id = $2`, in.ID, in.CompanyID)
+func (r *salesRepoImpl) DeleteSale(in *pb.SaleID) (*pb.Message, error) {
+	_, err := r.db.Exec(`DELETE FROM sales_items WHERE sale_id = $1 AND company_id = $2`, in.Id, in.CompanyId)
 	if err != nil {
 		return nil, err
 	}
 
-	result, err := r.db.Exec(`DELETE FROM sales WHERE id = $1 AND company_id = $2`, in.ID, in.CompanyID)
+	result, err := r.db.Exec(`DELETE FROM sales WHERE id = $1 AND company_id = $2`, in.Id, in.CompanyId)
 	if err != nil {
 		return nil, err
 	}

@@ -28,18 +28,18 @@ type ProductQuantity interface {
 
 type PurchasesRepo interface {
 	CreatePurchase(in *entity.PurchaseRequest) (*pb.PurchaseResponse, error)
-	UpdatePurchase(in *entity.PurchaseUpdate) (*pb.PurchaseResponse, error)
-	GetPurchase(in *entity.PurchaseID) (*pb.PurchaseResponse, error)
-	GetPurchaseList(in *entity.FilterPurchase) (*pb.PurchaseList, error)
-	DeletePurchase(in *entity.PurchaseID) (*pb.Message, error)
+	UpdatePurchase(in *pb.PurchaseUpdate) (*pb.PurchaseResponse, error)
+	GetPurchase(in *pb.PurchaseID) (*pb.PurchaseResponse, error)
+	GetPurchaseList(in *pb.FilterPurchase) (*pb.PurchaseList, error)
+	DeletePurchase(in *pb.PurchaseID) (*pb.Message, error)
 }
 
 type SalesRepo interface {
 	CreateSale(in *entity.SalesTotal) (*pb.SaleResponse, error)
-	UpdateSale(in *entity.SaleUpdate) (*pb.SaleResponse, error)
-	GetSale(in *entity.SaleID) (*pb.SaleResponse, error)
-	GetSaleList(filter *entity.SaleFilter) (*pb.SaleList, error)
-	DeleteSale(in *entity.SaleID) (*pb.Message, error)
+	UpdateSale(in *pb.SaleUpdate) (*pb.SaleResponse, error)
+	GetSale(in *pb.SaleID) (*pb.SaleResponse, error)
+	GetSaleList(filter *pb.SaleFilter) (*pb.SaleList, error)
+	DeleteSale(in *pb.SaleID) (*pb.Message, error)
 }
 
 type ReturnedProductsRepo interface {
