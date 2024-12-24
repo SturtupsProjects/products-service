@@ -47,6 +47,7 @@ func (s *SalesUseCase) CalculateTotalSales(in *entity.SaleRequest) (*entity.Sale
 		TotalSalePrice: totalPrice,
 		PaymentMethod:  in.PaymentMethod,
 		SoldProducts:   soldProducts,
+		CompanyID:      in.CompanyID,
 	}, nil
 }
 
