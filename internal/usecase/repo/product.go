@@ -44,19 +44,41 @@ func (p *productRepo) CreateProductCategory(in *pb.CreateCategoryRequest) (*pb.C
 }
 
 func (p *productRepo) UpdateProductCategory(in *pb.UpdateCategoryRequest) (*pb.Category, error) {
-	var category pb.Category
+	category := &pb.Category{}
+	query := `UPDATE product_categories SET `
+	var args []interface{}
+	argCounter := 1
 
-	query := `UPDATE product_categories 
-              SET name = COALESCE($1, name), image_url = COALESCE($2, image_url) 
-              WHERE id = $3 and company_id = $4
-              RETURNING id, name, image_url, created_by, company_id, created_at`
-	err := p.db.QueryRowx(query, in.Name, in.ImageUrl, in.Id, in.CompanyId).Scan(&category.Id, &category.Name, &category.ImageUrl, &category.CreatedBy, &category.CompanyId, &category.CreatedAt)
+	// Динамическое добавление полей в запрос
+	if in.Name != "" {
+		query += fmt.Sprintf("name = $%d, ", argCounter)
+		args = append(args, in.Name)
+		argCounter++
+	}
+	if in.ImageUrl != "" {
+		query += fmt.Sprintf("image_url = $%d, ", argCounter)
+		args = append(args, in.ImageUrl)
+		argCounter++
+	}
 
+	query = query[:len(query)-2] + fmt.Sprintf(" WHERE id = $%d AND company_id = $%d "+
+		"RETURNING id, name, image_url, created_by, company_id, created_at", argCounter, argCounter+1)
+	args = append(args, in.Id, in.CompanyId)
+
+	// Выполнение запроса
+	err := p.db.QueryRowx(query, args...).Scan(
+		&category.Id,
+		&category.Name,
+		&category.ImageUrl,
+		&category.CreatedBy,
+		&category.CompanyId,
+		&category.CreatedAt,
+	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update product category: %w", err)
 	}
 
-	return &category, nil
+	return category, nil
 }
 
 func (p *productRepo) DeleteProductCategory(in *pb.GetCategoryRequest) (*pb.Message, error) {
