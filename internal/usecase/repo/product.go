@@ -208,20 +208,20 @@ func (p *productRepo) UpdateProduct(in *pb.UpdateProductRequest) (*pb.Product, e
 	}
 
 	query = query[:len(query)-2] + fmt.Sprintf(" WHERE id = $%d "+
-		"RETURNING id, category_id, name, bill_format, incoming_price, standard_price, total_count, created_by, created_at", argCounter)
+		"RETURNING id, category_id, name, bill_format, incoming_price, standard_price, total_count, created_by, created_at, image_url", argCounter)
 	args = append(args, in.Id)
 
 	err := p.db.QueryRowx(query, args...).Scan(
 		&product.Id,
 		&product.CategoryId,
 		&product.Name,
-		&product.ImageUrl,
 		&product.BillFormat,
 		&product.IncomingPrice,
 		&product.StandardPrice,
 		&product.TotalCount,
 		&product.CreatedBy,
 		&product.CreatedAt,
+		&product.ImageUrl,
 	)
 
 	if err != nil {

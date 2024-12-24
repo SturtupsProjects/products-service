@@ -53,6 +53,7 @@ func (p *ProductsGrpc) GetListPurchase(ctx context.Context, in *pb.FilterPurchas
 		SupplierID:  in.GetSupplierId(),
 		PurchasedBy: in.GetPurchasedBy(),
 		CreatedAt:   in.GetCreatedAt(),
+		CompanyID:   in.CompanyId,
 	}
 
 	// Get list of purchases via usecase

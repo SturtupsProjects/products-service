@@ -114,6 +114,7 @@ func (p *ProductsGrpc) GetListSales(ctx context.Context, in *pb.SaleFilter) (*pb
 		EndDate:   in.GetEndDate(),
 		ClientID:  in.GetClientId(),
 		SoldBy:    in.GetSoldBy(),
+		CompanyID: in.GetCompanyId(),
 	}
 
 	// Fetch the list of sales from usecase
