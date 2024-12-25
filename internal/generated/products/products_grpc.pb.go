@@ -44,6 +44,8 @@ const (
 	Products_TotalSoldProducts_FullMethodName        = "/products.Products/TotalSoldProducts"
 	Products_TotalPurchaseProducts_FullMethodName    = "/products.Products/TotalPurchaseProducts"
 	Products_GetMostSoldProductsByDay_FullMethodName = "/products.Products/GetMostSoldProductsByDay"
+	Products_GetTopClients_FullMethodName            = "/products.Products/GetTopClients"
+	Products_GetTopSuppliers_FullMethodName          = "/products.Products/GetTopSuppliers"
 )
 
 // ProductsClient is the client API for Products service.
@@ -345,8 +347,9 @@ func (c *productsClient) GetMostSoldProductsByDay(ctx context.Context, in *MostS
 }
 
 func (c *productsClient) GetTopClients(ctx context.Context, in *GetTopEntitiesRequest, opts ...grpc.CallOption) (*GetTopEntitiesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetTopEntitiesResponse)
-	err := c.cc.Invoke(ctx, "/products.Products/GetTopClients", in, out, opts...)
+	err := c.cc.Invoke(ctx, Products_GetTopClients_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -354,8 +357,9 @@ func (c *productsClient) GetTopClients(ctx context.Context, in *GetTopEntitiesRe
 }
 
 func (c *productsClient) GetTopSuppliers(ctx context.Context, in *GetTopEntitiesRequest, opts ...grpc.CallOption) (*GetTopEntitiesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetTopEntitiesResponse)
-	err := c.cc.Invoke(ctx, "/products.Products/GetTopSuppliers", in, out, opts...)
+	err := c.cc.Invoke(ctx, Products_GetTopSuppliers_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -961,7 +965,7 @@ func _Products_GetTopClients_Handler(srv interface{}, ctx context.Context, dec f
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/products.Products/GetTopClients",
+		FullMethod: Products_GetTopClients_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ProductsServer).GetTopClients(ctx, req.(*GetTopEntitiesRequest))
@@ -979,7 +983,7 @@ func _Products_GetTopSuppliers_Handler(srv interface{}, ctx context.Context, dec
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/products.Products/GetTopSuppliers",
+		FullMethod: Products_GetTopSuppliers_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ProductsServer).GetTopSuppliers(ctx, req.(*GetTopEntitiesRequest))

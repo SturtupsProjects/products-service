@@ -301,26 +301,26 @@ func (r *salesRepoImpl) GetSalesByDay(request *pb.MostSoldProductsRequest) ([]*p
 	return results, nil
 }
 
-func (r *salesRepoImpl) GetTopClients(ctx context.Context, companyID string, limit int32) ([]*pb.TopEntity, error) {
+func (r *salesRepoImpl) GetTopClients(in *pb.GetTopEntitiesRequest) ([]*pb.TopEntity, error) {
+	if in.Limit == 0 {
+		in.Limit = 10
+	}
+
 	query := `
-        SELECT c.id, SUM(s.total_sale_price) AS total_value
-        FROM sales s
-        JOIN clients c ON s.client_id = c.id
-        WHERE s.company_id = $1
-        GROUP BY c.id
-        ORDER BY total_value DESC
-        LIMIT $2
+       SELECT client_id, sum(total_sale_price) as total_sum FROM sales
+        WHERE company_id = $1 GROUP BY client_id  ORDER BY total_sum DESC LIMIT $2
     `
-	rows, err := r.db.QueryContext(ctx, query, companyID, limit)
+	rows, err := r.db.Query(query, in.CompanyId, in.Limit)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
 	var entities []*pb.TopEntity
+
 	for rows.Next() {
 		var entity pb.TopEntity
-		if err := rows.Scan(&entity.Name, &entity.TotalValue); err != nil {
+		if err := rows.Scan(&entity.SupplierId, &entity.TotalValue); err != nil {
 			return nil, err
 		}
 		entities = append(entities, &entity)
@@ -329,26 +329,27 @@ func (r *salesRepoImpl) GetTopClients(ctx context.Context, companyID string, lim
 	return entities, nil
 }
 
-func (r *salesRepoImpl) GetTopSuppliers(ctx context.Context, companyID string, limit int32) ([]*pb.TopEntity, error) {
+func (r *salesRepoImpl) GetTopSuppliers(in *pb.GetTopEntitiesRequest) ([]*pb.TopEntity, error) {
+
+	if in.Limit == 0 {
+		in.Limit = 10
+	}
+
 	query := `
-        SELECT s.id, SUM(p.total_cost) AS total_value
-        FROM purchases p
-        JOIN suppliers s ON p.supplier_id = s.id
-        WHERE p.company_id = $1
-        GROUP BY s.id
-        ORDER BY total_value DESC
-        LIMIT $2
+       SELECT supplier_id, sum(total_cost) as total_sum FROM purchases
+        WHERE company_id = $1 GROUP BY supplier_id  ORDER BY total_sum DESC LIMIT $2
     `
-	rows, err := r.db.QueryContext(ctx, query, companyID, limit)
+	rows, err := r.db.Query(query, in.CompanyId, in.Limit)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
 	var entities []*pb.TopEntity
+
 	for rows.Next() {
 		var entity pb.TopEntity
-		if err := rows.Scan(&entity.Name, &entity.TotalValue); err != nil {
+		if err := rows.Scan(&entity.SupplierId, &entity.TotalValue); err != nil {
 			return nil, err
 		}
 		entities = append(entities, &entity)

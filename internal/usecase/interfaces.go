@@ -1,7 +1,6 @@
 package usecase
 
 import (
-	"context"
 	"crm-admin/internal/entity"
 	pb "crm-admin/internal/generated/products"
 )
@@ -42,8 +41,8 @@ type SalesRepo interface {
 	GetSaleList(filter *pb.SaleFilter) (*pb.SaleList, error)
 	DeleteSale(in *pb.SaleID) (*pb.Message, error)
 	GetSalesByDay(request *pb.MostSoldProductsRequest) ([]*pb.DailySales, error)
-	GetTopClients(ctx context.Context, req *pb.GetTopEntitiesRequest) ([]*pb.TopEntity, error)
-	GetTopSuppliers(ctx context.Context, req *pb.GetTopEntitiesRequest) ([]*pb.TopEntity, error)
+	GetTopClients(req *pb.GetTopEntitiesRequest) ([]*pb.TopEntity, error)
+	GetTopSuppliers(req *pb.GetTopEntitiesRequest) ([]*pb.TopEntity, error)
 }
 
 type StatisticsRepo interface {
