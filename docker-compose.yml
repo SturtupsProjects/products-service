@@ -46,7 +46,6 @@ networks:
   CRMNet:
     name: CRMNet
     driver: bridge
-    external: true  # Change to `false` if you want Docker to manage the network
 
 volumes:
   postgres_data:
