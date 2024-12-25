@@ -5,6 +5,7 @@ import (
 	"crm-admin/internal/controller"
 	grpc1 "crm-admin/internal/controller/grpc"
 	"crm-admin/internal/generated/products"
+	"crm-admin/internal/usecase/repo"
 	"crm-admin/pkg/logger"
 	"crm-admin/pkg/postgres"
 	"google.golang.org/grpc"
@@ -21,8 +22,10 @@ func Run(cfg config.Config) {
 		log.Fatal(err)
 	}
 
+	statistics := repo.NewStatisticsRepo(db)
+
 	controller1 := controller.NewController(db, logger1)
-	pr := grpc1.NewProductGrpc(controller1, logger1)
+	pr := grpc1.NewProductGrpc(controller1, logger1, statistics)
 
 	listen, err := net.Listen("tcp", cfg.RUN_PORT)
 	if err != nil {

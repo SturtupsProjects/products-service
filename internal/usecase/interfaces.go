@@ -46,6 +46,12 @@ type SalesRepo interface {
 	GetTopSuppliers(ctx context.Context, req *pb.GetTopEntitiesRequest) ([]*pb.TopEntity, error)
 }
 
+type StatisticsRepo interface {
+	TotalPriceOfProducts(*pb.CompanyID) (*pb.PriceProducts, error)
+	TotalSoldProducts(*pb.CompanyID) (*pb.PriceProducts, error)
+	TotalPurchaseProducts(*pb.CompanyID) (*pb.PriceProducts, error)
+}
+
 type ReturnedProductsRepo interface {
 	CreateReturnedProducts() error
 	UpdateReturnedProducts() error

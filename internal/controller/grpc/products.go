@@ -11,19 +11,22 @@ import (
 )
 
 type ProductsGrpc struct {
-	product  *usecase.ProductsUseCase
-	purchase *usecase.PurchaseUseCase
-	sales    *usecase.SalesUseCase
-	log      *slog.Logger
+	statistics usecase.StatisticsRepo
+	product    *usecase.ProductsUseCase
+	purchase   *usecase.PurchaseUseCase
+	sales      *usecase.SalesUseCase
+	log        *slog.Logger
+
 	pb.UnimplementedProductsServer
 }
 
-func NewProductGrpc(ctrl *controller.Controller, log *slog.Logger) *ProductsGrpc {
+func NewProductGrpc(ctrl *controller.Controller, log *slog.Logger, statistics usecase.StatisticsRepo) *ProductsGrpc {
 	return &ProductsGrpc{
-		product:  ctrl.Product,
-		purchase: ctrl.Purchase,
-		sales:    ctrl.Sales,
-		log:      log,
+		product:    ctrl.Product,
+		statistics: statistics,
+		purchase:   ctrl.Purchase,
+		sales:      ctrl.Sales,
+		log:        log,
 	}
 }
 
