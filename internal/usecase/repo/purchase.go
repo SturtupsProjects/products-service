@@ -19,12 +19,22 @@ func NewPurchasesRepo(db *sqlx.DB) usecase.PurchasesRepo {
 	return &purchasesRepoImpl{db: db}
 }
 
+// CreatePurchase создает новую закупку с товарами
 func (r *purchasesRepoImpl) CreatePurchase(in *entity.PurchaseRequest) (*pb.PurchaseResponse, error) {
-	purchase := &pb.PurchaseResponse{}
+	tx, err := r.db.Beginx()
+	if err != nil {
+		return nil, fmt.Errorf("failed to start transaction: %w", err)
+	}
+	defer func() {
+		if err != nil {
+			_ = tx.Rollback()
+		}
+	}()
 
+	purchase := &pb.PurchaseResponse{}
 	query := `INSERT INTO purchases (supplier_id, purchased_by, total_cost, payment_method, description, company_id)
 	          VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, created_at`
-	err := r.db.QueryRowx(query, in.SupplierID, in.PurchasedBy, in.TotalCost, in.PaymentMethod, in.Description, in.CompanyID).
+	err = tx.QueryRowx(query, in.SupplierID, in.PurchasedBy, in.TotalCost, in.PaymentMethod, in.Description, in.CompanyID).
 		Scan(&purchase.Id, &purchase.CreatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create purchase: %w", err)
@@ -33,10 +43,15 @@ func (r *purchasesRepoImpl) CreatePurchase(in *entity.PurchaseRequest) (*pb.Purc
 	for _, item := range in.PurchaseItems {
 		itemQuery := `INSERT INTO purchase_items (purchase_id, product_id, quantity, purchase_price, total_price, company_id)
 		              VALUES ($1, $2, $3, $4, $5, $6)`
-		_, err := r.db.Exec(itemQuery, purchase.Id, item.ProductID, item.Quantity, item.PurchasePrice, item.TotalPrice, in.CompanyID)
+		_, err := tx.Exec(itemQuery, purchase.Id, item.ProductID, item.Quantity, item.PurchasePrice, item.TotalPrice, in.CompanyID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create purchase item: %w", err)
 		}
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
 	purchase.SupplierId = in.SupplierID
@@ -48,7 +63,12 @@ func (r *purchasesRepoImpl) CreatePurchase(in *entity.PurchaseRequest) (*pb.Purc
 	return purchase, nil
 }
 
+// UpdatePurchase обновляет информацию о закупке
 func (r *purchasesRepoImpl) UpdatePurchase(in *pb.PurchaseUpdate) (*pb.PurchaseResponse, error) {
+	if in.Id == "" || in.CompanyId == "" {
+		return nil, errors.New("missing required fields")
+	}
+
 	query := `UPDATE purchases SET `
 	updates := []string{}
 	params := map[string]interface{}{"id": in.Id, "company_id": in.CompanyId}
@@ -74,7 +94,13 @@ func (r *purchasesRepoImpl) UpdatePurchase(in *pb.PurchaseUpdate) (*pb.PurchaseR
 	query += " WHERE id = :id AND company_id = :company_id RETURNING id, supplier_id, purchased_by, total_cost, description, payment_method, created_at"
 
 	purchase := &pb.PurchaseResponse{}
-	err := r.db.QueryRowx(query, params).Scan(&purchase.Id, &purchase.SupplierId, &purchase.PurchasedBy, &purchase.TotalCost, &purchase.Description, &purchase.PaymentMethod, &purchase.CreatedAt)
+	stmt, err := r.db.PrepareNamed(query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to prepare query: %w", err)
+	}
+	defer stmt.Close()
+
+	err = stmt.QueryRowx(params).Scan(&purchase.Id, &purchase.SupplierId, &purchase.PurchasedBy, &purchase.TotalCost, &purchase.Description, &purchase.PaymentMethod, &purchase.CreatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update purchase: %w", err)
 	}
@@ -82,7 +108,12 @@ func (r *purchasesRepoImpl) UpdatePurchase(in *pb.PurchaseUpdate) (*pb.PurchaseR
 	return purchase, nil
 }
 
+// GetPurchase возвращает информацию о закупке с деталями
 func (r *purchasesRepoImpl) GetPurchase(in *pb.PurchaseID) (*pb.PurchaseResponse, error) {
+	if in.Id == "" || in.CompanyId == "" {
+		return nil, errors.New("missing required fields")
+	}
+
 	query := `
         SELECT p.id, p.supplier_id, p.purchased_by, p.total_cost, p.payment_method, p.description, p.created_at,
                i.id AS item_id, i.product_id, i.quantity, i.purchase_price, i.total_price
@@ -102,6 +133,12 @@ func (r *purchasesRepoImpl) GetPurchase(in *pb.PurchaseID) (*pb.PurchaseResponse
 
 	for rows.Next() {
 		var item pb.PurchaseItemResponse
+		var itemID sql.NullString
+		var productID sql.NullString
+		var quantity sql.NullInt32
+		var purchasePrice sql.NullInt64
+		var totalPrice sql.NullInt64
+
 		err = rows.Scan(
 			&purchase.Id,
 			&purchase.SupplierId,
@@ -110,16 +147,32 @@ func (r *purchasesRepoImpl) GetPurchase(in *pb.PurchaseID) (*pb.PurchaseResponse
 			&purchase.PaymentMethod,
 			&purchase.Description,
 			&purchase.CreatedAt,
-			&item.Id,
-			&item.ProductId,
-			&item.Quantity,
-			&item.PurchasePrice,
-			&item.TotalPrice,
+			&itemID,
+			&productID,
+			&quantity,
+			&purchasePrice,
+			&totalPrice,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan purchase data: %w", err)
 		}
-		if item.Id != "" {
+		if itemID.Valid {
+			item.Id = itemID.String
+		}
+		if productID.Valid {
+			item.ProductId = productID.String
+		}
+		if quantity.Valid {
+			item.Quantity = quantity.Int32
+		}
+		if purchasePrice.Valid {
+			item.PurchasePrice = purchasePrice.Int64
+		}
+		if totalPrice.Valid {
+			item.TotalPrice = totalPrice.Int64
+		}
+
+		if itemID.Valid {
 			items = append(items, &item)
 		}
 	}
@@ -129,6 +182,7 @@ func (r *purchasesRepoImpl) GetPurchase(in *pb.PurchaseID) (*pb.PurchaseResponse
 	return purchase, nil
 }
 
+// GetPurchaseList возвращает список закупок
 func (r *purchasesRepoImpl) GetPurchaseList(in *pb.FilterPurchase) (*pb.PurchaseList, error) {
 	var purchases []*pb.PurchaseResponse
 	var queryBuilder strings.Builder
@@ -164,8 +218,6 @@ func (r *purchasesRepoImpl) GetPurchaseList(in *pb.FilterPurchase) (*pb.Purchase
 	for rows.Next() {
 		var purchase pb.PurchaseResponse
 		var item pb.PurchaseItemResponse
-
-		// Используем sql.NullString для обработки возможных NULL значений
 		var itemID sql.NullString
 		var productID sql.NullString
 		var quantity sql.NullInt32
@@ -190,7 +242,6 @@ func (r *purchasesRepoImpl) GetPurchaseList(in *pb.FilterPurchase) (*pb.Purchase
 			return nil, fmt.Errorf("failed to scan purchase list: %w", err)
 		}
 
-		// Преобразуем NULL значения в подходящие типы
 		if itemID.Valid {
 			item.Id = itemID.String
 		}
@@ -223,13 +274,28 @@ func (r *purchasesRepoImpl) GetPurchaseList(in *pb.FilterPurchase) (*pb.Purchase
 	return &pb.PurchaseList{Purchases: purchases}, nil
 }
 
+// DeletePurchase удаляет закупку и связанные товары
 func (r *purchasesRepoImpl) DeletePurchase(in *pb.PurchaseID) (*pb.Message, error) {
-	_, err := r.db.Exec(`DELETE FROM purchase_items WHERE purchase_id = $1 AND company_id = $2`, in.Id, in.CompanyId)
+	if in.Id == "" || in.CompanyId == "" {
+		return nil, errors.New("missing required fields")
+	}
+
+	tx, err := r.db.Beginx()
+	if err != nil {
+		return nil, fmt.Errorf("failed to start transaction: %w", err)
+	}
+	defer func() {
+		if err != nil {
+			_ = tx.Rollback()
+		}
+	}()
+
+	_, err = tx.Exec(`DELETE FROM purchase_items WHERE purchase_id = $1 AND company_id = $2`, in.Id, in.CompanyId)
 	if err != nil {
 		return nil, fmt.Errorf("failed to delete purchase items: %w", err)
 	}
 
-	result, err := r.db.Exec(`DELETE FROM purchases WHERE id = $1 AND company_id = $2`, in.Id, in.CompanyId)
+	result, err := tx.Exec(`DELETE FROM purchases WHERE id = $1 AND company_id = $2`, in.Id, in.CompanyId)
 	if err != nil {
 		return nil, fmt.Errorf("failed to delete purchase: %w", err)
 	}
@@ -237,6 +303,11 @@ func (r *purchasesRepoImpl) DeletePurchase(in *pb.PurchaseID) (*pb.Message, erro
 	rowsAffected, _ := result.RowsAffected()
 	if rowsAffected == 0 {
 		return nil, errors.New("purchase not found")
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
 	return &pb.Message{Message: "Purchase deleted successfully"}, nil

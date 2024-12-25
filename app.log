@@ -84,3 +84,17 @@
 {"time":"2024-12-23T22:50:01.795285059+05:00","level":"ERROR","msg":"Failed to create purchase","error":"error creating purchase: pq: invalid input syntax for type uuid: \"\""}
 {"time":"2024-12-23T22:52:50.299833251+05:00","level":"ERROR","msg":"Error creating purchase","error":"pq: invalid input syntax for type uuid: \"\""}
 {"time":"2024-12-23T22:52:50.300036342+05:00","level":"ERROR","msg":"Failed to create purchase","error":"error creating purchase: pq: invalid input syntax for type uuid: \"\""}
+{"time":"2024-12-25T20:25:31.447473476+05:00","level":"INFO","msg":"TotalPriceOfProducts called"}
+{"time":"2024-12-25T20:25:49.461879238+05:00","level":"INFO","msg":"TotalPriceOfProducts called"}
+{"time":"2024-12-25T20:28:02.736894949+05:00","level":"INFO","msg":"TotalPriceOfProducts called"}
+{"time":"2024-12-25T20:29:13.416609087+05:00","level":"INFO","msg":"TotalPurchaseProducts called"}
+{"time":"2024-12-25T20:29:21.698230967+05:00","level":"INFO","msg":"TotalSoldProducts called"}
+{"time":"2024-12-25T20:29:21.922131097+05:00","level":"ERROR","msg":"Error in TotalSoldProducts","error":"sql: Scan error on column index 0, name \"total_price\": converting NULL to int64 is unsupported"}
+{"time":"2024-12-25T20:29:35.368343788+05:00","level":"INFO","msg":"TotalPriceOfProducts called"}
+{"time":"2024-12-25T20:47:50.040203924+05:00","level":"ERROR","msg":"Error removing product in DeletePurchase","productID":"2de8192c-05e9-4852-8957-610980cd76f4","error":"sql: converting argument $1 type: unsupported type entity.CountProductReq, a struct"}
+{"time":"2024-12-25T20:49:32.009222859+05:00","level":"ERROR","msg":"Error fetching purchase data","error":"failed to scan purchase data: sql: Scan error on column index 7, name \"item_id\": converting NULL to string is unsupported"}
+{"time":"2024-12-25T20:49:32.00932505+05:00","level":"ERROR","msg":"Failed to retrieve purchase","error":"error fetching purchase data: failed to scan purchase data: sql: Scan error on column index 7, name \"item_id\": converting NULL to string is unsupported"}
+{"time":"2024-12-25T20:49:41.270576192+05:00","level":"ERROR","msg":"Error fetching purchase data","error":"failed to scan purchase data: sql: Scan error on column index 7, name \"item_id\": converting NULL to string is unsupported"}
+{"time":"2024-12-25T20:49:41.27072545+05:00","level":"ERROR","msg":"Failed to retrieve purchase","error":"error fetching purchase data: failed to scan purchase data: sql: Scan error on column index 7, name \"item_id\": converting NULL to string is unsupported"}
+{"time":"2024-12-25T20:49:49.002884218+05:00","level":"ERROR","msg":"Error fetching purchase data","error":"failed to scan purchase data: sql: Scan error on column index 7, name \"item_id\": converting NULL to string is unsupported"}
+{"time":"2024-12-25T20:49:49.002970153+05:00","level":"ERROR","msg":"Failed to delete purchase","error":"error fetching purchase data: failed to scan purchase data: sql: Scan error on column index 7, name \"item_id\": converting NULL to string is unsupported"}
