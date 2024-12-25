@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/jmoiron/sqlx"
+	"log"
 	"strings"
 	"time"
 )
@@ -250,6 +251,9 @@ func (r *salesRepoImpl) DeleteSale(in *pb.SaleID) (*pb.Message, error) {
 
 // GetSalesByDay retrieves sales data grouped by day and product.
 func (r *salesRepoImpl) GetSalesByDay(request *pb.MostSoldProductsRequest) ([]*pb.DailySales, error) {
+
+	log.Println(request.CompanyId)
+
 	query := `
         SELECT 
             TO_CHAR(sale_date, 'Day') AS day,

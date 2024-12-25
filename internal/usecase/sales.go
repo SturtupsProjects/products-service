@@ -1,11 +1,11 @@
 package usecase
 
 import (
-	"context"
 	"crm-admin/internal/entity"
 	pb "crm-admin/internal/generated/products"
 	"errors"
 	"fmt"
+	"log"
 	"log/slog"
 	"sync"
 )
@@ -163,7 +163,9 @@ func (s *SalesUseCase) DeleteSales(req *pb.SaleID) (*pb.Message, error) {
 
 // GetMostSoldProductsByDay retrieves the most sold products grouped by day.
 func (s *SalesUseCase) GetMostSoldProductsByDay(req *pb.MostSoldProductsRequest) (*pb.MostSoldProductsResponse, error) {
-	// Validate request
+
+	log.Println(req.CompanyId)
+
 	if req.GetCompanyId() == "" {
 		return nil, errors.New("company_id is required")
 	}
@@ -171,20 +173,18 @@ func (s *SalesUseCase) GetMostSoldProductsByDay(req *pb.MostSoldProductsRequest)
 		return nil, errors.New("start_date and end_date are required")
 	}
 
-	// Call the repository to get sales data
 	results, err := s.repo.GetSalesByDay(req)
 	if err != nil {
 		return nil, err
 	}
 
-	// Prepare the response
 	response := &pb.MostSoldProductsResponse{
 		DailySales: results,
 	}
 
 	return response, nil
 }
-func (s *SalesUseCase) GetTopClients(ctx context.Context, req *pb.GetTopEntitiesRequest) (*pb.GetTopEntitiesResponse, error) {
+func (s *SalesUseCase) GetTopClients(req *pb.GetTopEntitiesRequest) (*pb.GetTopEntitiesResponse, error) {
 	if req.CompanyId == "" || req.StartDate == "" || req.EndDate == "" {
 		return nil, errors.New("company_id, start_date, and end_date are required")
 	}
@@ -197,7 +197,7 @@ func (s *SalesUseCase) GetTopClients(ctx context.Context, req *pb.GetTopEntities
 	return &pb.GetTopEntitiesResponse{Entities: entities}, nil
 }
 
-func (s *SalesUseCase) GetTopSuppliers(ctx context.Context, req *pb.GetTopEntitiesRequest) (*pb.GetTopEntitiesResponse, error) {
+func (s *SalesUseCase) GetTopSuppliers(req *pb.GetTopEntitiesRequest) (*pb.GetTopEntitiesResponse, error) {
 	if req.CompanyId == "" || req.StartDate == "" || req.EndDate == "" {
 		return nil, errors.New("company_id, start_date, and end_date are required")
 	}

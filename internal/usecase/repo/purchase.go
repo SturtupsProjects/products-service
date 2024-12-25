@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/jmoiron/sqlx"
+	"log"
 	"strings"
 )
 
@@ -30,6 +31,8 @@ func (r *purchasesRepoImpl) CreatePurchase(in *entity.PurchaseRequest) (*pb.Purc
 			_ = tx.Rollback()
 		}
 	}()
+
+	log.Println(in.TotalCost)
 
 	purchase := &pb.PurchaseResponse{}
 	query := `INSERT INTO purchases (supplier_id, purchased_by, total_cost, payment_method, description, company_id)

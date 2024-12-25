@@ -4,8 +4,10 @@ import (
 	"context"
 	"crm-admin/internal/entity"
 	pb "crm-admin/internal/generated/products"
+	"fmt"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"log"
 )
 
 // CalculateTotalSales calculates the total sale price from the sale request.
@@ -120,11 +122,36 @@ func (p *ProductsGrpc) DeleteSales(ctx context.Context, in *pb.SaleID) (*pb.Mess
 
 // GetMostSoldProductsByDay retrieves the most sold products by day.
 func (p *ProductsGrpc) GetMostSoldProductsByDay(ctx context.Context, in *pb.MostSoldProductsRequest) (*pb.MostSoldProductsResponse, error) {
+
+	log.Println("Mana keldi")
+	fmt.Println("Mana keldi")
+
 	res, err := p.sales.GetMostSoldProductsByDay(in)
 	if err != nil {
 		p.log.Error("Failed to get most sold products by day", "error", err.Error())
 		return nil, status.Errorf(codes.Internal, "Failed to get most sold products by day: %v", err)
 	}
+	return res, err
+}
+
+func (p *ProductsGrpc) GetTopClients(ctx context.Context, in *pb.GetTopEntitiesRequest) (*pb.GetTopEntitiesResponse, error) {
+
+	res, err := p.sales.GetTopClients(in)
+	if err != nil {
+		p.log.Error("Failed to get top clients", "error", err.Error())
+		return nil, status.Errorf(codes.Internal, "Failed to get top clients: %v", err)
+	}
+
+	return res, err
+}
+func (p *ProductsGrpc) GetTopSuppliers(ctx context.Context, in *pb.GetTopEntitiesRequest) (*pb.GetTopEntitiesResponse, error) {
+
+	res, err := p.sales.GetTopSuppliers(in)
+	if err != nil {
+		p.log.Error("Failed to get top suppliers", "error", err.Error())
+		return nil, status.Errorf(codes.Internal, "Failed to get top suppliers: %v", err)
+	}
+
 	return res, err
 }
 
