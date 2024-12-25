@@ -4,6 +4,7 @@ import (
 	"crm-admin/internal/entity"
 	pb "crm-admin/internal/generated/products"
 	"crm-admin/internal/usecase"
+	"database/sql"
 	"errors"
 	"fmt"
 	"github.com/jmoiron/sqlx"
@@ -163,6 +164,14 @@ func (r *purchasesRepoImpl) GetPurchaseList(in *pb.FilterPurchase) (*pb.Purchase
 	for rows.Next() {
 		var purchase pb.PurchaseResponse
 		var item pb.PurchaseItemResponse
+
+		// Используем sql.NullString для обработки возможных NULL значений
+		var itemID sql.NullString
+		var productID sql.NullString
+		var quantity sql.NullInt32
+		var purchasePrice sql.NullInt64
+		var totalPrice sql.NullInt64
+
 		err = rows.Scan(
 			&purchase.Id,
 			&purchase.SupplierId,
@@ -171,21 +180,38 @@ func (r *purchasesRepoImpl) GetPurchaseList(in *pb.FilterPurchase) (*pb.Purchase
 			&purchase.PaymentMethod,
 			&purchase.Description,
 			&purchase.CreatedAt,
-			&item.Id,
-			&item.ProductId,
-			&item.Quantity,
-			&item.PurchasePrice,
-			&item.TotalPrice,
+			&itemID,
+			&productID,
+			&quantity,
+			&purchasePrice,
+			&totalPrice,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan purchase list: %w", err)
+		}
+
+		// Преобразуем NULL значения в подходящие типы
+		if itemID.Valid {
+			item.Id = itemID.String
+		}
+		if productID.Valid {
+			item.ProductId = productID.String
+		}
+		if quantity.Valid {
+			item.Quantity = quantity.Int32
+		}
+		if purchasePrice.Valid {
+			item.PurchasePrice = purchasePrice.Int64
+		}
+		if totalPrice.Valid {
+			item.TotalPrice = totalPrice.Int64
 		}
 
 		if _, exists := purchaseMap[purchase.Id]; !exists {
 			purchaseMap[purchase.Id] = &purchase
 		}
 
-		if item.Id != "" {
+		if itemID.Valid {
 			purchaseMap[purchase.Id].Items = append(purchaseMap[purchase.Id].Items, &item)
 		}
 	}
