@@ -1,6 +1,7 @@
 package repo
 
 import (
+	"context"
 	"crm-admin/internal/entity"
 	pb "crm-admin/internal/generated/products"
 	"crm-admin/internal/usecase"
@@ -8,6 +9,7 @@ import (
 	"fmt"
 	"github.com/jmoiron/sqlx"
 	"strings"
+	"time"
 )
 
 type salesRepoImpl struct {
@@ -245,4 +247,57 @@ func (r *salesRepoImpl) DeleteSale(in *pb.SaleID) (*pb.Message, error) {
 	}
 
 	return &pb.Message{Message: "Sale deleted successfully"}, nil
+}
+
+// GetSalesByDay retrieves sales data grouped by day and product.
+func (r *salesRepoImpl) GetSalesByDay(request *pb.MostSoldProductsRequest) ([]*pb.DailySales, error) {
+	query := `
+        SELECT 
+            TO_CHAR(sale_date, 'Day') AS day,
+            p.product_name,
+            SUM(si.quantity) AS total_quantity
+        FROM sales s
+        INNER JOIN sales_items si ON s.sale_id = si.sale_id
+        INNER JOIN products p ON si.product_id = p.product_id
+        WHERE s.company_id = $1 AND s.sale_date BETWEEN $2 AND $3
+        GROUP BY day, p.product_name
+        ORDER BY day, total_quantity DESC
+    `
+
+	startDate, err := time.Parse(time.RFC3339, request.GetStartDate())
+	if err != nil {
+		return nil, err
+	}
+	endDate, err := time.Parse(time.RFC3339, request.GetEndDate())
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := r.db.Query(query, request.GetCompanyId(), startDate, endDate)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var results []*pb.DailySales
+	for rows.Next() {
+		var day, productName string
+		var totalQuantity int64
+
+		if err := rows.Scan(&day, &productName, &totalQuantity); err != nil {
+			return nil, err
+		}
+
+		results = append(results, &pb.DailySales{
+			Day:           day,
+			ProductName:   productName,
+			TotalQuantity: totalQuantity,
+		})
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return results, nil
 }

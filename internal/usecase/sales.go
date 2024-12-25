@@ -3,6 +3,7 @@ package usecase
 import (
 	"crm-admin/internal/entity"
 	pb "crm-admin/internal/generated/products"
+	"errors"
 	"fmt"
 	"log/slog"
 	"sync"
@@ -157,4 +158,28 @@ func (s *SalesUseCase) DeleteSales(req *pb.SaleID) (*pb.Message, error) {
 	}
 
 	return res, nil
+}
+
+// GetMostSoldProductsByDay retrieves the most sold products grouped by day.
+func (s *SalesUseCase) GetMostSoldProductsByDay(req *pb.MostSoldProductsRequest) (*pb.MostSoldProductsResponse, error) {
+	// Validate request
+	if req.GetCompanyId() == "" {
+		return nil, errors.New("company_id is required")
+	}
+	if req.GetStartDate() == "" || req.GetEndDate() == "" {
+		return nil, errors.New("start_date and end_date are required")
+	}
+
+	// Call the repository to get sales data
+	results, err := s.repo.GetSalesByDay(req)
+	if err != nil {
+		return nil, err
+	}
+
+	// Prepare the response
+	response := &pb.MostSoldProductsResponse{
+		DailySales: results,
+	}
+
+	return response, nil
 }

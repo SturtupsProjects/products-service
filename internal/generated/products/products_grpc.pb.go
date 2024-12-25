@@ -47,6 +47,11 @@ type ProductsClient interface {
 	GetSales(ctx context.Context, in *SaleID, opts ...grpc.CallOption) (*SaleResponse, error)
 	GetListSales(ctx context.Context, in *SaleFilter, opts ...grpc.CallOption) (*SaleList, error)
 	DeleteSales(ctx context.Context, in *SaleID, opts ...grpc.CallOption) (*Message, error)
+	// ------------------- statistics --------------------------
+	TotalPriceOfProducts(ctx context.Context, in *CompanyID, opts ...grpc.CallOption) (*PriceProducts, error)
+	TotalSoldProducts(ctx context.Context, in *CompanyID, opts ...grpc.CallOption) (*PriceProducts, error)
+	TotalPurchaseProducts(ctx context.Context, in *CompanyID, opts ...grpc.CallOption) (*PriceProducts, error)
+	GetMostSoldProductsByDay(ctx context.Context, in *MostSoldProductsRequest, opts ...grpc.CallOption) (*MostSoldProductsResponse, error)
 }
 
 type productsClient struct {
@@ -246,6 +251,42 @@ func (c *productsClient) DeleteSales(ctx context.Context, in *SaleID, opts ...gr
 	return out, nil
 }
 
+func (c *productsClient) TotalPriceOfProducts(ctx context.Context, in *CompanyID, opts ...grpc.CallOption) (*PriceProducts, error) {
+	out := new(PriceProducts)
+	err := c.cc.Invoke(ctx, "/products.Products/TotalPriceOfProducts", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *productsClient) TotalSoldProducts(ctx context.Context, in *CompanyID, opts ...grpc.CallOption) (*PriceProducts, error) {
+	out := new(PriceProducts)
+	err := c.cc.Invoke(ctx, "/products.Products/TotalSoldProducts", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *productsClient) TotalPurchaseProducts(ctx context.Context, in *CompanyID, opts ...grpc.CallOption) (*PriceProducts, error) {
+	out := new(PriceProducts)
+	err := c.cc.Invoke(ctx, "/products.Products/TotalPurchaseProducts", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *productsClient) GetMostSoldProductsByDay(ctx context.Context, in *MostSoldProductsRequest, opts ...grpc.CallOption) (*MostSoldProductsResponse, error) {
+	out := new(MostSoldProductsResponse)
+	err := c.cc.Invoke(ctx, "/products.Products/GetMostSoldProductsByDay", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ProductsServer is the server API for Products service.
 // All implementations must embed UnimplementedProductsServer
 // for forward compatibility
@@ -275,6 +316,11 @@ type ProductsServer interface {
 	GetSales(context.Context, *SaleID) (*SaleResponse, error)
 	GetListSales(context.Context, *SaleFilter) (*SaleList, error)
 	DeleteSales(context.Context, *SaleID) (*Message, error)
+	// ------------------- statistics --------------------------
+	TotalPriceOfProducts(context.Context, *CompanyID) (*PriceProducts, error)
+	TotalSoldProducts(context.Context, *CompanyID) (*PriceProducts, error)
+	TotalPurchaseProducts(context.Context, *CompanyID) (*PriceProducts, error)
+	GetMostSoldProductsByDay(context.Context, *MostSoldProductsRequest) (*MostSoldProductsResponse, error)
 	mustEmbedUnimplementedProductsServer()
 }
 
@@ -344,6 +390,18 @@ func (UnimplementedProductsServer) GetListSales(context.Context, *SaleFilter) (*
 }
 func (UnimplementedProductsServer) DeleteSales(context.Context, *SaleID) (*Message, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteSales not implemented")
+}
+func (UnimplementedProductsServer) TotalPriceOfProducts(context.Context, *CompanyID) (*PriceProducts, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method TotalPriceOfProducts not implemented")
+}
+func (UnimplementedProductsServer) TotalSoldProducts(context.Context, *CompanyID) (*PriceProducts, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method TotalSoldProducts not implemented")
+}
+func (UnimplementedProductsServer) TotalPurchaseProducts(context.Context, *CompanyID) (*PriceProducts, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method TotalPurchaseProducts not implemented")
+}
+func (UnimplementedProductsServer) GetMostSoldProductsByDay(context.Context, *MostSoldProductsRequest) (*MostSoldProductsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetMostSoldProductsByDay not implemented")
 }
 func (UnimplementedProductsServer) mustEmbedUnimplementedProductsServer() {}
 
@@ -736,6 +794,78 @@ func _Products_DeleteSales_Handler(srv interface{}, ctx context.Context, dec fun
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Products_TotalPriceOfProducts_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CompanyID)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProductsServer).TotalPriceOfProducts(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/products.Products/TotalPriceOfProducts",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProductsServer).TotalPriceOfProducts(ctx, req.(*CompanyID))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Products_TotalSoldProducts_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CompanyID)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProductsServer).TotalSoldProducts(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/products.Products/TotalSoldProducts",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProductsServer).TotalSoldProducts(ctx, req.(*CompanyID))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Products_TotalPurchaseProducts_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CompanyID)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProductsServer).TotalPurchaseProducts(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/products.Products/TotalPurchaseProducts",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProductsServer).TotalPurchaseProducts(ctx, req.(*CompanyID))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Products_GetMostSoldProductsByDay_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MostSoldProductsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProductsServer).GetMostSoldProductsByDay(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/products.Products/GetMostSoldProductsByDay",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProductsServer).GetMostSoldProductsByDay(ctx, req.(*MostSoldProductsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Products_ServiceDesc is the grpc.ServiceDesc for Products service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -826,6 +956,22 @@ var Products_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteSales",
 			Handler:    _Products_DeleteSales_Handler,
+		},
+		{
+			MethodName: "TotalPriceOfProducts",
+			Handler:    _Products_TotalPriceOfProducts_Handler,
+		},
+		{
+			MethodName: "TotalSoldProducts",
+			Handler:    _Products_TotalSoldProducts_Handler,
+		},
+		{
+			MethodName: "TotalPurchaseProducts",
+			Handler:    _Products_TotalPurchaseProducts_Handler,
+		},
+		{
+			MethodName: "GetMostSoldProductsByDay",
+			Handler:    _Products_GetMostSoldProductsByDay_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

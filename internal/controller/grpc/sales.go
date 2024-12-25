@@ -118,6 +118,16 @@ func (p *ProductsGrpc) DeleteSales(ctx context.Context, in *pb.SaleID) (*pb.Mess
 	return message, nil
 }
 
+// GetMostSoldProductsByDay retrieves the most sold products by day.
+func (p *ProductsGrpc) GetMostSoldProductsByDay(ctx context.Context, in *pb.MostSoldProductsRequest) (*pb.MostSoldProductsResponse, error) {
+	res, err := p.sales.GetMostSoldProductsByDay(in)
+	if err != nil {
+		p.log.Error("Failed to get most sold products by day", "error", err.Error())
+		return nil, status.Errorf(codes.Internal, "Failed to get most sold products by day: %v", err)
+	}
+	return res, err
+}
+
 // Helper function to map SalesTotal entity to SaleResponse
 func mapSalesTotalToSaleResponse(total *entity.SalesTotal) *pb.SaleResponse {
 	var soldProducts []*pb.SalesItem

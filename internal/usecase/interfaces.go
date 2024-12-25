@@ -40,6 +40,7 @@ type SalesRepo interface {
 	GetSale(in *pb.SaleID) (*pb.SaleResponse, error)
 	GetSaleList(filter *pb.SaleFilter) (*pb.SaleList, error)
 	DeleteSale(in *pb.SaleID) (*pb.Message, error)
+	GetSalesByDay(request *pb.MostSoldProductsRequest) ([]*pb.DailySales, error)
 }
 
 type ReturnedProductsRepo interface {
