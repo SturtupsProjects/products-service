@@ -43,6 +43,12 @@ type SalesRepo interface {
 	GetSalesByDay(request *pb.MostSoldProductsRequest) ([]*pb.DailySales, error)
 }
 
+type StatisticsRepo interface {
+	TotalPriceOfProducts(*pb.CompanyID) (*pb.PriceProducts, error)
+	TotalSoldProducts(*pb.CompanyID) (*pb.PriceProducts, error)
+	TotalPurchaseProducts(*pb.CompanyID) (*pb.PriceProducts, error)
+}
+
 type ReturnedProductsRepo interface {
 	CreateReturnedProducts() error
 	UpdateReturnedProducts() error
