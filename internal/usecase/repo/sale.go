@@ -301,3 +301,59 @@ func (r *salesRepoImpl) GetSalesByDay(request *pb.MostSoldProductsRequest) ([]*p
 
 	return results, nil
 }
+
+func (r *salesRepoImpl) GetTopClients(ctx context.Context, companyID string, limit int32) ([]*pb.TopEntity, error) {
+	query := `
+        SELECT c.id, SUM(s.total_sale_price) AS total_value
+        FROM sales s
+        JOIN clients c ON s.client_id = c.id
+        WHERE s.company_id = $1
+        GROUP BY c.id
+        ORDER BY total_value DESC
+        LIMIT $2
+    `
+	rows, err := r.db.QueryContext(ctx, query, companyID, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var entities []*pb.TopEntity
+	for rows.Next() {
+		var entity pb.TopEntity
+		if err := rows.Scan(&entity.Name, &entity.TotalValue); err != nil {
+			return nil, err
+		}
+		entities = append(entities, &entity)
+	}
+
+	return entities, nil
+}
+
+func (r *salesRepoImpl) GetTopSuppliers(ctx context.Context, companyID string, limit int32) ([]*pb.TopEntity, error) {
+	query := `
+        SELECT s.id, SUM(p.total_cost) AS total_value
+        FROM purchases p
+        JOIN suppliers s ON p.supplier_id = s.id
+        WHERE p.company_id = $1
+        GROUP BY s.id
+        ORDER BY total_value DESC
+        LIMIT $2
+    `
+	rows, err := r.db.QueryContext(ctx, query, companyID, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var entities []*pb.TopEntity
+	for rows.Next() {
+		var entity pb.TopEntity
+		if err := rows.Scan(&entity.Name, &entity.TotalValue); err != nil {
+			return nil, err
+		}
+		entities = append(entities, &entity)
+	}
+
+	return entities, nil
+}

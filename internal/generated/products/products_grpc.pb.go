@@ -52,6 +52,8 @@ type ProductsClient interface {
 	TotalSoldProducts(ctx context.Context, in *CompanyID, opts ...grpc.CallOption) (*PriceProducts, error)
 	TotalPurchaseProducts(ctx context.Context, in *CompanyID, opts ...grpc.CallOption) (*PriceProducts, error)
 	GetMostSoldProductsByDay(ctx context.Context, in *MostSoldProductsRequest, opts ...grpc.CallOption) (*MostSoldProductsResponse, error)
+	GetTopClients(ctx context.Context, in *GetTopEntitiesRequest, opts ...grpc.CallOption) (*GetTopEntitiesResponse, error)
+	GetTopSuppliers(ctx context.Context, in *GetTopEntitiesRequest, opts ...grpc.CallOption) (*GetTopEntitiesResponse, error)
 }
 
 type productsClient struct {
@@ -287,6 +289,24 @@ func (c *productsClient) GetMostSoldProductsByDay(ctx context.Context, in *MostS
 	return out, nil
 }
 
+func (c *productsClient) GetTopClients(ctx context.Context, in *GetTopEntitiesRequest, opts ...grpc.CallOption) (*GetTopEntitiesResponse, error) {
+	out := new(GetTopEntitiesResponse)
+	err := c.cc.Invoke(ctx, "/products.Products/GetTopClients", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *productsClient) GetTopSuppliers(ctx context.Context, in *GetTopEntitiesRequest, opts ...grpc.CallOption) (*GetTopEntitiesResponse, error) {
+	out := new(GetTopEntitiesResponse)
+	err := c.cc.Invoke(ctx, "/products.Products/GetTopSuppliers", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ProductsServer is the server API for Products service.
 // All implementations must embed UnimplementedProductsServer
 // for forward compatibility
@@ -321,6 +341,8 @@ type ProductsServer interface {
 	TotalSoldProducts(context.Context, *CompanyID) (*PriceProducts, error)
 	TotalPurchaseProducts(context.Context, *CompanyID) (*PriceProducts, error)
 	GetMostSoldProductsByDay(context.Context, *MostSoldProductsRequest) (*MostSoldProductsResponse, error)
+	GetTopClients(context.Context, *GetTopEntitiesRequest) (*GetTopEntitiesResponse, error)
+	GetTopSuppliers(context.Context, *GetTopEntitiesRequest) (*GetTopEntitiesResponse, error)
 	mustEmbedUnimplementedProductsServer()
 }
 
@@ -402,6 +424,12 @@ func (UnimplementedProductsServer) TotalPurchaseProducts(context.Context, *Compa
 }
 func (UnimplementedProductsServer) GetMostSoldProductsByDay(context.Context, *MostSoldProductsRequest) (*MostSoldProductsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetMostSoldProductsByDay not implemented")
+}
+func (UnimplementedProductsServer) GetTopClients(context.Context, *GetTopEntitiesRequest) (*GetTopEntitiesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetTopClients not implemented")
+}
+func (UnimplementedProductsServer) GetTopSuppliers(context.Context, *GetTopEntitiesRequest) (*GetTopEntitiesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetTopSuppliers not implemented")
 }
 func (UnimplementedProductsServer) mustEmbedUnimplementedProductsServer() {}
 
@@ -866,6 +894,42 @@ func _Products_GetMostSoldProductsByDay_Handler(srv interface{}, ctx context.Con
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Products_GetTopClients_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetTopEntitiesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProductsServer).GetTopClients(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/products.Products/GetTopClients",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProductsServer).GetTopClients(ctx, req.(*GetTopEntitiesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Products_GetTopSuppliers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetTopEntitiesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProductsServer).GetTopSuppliers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/products.Products/GetTopSuppliers",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProductsServer).GetTopSuppliers(ctx, req.(*GetTopEntitiesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Products_ServiceDesc is the grpc.ServiceDesc for Products service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -972,6 +1036,14 @@ var Products_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetMostSoldProductsByDay",
 			Handler:    _Products_GetMostSoldProductsByDay_Handler,
+		},
+		{
+			MethodName: "GetTopClients",
+			Handler:    _Products_GetTopClients_Handler,
+		},
+		{
+			MethodName: "GetTopSuppliers",
+			Handler:    _Products_GetTopSuppliers_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

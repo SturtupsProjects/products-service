@@ -1,6 +1,7 @@
 package usecase
 
 import (
+	"context"
 	"crm-admin/internal/entity"
 	pb "crm-admin/internal/generated/products"
 	"errors"
@@ -182,4 +183,29 @@ func (s *SalesUseCase) GetMostSoldProductsByDay(req *pb.MostSoldProductsRequest)
 	}
 
 	return response, nil
+}
+func (s *SalesUseCase) GetTopClients(ctx context.Context, req *pb.GetTopEntitiesRequest) (*pb.GetTopEntitiesResponse, error) {
+	if req.CompanyId == "" || req.StartDate == "" || req.EndDate == "" {
+		return nil, errors.New("company_id, start_date, and end_date are required")
+	}
+
+	entities, err := s.repo.GetTopClients(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	return &pb.GetTopEntitiesResponse{Entities: entities}, nil
+}
+
+func (s *SalesUseCase) GetTopSuppliers(ctx context.Context, req *pb.GetTopEntitiesRequest) (*pb.GetTopEntitiesResponse, error) {
+	if req.CompanyId == "" || req.StartDate == "" || req.EndDate == "" {
+		return nil, errors.New("company_id, start_date, and end_date are required")
+	}
+
+	entities, err := s.repo.GetTopSuppliers(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	return &pb.GetTopEntitiesResponse{Entities: entities}, nil
 }
