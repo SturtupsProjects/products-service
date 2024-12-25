@@ -189,7 +189,7 @@ func (s *SalesUseCase) GetTopClients(ctx context.Context, req *pb.GetTopEntities
 		return nil, errors.New("company_id, start_date, and end_date are required")
 	}
 
-	entities, err := s.repo.GetTopClients(ctx, req)
+	entities, err := s.repo.GetTopClients(req)
 	if err != nil {
 		return nil, err
 	}
@@ -202,7 +202,7 @@ func (s *SalesUseCase) GetTopSuppliers(ctx context.Context, req *pb.GetTopEntiti
 		return nil, errors.New("company_id, start_date, and end_date are required")
 	}
 
-	entities, err := s.repo.GetTopSuppliers(ctx, req)
+	entities, err := s.repo.GetTopSuppliers(req)
 	if err != nil {
 		return nil, err
 	}
