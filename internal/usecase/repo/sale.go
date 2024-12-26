@@ -88,11 +88,11 @@ func (r *salesRepoImpl) UpdateSale(in *pb.SaleUpdate) (*pb.SaleResponse, error) 
 	}
 
 	if in.ClientId != "" {
-		updates = append(updates, "client_id = :client_id")
+		updates = append(updates, "client_id = $3")
 		params.ClientID = &in.ClientId
 	}
 	if in.PaymentMethod != "" {
-		updates = append(updates, "payment_method = :payment_method")
+		updates = append(updates, "payment_method = $4")
 		params.PaymentMethod = &in.PaymentMethod
 	}
 
@@ -102,18 +102,13 @@ func (r *salesRepoImpl) UpdateSale(in *pb.SaleUpdate) (*pb.SaleResponse, error) 
 
 	query := fmt.Sprintf(`
 		UPDATE sales SET %s
-		WHERE id = :id AND company_id = :company_id 
+		WHERE id = $1 AND company_id = $2
 		RETURNING id, client_id, sold_by, total_sale_price, payment_method, created_at
 	`, strings.Join(updates, ", "))
 
-	stmt, err := r.db.PrepareNamed(query)
-	if err != nil {
-		return nil, fmt.Errorf("error preparing query: %w", err)
-	}
-	defer stmt.Close()
-
 	sale := &pb.SaleResponse{}
-	err = stmt.QueryRowx(params).StructScan(sale)
+	err := r.db.QueryRow(query, params.ID, params.CompanyID, params.ClientID, params.PaymentMethod).
+		Scan(&sale.Id, &sale.ClientId, &sale.SoldBy, &sale.TotalSalePrice, &sale.PaymentMethod, &sale.CreatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("error executing update: %w", err)
 	}
