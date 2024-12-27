@@ -38,17 +38,17 @@ CREATE TABLE sales
     sold_by          UUID   NOT NULL,
     total_sale_price BIGINT NOT NULL, -- общая сумма заказа
     payment_method   payment_method DEFAULT 'uzs',
-    company_id       UUID           NOT NULL,
+    company_id       UUID   NOT NULL,
     created_at       TIMESTAMP      DEFAULT NOW()
 );
 
 -- Таблица товаров, проданных в рамках конкретной продажи
 CREATE TABLE sales_items
 (
-    id          UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    id          UUID      DEFAULT gen_random_uuid() PRIMARY KEY,
     sale_id     UUID REFERENCES sales (id)    NOT NULL,
     product_id  UUID REFERENCES products (id) NOT NULL,
-    quantity    INT  DEFAULT 1                NOT NULL,
+    quantity    INT       DEFAULT 1           NOT NULL,
     sale_price  BIGINT                        NOT NULL,
     created_at  TIMESTAMP DEFAULT NOW(),
     company_id  UUID                          NOT NULL,
@@ -81,12 +81,11 @@ CREATE TABLE debts
 (
     id            UUID      DEFAULT gen_random_uuid() PRIMARY KEY,
     order_id      UUID REFERENCES sales (id) NOT NULL, -- Привязка долга к заказу
-    amount_paid   BIGINT                     NOT NULL, -- Сумма, уже оплаченная
-    amount_unpaid BIGINT                     NOT NULL, -- Сумма, остающаяся к оплате
+    client_id     UUID                       NOT NULL,
+    amount_paid   BIGINT                     NOT NULL,
     total_debt    BIGINT                     NOT NULL, -- Общая сумма долга
-    next_payment  DATE,
-    last_paid_day TIMESTAMP DEFAULT NOW(),
     is_fully_paid BOOLEAN   DEFAULT FALSE,
+    should_pay_at DATE                       NOT NULL,
     recipient_id  UUID                       NOT NULL, -- Кто принял платёж
     company_id    UUID                       NOT NULL,
     created_at    TIMESTAMP DEFAULT NOW()
@@ -99,21 +98,21 @@ CREATE TABLE debt_payments
     debt_id      UUID REFERENCES debts (id) NOT NULL, -- Привязка к задолженности
     payment_date TIMESTAMP DEFAULT NOW(),
     amount       BIGINT                     NOT NULL, -- Сумма частичного платежа
-    paid_by      UUID                       NOT NULL,  -- Кто внес платёж
-    company_id    UUID                       NOT NULL
+    paid_by      UUID                       NOT NULL, -- Кто внес платёж
+    company_id   UUID                       NOT NULL
 );
 
 -- Таблица закупок
 CREATE TABLE purchases
 (
     id             UUID           DEFAULT gen_random_uuid() PRIMARY KEY,
-    supplier_id    UUID           NOT NULL,              -- Название поставщика или имя компании
-    purchased_by   UUID           NOT NULL,              -- Кто произвел закупку
-    total_cost     BIGINT         NOT NULL,              -- Общая сумма закупки
+    supplier_id    UUID                         NOT NULL, -- Название поставщика или имя компании
+    purchased_by   UUID                         NOT NULL, -- Кто произвел закупку
+    total_cost     BIGINT                       NOT NULL, -- Общая сумма закупки
     payment_method payment_method DEFAULT 'uzs' NOT NULL, -- Способ оплаты
-    description    TEXT           DEFAULT ''             NOT NULL,
-    company_id     UUID           NOT NULL,
-    created_at     TIMESTAMP      DEFAULT NOW()          -- Время создания записи
+    description    TEXT           DEFAULT ''    NOT NULL,
+    company_id     UUID                         NOT NULL,
+    created_at     TIMESTAMP      DEFAULT NOW()           -- Время создания записи
 );
 
 -- Таблица товаров, закупленных в рамках конкретной закупки
@@ -124,6 +123,6 @@ CREATE TABLE purchase_items
     product_id     UUID REFERENCES products (id)  NOT NULL, -- Ссылка на товар
     quantity       INT                            NOT NULL, -- Количество закупленного товара
     purchase_price BIGINT                         NOT NULL, -- Цена закупки за единицу товара
-    total_price    BIGINT                         NOT NULL,  -- Общая стоимость конкретного товара в закупке
-    company_id     UUID                          NOT NULL
+    total_price    BIGINT                         NOT NULL, -- Общая стоимость конкретного товара в закупке
+    company_id     UUID                           NOT NULL
 );
