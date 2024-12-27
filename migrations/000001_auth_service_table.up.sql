@@ -125,3 +125,40 @@ CREATE TABLE purchase_items
     total_price    DECIMAL(10,1)                 NOT NULL, -- Общая стоимость конкретного товара в закупке
     company_id     UUID                           NOT NULL
 );
+
+
+-- Индексы для таблицы product_categories
+CREATE INDEX idx_product_categories_company_id ON product_categories (company_id);
+
+-- Индексы для таблицы products
+CREATE INDEX idx_products_company_id ON products (company_id);
+CREATE INDEX idx_products_category_id ON products (category_id);
+
+-- Индексы для таблицы sales
+CREATE INDEX idx_sales_company_id ON sales (company_id);
+CREATE INDEX idx_sales_client_id ON sales (client_id);
+
+-- Индексы для таблицы sales_items
+CREATE INDEX idx_sales_items_sale_id ON sales_items (sale_id);
+CREATE INDEX idx_purchases_company_id ON purchases (company_id);
+
+-- Индексы для таблицы purchase_items
+CREATE INDEX idx_purchase_items_purchase_id ON purchase_items (purchase_id);
+CREATE INDEX idx_purchase_items_product_id ON purchase_items (product_id);
+CREATE INDEX idx_purchase_items_company_id ON purchase_items (company_id);
+
+-- Индексы для таблицы purchases
+CREATE INDEX idx_sales_items_product_id ON sales_items (product_id);
+
+
+-- Индексы для таблицы cash_flow
+-- CREATE INDEX idx_cash_flow_company_id ON cash_flow (company_id);
+-- CREATE INDEX idx_cash_flow_transaction_date ON cash_flow (transaction_date);
+
+-- Индексы для таблицы debts
+-- CREATE INDEX idx_debts_company_id ON debts (company_id);
+-- CREATE INDEX idx_debts_client_id ON debts (client_id);
+-- CREATE INDEX idx_debts_should_pay_at ON debts (should_pay_at);
+
+-- Индексы для таблицы debt_payments
+-- CREATE INDEX idx_debt_payments_debt_id ON debt_payments (debt_id);
