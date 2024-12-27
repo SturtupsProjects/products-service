@@ -46,9 +46,9 @@ type SalesRepo interface {
 }
 
 type StatisticsRepo interface {
-	TotalPriceOfProducts(*pb.CompanyID) (*pb.PriceProducts, error)
-	TotalSoldProducts(*pb.CompanyID) (*pb.PriceProducts, error)
-	TotalPurchaseProducts(*pb.CompanyID) (*pb.PriceProducts, error)
+	TotalPriceOfProducts(req *pb.StatisticReq) (*pb.PriceProducts, error)
+	TotalSoldProducts(req *pb.StatisticReq) (*pb.PriceProducts, error)
+	TotalPurchaseProducts(id *pb.StatisticReq) (*pb.PriceProducts, error)
 }
 
 type ReturnedProductsRepo interface {

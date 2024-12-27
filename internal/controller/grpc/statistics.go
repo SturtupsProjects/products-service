@@ -5,7 +5,7 @@ import (
 	pb "crm-admin/internal/generated/products"
 )
 
-func (p *ProductsGrpc) TotalPriceOfProducts(ctx context.Context, in *pb.CompanyID) (*pb.PriceProducts, error) {
+func (p *ProductsGrpc) TotalPriceOfProducts(ctx context.Context, in *pb.StatisticReq) (*pb.PriceProducts, error) {
 	p.log.Info("TotalPriceOfProducts called")
 
 	res, err := p.statistics.TotalPriceOfProducts(in)
@@ -17,7 +17,7 @@ func (p *ProductsGrpc) TotalPriceOfProducts(ctx context.Context, in *pb.CompanyI
 	return res, nil
 }
 
-func (p *ProductsGrpc) TotalSoldProducts(ctx context.Context, in *pb.CompanyID) (*pb.PriceProducts, error) {
+func (p *ProductsGrpc) TotalSoldProducts(ctx context.Context, in *pb.StatisticReq) (*pb.PriceProducts, error) {
 	p.log.Info("TotalSoldProducts called")
 
 	res, err := p.statistics.TotalSoldProducts(in)
@@ -29,7 +29,7 @@ func (p *ProductsGrpc) TotalSoldProducts(ctx context.Context, in *pb.CompanyID) 
 	return res, nil
 }
 
-func (p *ProductsGrpc) TotalPurchaseProducts(ctx context.Context, in *pb.CompanyID) (*pb.PriceProducts, error) {
+func (p *ProductsGrpc) TotalPurchaseProducts(ctx context.Context, in *pb.StatisticReq) (*pb.PriceProducts, error) {
 	p.log.Info("TotalPurchaseProducts called")
 
 	res, err := p.statistics.TotalPurchaseProducts(in)
