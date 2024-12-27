@@ -5,7 +5,7 @@ import (
 	"crm-admin/internal/usecase"
 	"fmt"
 	"github.com/jmoiron/sqlx"
-	"strconv"
+	"github.com/shopspring/decimal"
 )
 
 type statisticsRepo struct {
@@ -21,32 +21,20 @@ func (s *statisticsRepo) TotalPriceOfProducts(companyID *products.CompanyID) (*p
 	var result products.PriceProducts
 
 	query := `
-		SELECT SUM(standard_price * total_count) AS total_price
+		SELECT COALESCE(SUM(standard_price * total_count), 0) AS total_price
 		FROM products
 		WHERE company_id = $1;
 	`
 
-	// Используем строку для считывания результата
-	var total []struct {
-		TotalPrice string `db:"total_price"`
+	var totalPrice float64
+
+	if err := s.db.Get(&totalPrice, query, companyID.GetId()); err != nil {
+		return nil, fmt.Errorf("failed to query total price of products: %w", err)
 	}
 
-	if err := s.db.Select(&total, query, companyID.GetId()); err != nil {
-		return nil, err
-	}
+	totalPriceDecimal := decimal.NewFromFloat(totalPrice)
 
-	var totalPrice int64
-
-	for _, price := range total {
-		// Преобразуем строку в int64
-		val, err := strconv.ParseInt(price.TotalPrice, 10, 64)
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse total_price: %w", err)
-		}
-		totalPrice += val
-	}
-
-	result.TotalPrice = totalPrice
+	result.TotalPrice = totalPriceDecimal.InexactFloat64()
 
 	return &result, nil
 }
@@ -54,27 +42,41 @@ func (s *statisticsRepo) TotalPriceOfProducts(companyID *products.CompanyID) (*p
 // TotalSoldProducts calculates the total revenue from sold products.
 func (s *statisticsRepo) TotalSoldProducts(companyID *products.CompanyID) (*products.PriceProducts, error) {
 	query := `
-		SELECT SUM(total_price) AS total_price
+		SELECT COALESCE(SUM(total_price), 0) AS total_price
 		FROM sales_items
 		WHERE company_id = $1;
 	`
-	var result products.PriceProducts
-	if err := s.db.Get(&result.TotalPrice, query, companyID.GetId()); err != nil {
-		return nil, err
+
+	var totalPrice decimal.Decimal
+
+	if err := s.db.Get(&totalPrice, query, companyID.GetId()); err != nil {
+		return nil, fmt.Errorf("failed to calculate total sold products: %w", err)
 	}
-	return &result, nil
+
+	result := &products.PriceProducts{
+		TotalPrice: totalPrice.InexactFloat64(),
+	}
+
+	return result, nil
 }
 
 // TotalPurchaseProducts calculates the total expenditure on purchased products.
 func (s *statisticsRepo) TotalPurchaseProducts(companyID *products.CompanyID) (*products.PriceProducts, error) {
 	query := `
-		SELECT SUM(total_price) AS total_price
+		SELECT COALESCE(SUM(total_price), 0) AS total_price
 		FROM purchase_items
 		WHERE company_id = $1;
 	`
-	var result products.PriceProducts
-	if err := s.db.Get(&result.TotalPrice, query, companyID.GetId()); err != nil {
-		return nil, err
+
+	var totalPrice decimal.Decimal
+
+	if err := s.db.Get(&totalPrice, query, companyID.GetId()); err != nil {
+		return nil, fmt.Errorf("failed to calculate total purchase products: %w", err)
 	}
-	return &result, nil
+
+	result := &products.PriceProducts{
+		TotalPrice: totalPrice.InexactFloat64(),
+	}
+
+	return result, nil
 }

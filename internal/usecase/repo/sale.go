@@ -30,8 +30,11 @@ type SaleUpdateParams struct {
 
 // CreateSale создает новую продажу и соответствующие элементы продажи
 func (r *salesRepoImpl) CreateSale(in *entity.SalesTotal) (*pb.SaleResponse, error) {
-	sale := &pb.SaleResponse{}
+	if len(in.SoldProducts) == 0 {
+		return nil, errors.New("cannot create sale without sold products")
+	}
 
+	sale := &pb.SaleResponse{}
 	query := `
 		INSERT INTO sales (company_id, client_id, sold_by, total_sale_price, payment_method)
 		VALUES ($1, $2, $3, $4, $5) 
@@ -48,7 +51,6 @@ func (r *salesRepoImpl) CreateSale(in *entity.SalesTotal) (*pb.SaleResponse, err
 	if err != nil {
 		return nil, fmt.Errorf("failed to begin transaction: %w", err)
 	}
-
 	defer func() {
 		if err != nil {
 			tx.Rollback()
@@ -61,7 +63,7 @@ func (r *salesRepoImpl) CreateSale(in *entity.SalesTotal) (*pb.SaleResponse, err
 			INSERT INTO sales_items (company_id, sale_id, product_id, quantity, sale_price, total_price)
 			VALUES ($1, $2, $3, $4, $5, $6)
 		`
-		_, err := tx.Exec(itemQuery, in.CompanyID, item.SaleID, item.ProductID, item.Quantity, item.SalePrice, item.TotalPrice)
+		_, err = tx.Exec(itemQuery, in.CompanyID, item.SaleID, item.ProductID, item.Quantity, item.SalePrice, item.TotalPrice)
 		if err != nil {
 			return nil, fmt.Errorf("failed to insert sales item: %w", err)
 		}
@@ -81,23 +83,20 @@ func (r *salesRepoImpl) CreateSale(in *entity.SalesTotal) (*pb.SaleResponse, err
 
 // UpdateSale обновляет детали продажи
 func (r *salesRepoImpl) UpdateSale(in *pb.SaleUpdate) (*pb.SaleResponse, error) {
-	updates := []string{}
-	params := SaleUpdateParams{
-		ID:        in.Id,
-		CompanyID: in.CompanyId,
+	if in.ClientId == "" && in.PaymentMethod == "" {
+		return nil, errors.New("no fields to update")
 	}
+
+	updates := []string{}
+	params := []interface{}{in.Id, in.CompanyId}
 
 	if in.ClientId != "" {
-		updates = append(updates, "client_id = $3")
-		params.ClientID = &in.ClientId
+		updates = append(updates, fmt.Sprintf("client_id = $%d", len(params)+1))
+		params = append(params, in.ClientId)
 	}
 	if in.PaymentMethod != "" {
-		updates = append(updates, "payment_method = $4")
-		params.PaymentMethod = &in.PaymentMethod
-	}
-
-	if len(updates) == 0 {
-		return nil, errors.New("no fields to update")
+		updates = append(updates, fmt.Sprintf("payment_method = $%d", len(params)+1))
+		params = append(params, in.PaymentMethod)
 	}
 
 	query := fmt.Sprintf(`
@@ -107,7 +106,7 @@ func (r *salesRepoImpl) UpdateSale(in *pb.SaleUpdate) (*pb.SaleResponse, error) 
 	`, strings.Join(updates, ", "))
 
 	sale := &pb.SaleResponse{}
-	err := r.db.QueryRow(query, params.ID, params.CompanyID, params.ClientID, params.PaymentMethod).
+	err := r.db.QueryRow(query, params...).
 		Scan(&sale.Id, &sale.ClientId, &sale.SoldBy, &sale.TotalSalePrice, &sale.PaymentMethod, &sale.CreatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("error executing update: %w", err)
@@ -120,17 +119,8 @@ func (r *salesRepoImpl) UpdateSale(in *pb.SaleUpdate) (*pb.SaleResponse, error) 
 func (r *salesRepoImpl) GetSale(in *pb.SaleID) (*pb.SaleResponse, error) {
 	query := `
 		SELECT 
-			s.id, 
-			s.client_id, 
-			s.sold_by, 
-			s.total_sale_price, 
-			s.payment_method, 
-			s.created_at, 
-			i.id AS item_id, 
-			i.product_id, 
-			i.quantity, 
-			i.sale_price, 
-			i.total_price
+			s.id, s.client_id, s.sold_by, s.total_sale_price, s.payment_method, s.created_at,
+			i.id AS item_id, i.product_id, i.quantity, i.sale_price, i.total_price
 		FROM sales s
 		LEFT JOIN sales_items i ON s.id = i.sale_id
 		WHERE s.id = $1 AND s.company_id = $2
@@ -163,7 +153,6 @@ func (r *salesRepoImpl) GetSale(in *pb.SaleID) (*pb.SaleResponse, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan sale row: %w", err)
 		}
-
 		if item.Id != "" {
 			soldProducts = append(soldProducts, &item)
 		}
@@ -174,7 +163,6 @@ func (r *salesRepoImpl) GetSale(in *pb.SaleID) (*pb.SaleResponse, error) {
 	}
 
 	sale.SoldProducts = soldProducts
-
 	return sale, nil
 }
 

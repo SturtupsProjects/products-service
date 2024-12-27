@@ -300,24 +300,48 @@ func (p *productRepo) GetProductList(in *pb.ProductFilter) (*pb.ProductList, err
 		conditions = append(conditions, fmt.Sprintf("category_id = $%d", len(args)+1))
 		args = append(args, in.CategoryId)
 	}
+
 	if in.Name != "" {
-		conditions = append(conditions, fmt.Sprintf("name ILIKE $%d", len(args)+1))
+		conditions = append(conditions, fmt.Sprintf("name LIKE $%d", len(args)+1))
 		args = append(args, "%"+in.Name+"%")
+	}
+
+	if in.CreatedBy != "" {
+		conditions = append(conditions, fmt.Sprintf("created_by = $%d", len(args)+1))
+		args = append(args, in.CreatedBy)
+	}
+
+	if in.CreatedAt != "" {
+		conditions = append(conditions, fmt.Sprintf("created_at = $%d", len(args)+1))
+		args = append(args, in.CreatedAt)
 	}
 
 	if len(conditions) > 0 {
 		baseQuery += " AND " + strings.Join(conditions, " AND ")
 	}
 
-	rows, err := p.db.Query(baseQuery, args...)
+	// Выполнение запроса
+	rows, err := p.db.Queryx(baseQuery, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute query: %w", err)
 	}
 	defer rows.Close()
 
+	// Чтение строк из результата
 	for rows.Next() {
 		var product pb.Product
-		if err := rows.Scan(&product.Id, &product.CategoryId, &product.Name, &product.ImageUrl, &product.BillFormat, &product.IncomingPrice, &product.StandardPrice, &product.TotalCount, &product.CreatedBy, &product.CreatedAt); err != nil {
+		if err := rows.Scan(
+			&product.Id,
+			&product.CategoryId,
+			&product.Name,
+			&product.ImageUrl,
+			&product.BillFormat,
+			&product.IncomingPrice,
+			&product.StandardPrice,
+			&product.TotalCount,
+			&product.CreatedBy,
+			&product.CreatedAt,
+		); err != nil {
 			return nil, fmt.Errorf("failed to scan row: %w", err)
 		}
 		products = append(products, &product)
@@ -330,18 +354,18 @@ func (p *productRepo) GetProductList(in *pb.ProductFilter) (*pb.ProductList, err
 	return &pb.ProductList{Products: products}, nil
 }
 
-// ---------------- End Product CRUD ------------------------------------------------------------------------
+// ------------------- End Product CRUD ------------------------------------------------------------------------
 
-// -------------------------------------------- Must fix end Do Reflect -------------------------------------
+//------------------- Product Quantity CRUD ------------------------------------------------------------------------
 
 func (p *productQuantity) AddProduct(in *entity.CountProductReq) (*entity.ProductNumber, error) {
 	product := &entity.ProductNumber{}
 
 	query := `
 		UPDATE products
-		SET total_count = total_count + $1
-		WHERE id = $2
-		RETURNING id, total_count
+	SET total_count = total_count + $1
+	WHERE id = $2
+	RETURNING id, total_count
 	`
 
 	err := p.db.QueryRowx(query, in.Count, in.ID).
@@ -357,7 +381,7 @@ func (p *productQuantity) RemoveProduct(in *entity.CountProductReq) (*entity.Pro
 	res := &entity.ProductNumber{}
 
 	query := `UPDATE products SET total_count = total_count - $1
-		RETURNING id, total_count`
+	RETURNING id, total_count`
 
 	err := p.db.Get(res, query, in)
 	if err != nil {
@@ -370,7 +394,7 @@ func (p *productQuantity) RemoveProduct(in *entity.CountProductReq) (*entity.Pro
 func (p *productQuantity) GetProductCount(in *entity.ProductID) (*entity.ProductNumber, error) {
 	res := &entity.ProductNumber{}
 
-	query := `SELECT id, total_count from products WHERE id = $1`
+	query := ` SELECT id, total_count from products WHERE id = $1`
 
 	err := p.db.Get(res, query, in)
 	if err != nil {
@@ -383,7 +407,7 @@ func (p *productQuantity) GetProductCount(in *entity.ProductID) (*entity.Product
 func (p *productQuantity) ProductCountChecker(in *entity.CountProductReq) (bool, error) {
 	var res bool
 
-	query := `select 'true' from products where id = $1 and total_count >= $2`
+	query := ` select 'true' from products where id = $1 and total_count >= $2 `
 
 	err := p.db.Get(&res, query, in.ID, in.Count)
 	if err != nil {
@@ -392,3 +416,5 @@ func (p *productQuantity) ProductCountChecker(in *entity.CountProductReq) (bool,
 
 	return res, nil
 }
+
+//------------------- End Product Quantity CRUD ------------------------------------------------------------------

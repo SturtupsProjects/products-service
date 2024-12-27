@@ -4,6 +4,7 @@ import (
 	"crm-admin/internal/entity"
 	pb "crm-admin/internal/generated/products"
 	"fmt"
+	"github.com/shopspring/decimal"
 	"log/slog"
 	"sync"
 )
@@ -14,6 +15,7 @@ type PurchaseUseCase struct {
 	log     *slog.Logger
 }
 
+// NewPurchaseUseCase создает новый экземпляр PurchaseUseCase
 func NewPurchaseUseCase(repo PurchasesRepo, pr ProductQuantity, log *slog.Logger) *PurchaseUseCase {
 	return &PurchaseUseCase{
 		repo:    repo,
@@ -22,67 +24,78 @@ func NewPurchaseUseCase(repo PurchasesRepo, pr ProductQuantity, log *slog.Logger
 	}
 }
 
+// CalculateTotalPurchases вычисляет общую стоимость покупки
 func (p *PurchaseUseCase) CalculateTotalPurchases(in *entity.Purchase) (*entity.PurchaseRequest, error) {
+	if in == nil {
+		return nil, fmt.Errorf("input purchase is nil")
+	}
+
 	var result entity.PurchaseRequest
-	var totalSum int64
+	totalSum := decimal.NewFromFloat(0)
 	var purchaseList []entity.PurchaseItemReq
 
 	for _, pr := range in.PurchaseItems {
 		if pr.Quantity == 0 {
+			p.log.Warn("Skipping item with zero quantity", "productID", pr.ProductID)
 			continue
 		}
+
+		quantity := decimal.NewFromFloat(float64(pr.Quantity))
+		purchasePrice := decimal.NewFromFloat(float64(pr.PurchasePrice))
+		totalPrice := quantity.Mul(purchasePrice)
+
+		total, _ := totalPrice.Float64()
 
 		purchase := entity.PurchaseItemReq{
 			PurchasePrice: pr.PurchasePrice,
 			ProductID:     pr.ProductID,
 			Quantity:      pr.Quantity,
-			TotalPrice:    int64(pr.Quantity) * pr.PurchasePrice,
+			TotalPrice:    total,
 		}
 
 		purchaseList = append(purchaseList, purchase)
-		totalSum += purchase.TotalPrice
+		totalSum = totalSum.Add(totalPrice)
 	}
 
-	result.PurchasedBy = in.PurchasedBy
-	result.SupplierID = in.SupplierID
-	result.PurchaseItems = purchaseList
-	result.TotalCost = totalSum
-	result.PaymentMethod = in.PaymentMethod
-	result.Description = in.Description
-	result.CompanyID = in.CompanyID
+	total, _ := totalSum.Float64()
+
+	result = entity.PurchaseRequest{
+		PurchasedBy:   in.PurchasedBy,
+		SupplierID:    in.SupplierID,
+		PurchaseItems: purchaseList,
+		TotalCost:     total, // Преобразуем итоговую сумму в int64
+		PaymentMethod: in.PaymentMethod,
+		Description:   in.Description,
+		CompanyID:     in.CompanyID,
+	}
 
 	return &result, nil
 }
 
+// CreatePurchase создает новую покупку
 func (p *PurchaseUseCase) CreatePurchase(in *entity.Purchase) (*pb.PurchaseResponse, error) {
 	req, err := p.CalculateTotalPurchases(in)
 	if err != nil {
-		p.log.Error("Error calculating total purchase cost", "error", err)
+		p.log.Error("Failed to calculate total purchase cost", "error", err)
 		return nil, fmt.Errorf("error calculating total purchase cost: %w", err)
 	}
 
 	res, err := p.repo.CreatePurchase(req)
 	if err != nil {
-		p.log.Error("Error creating purchase", "error", err)
+		p.log.Error("Failed to create purchase", "error", err)
 		return nil, fmt.Errorf("error creating purchase: %w", err)
 	}
 
 	var wg sync.WaitGroup
-	semaphore := make(chan struct{}, 10) // limit to 10 goroutines
+	semaphore := make(chan struct{}, 10) // ограничиваем до 10 goroutine
 
 	for _, item := range in.PurchaseItems {
 		wg.Add(1)
 		go func(item entity.PurchaseItem) {
 			defer wg.Done()
 
-			select {
-			case semaphore <- struct{}{}:
-				// Continue with the operation
-			default:
-				p.log.Error("Semaphore channel is full, skipping operation", "productID", item.ProductID)
-				return
-			}
-
+			// Контролируем количество goroutine
+			semaphore <- struct{}{}
 			defer func() { <-semaphore }()
 
 			productQuantityReq := &entity.CountProductReq{
@@ -91,7 +104,7 @@ func (p *PurchaseUseCase) CreatePurchase(in *entity.Purchase) (*pb.PurchaseRespo
 			}
 
 			if _, err := p.product.AddProduct(productQuantityReq); err != nil {
-				p.log.Error("Error adding product quantity", "productID", item.ProductID, "error", err)
+				p.log.Error("Failed to add product quantity", "productID", item.ProductID, "error", err)
 			}
 		}(item)
 	}
@@ -100,36 +113,91 @@ func (p *PurchaseUseCase) CreatePurchase(in *entity.Purchase) (*pb.PurchaseRespo
 	return res, nil
 }
 
+// UpdatePurchase обновляет данные покупки
 func (p *PurchaseUseCase) UpdatePurchase(in *pb.PurchaseUpdate) (*pb.PurchaseResponse, error) {
+	if in == nil {
+		return nil, fmt.Errorf("update request is nil")
+	}
+
 	res, err := p.repo.UpdatePurchase(in)
 	if err != nil {
-		p.log.Error("Error updating purchase", "error", err)
+		p.log.Error("Failed to update purchase", "error", err)
 		return nil, fmt.Errorf("error updating purchase: %w", err)
 	}
 
 	return res, nil
 }
 
+// GetPurchase получает данные о покупке по ID
 func (p *PurchaseUseCase) GetPurchase(req *pb.PurchaseID) (*pb.PurchaseResponse, error) {
+	if req == nil {
+		return nil, fmt.Errorf("purchase ID request is nil")
+	}
+
 	res, err := p.repo.GetPurchase(req)
 	if err != nil {
-		p.log.Error("Error fetching purchase data", "error", err)
+		p.log.Error("Failed to fetch purchase data", "error", err)
 		return nil, fmt.Errorf("error fetching purchase data: %w", err)
 	}
 
 	return res, nil
 }
 
+// GetListPurchase получает список покупок
 func (p *PurchaseUseCase) GetListPurchase(req *pb.FilterPurchase) (*pb.PurchaseList, error) {
+	if req == nil {
+		return nil, fmt.Errorf("filter purchase request is nil")
+	}
+
 	res, err := p.repo.GetPurchaseList(req)
 	if err != nil {
-		p.log.Error("Error fetching purchase list", "error", err)
+		p.log.Error("Failed to fetch purchase list", "error", err)
 		return nil, fmt.Errorf("error fetching purchase list: %w", err)
 	}
 
 	return res, nil
 }
 
+// DeletePurchase удаляет покупку
+func (p *PurchaseUseCase) DeletePurchase(req *pb.PurchaseID) (*pb.Message, error) {
+	if req == nil {
+		return nil, fmt.Errorf("purchase ID request is nil")
+	}
+
+	purchase, err := p.repo.GetPurchase(req)
+	if err != nil {
+		p.log.Error("Failed to fetch purchase data", "error", err)
+		return nil, fmt.Errorf("error fetching purchase data: %w", err)
+	}
+
+	if err := p.validatePurchaseItems(purchase); err != nil {
+		p.log.Error("Validation failed before deletion", "error", err)
+		return nil, err
+	}
+
+	res, err := p.repo.DeletePurchase(req)
+	if err != nil {
+		p.log.Error("Failed to delete purchase", "error", err)
+		return nil, fmt.Errorf("error deleting purchase: %w", err)
+	}
+
+	go func() {
+		for _, item := range purchase.Items {
+			productQuantityReq := &entity.CountProductReq{
+				ID:    item.ProductId,
+				Count: int(item.Quantity),
+			}
+
+			if _, err := p.product.RemoveProduct(productQuantityReq); err != nil {
+				p.log.Error("Failed to remove product in DeletePurchase", "productID", item.ProductId, "error", err)
+			}
+		}
+	}()
+
+	return res, nil
+}
+
+// validatePurchaseItems проверяет корректность элементов покупки
 func (p *PurchaseUseCase) validatePurchaseItems(purchase *pb.PurchaseResponse) error {
 	for _, item := range purchase.Items {
 		if item.Quantity == 0 {
@@ -143,7 +211,7 @@ func (p *PurchaseUseCase) validatePurchaseItems(purchase *pb.PurchaseResponse) e
 
 		check, err := p.product.ProductCountChecker(productQuantityReq)
 		if err != nil {
-			p.log.Error("Error checking product quantity", "productID", item.ProductId, "error", err)
+			p.log.Error("Failed to check product quantity", "productID", item.ProductId, "error", err)
 			return fmt.Errorf("error checking product quantity: %w", err)
 		}
 
@@ -152,38 +220,4 @@ func (p *PurchaseUseCase) validatePurchaseItems(purchase *pb.PurchaseResponse) e
 		}
 	}
 	return nil
-}
-
-func (p *PurchaseUseCase) DeletePurchase(req *pb.PurchaseID) (*pb.Message, error) {
-	purchase, err := p.repo.GetPurchase(req)
-	if err != nil {
-		p.log.Error("Error fetching purchase data", "error", err)
-		return nil, fmt.Errorf("error fetching purchase data: %w", err)
-	}
-
-	if err := p.validatePurchaseItems(purchase); err != nil {
-		p.log.Error("Purchase validation failed before deletion", "error", err)
-		return nil, err
-	}
-
-	res, err := p.repo.DeletePurchase(req)
-	if err != nil {
-		p.log.Error("Error deleting purchase", "error", err)
-		return nil, fmt.Errorf("error deleting purchase: %w", err)
-	}
-
-	go func() {
-		for _, item := range purchase.Items {
-			productQuantityReq := &entity.CountProductReq{
-				ID:    item.ProductId,
-				Count: int(item.Quantity),
-			}
-
-			if _, err := p.product.RemoveProduct(productQuantityReq); err != nil {
-				p.log.Error("Error removing product in DeletePurchase", "productID", item.ProductId, "error", err)
-			}
-		}
-	}()
-
-	return res, nil
 }

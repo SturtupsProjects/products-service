@@ -5,6 +5,7 @@ import (
 	pb "crm-admin/internal/generated/products"
 	"errors"
 	"fmt"
+	"github.com/shopspring/decimal"
 	"log"
 	"log/slog"
 	"sync"
@@ -26,33 +27,47 @@ func NewSalesUseCase(repo SalesRepo, pr ProductQuantity, log *slog.Logger) *Sale
 
 // CalculateTotalSales calculates the total sale price from the sale request.
 func (s *SalesUseCase) CalculateTotalSales(in *entity.SaleRequest) (*entity.SalesTotal, error) {
-	var totalPrice int64
+	if in == nil {
+		return nil, errors.New("input sale request is nil")
+	}
+
+	var totalPrice decimal.Decimal
 	var soldProducts []entity.SalesItem
 
 	for _, item := range in.SoldProducts {
 		if item.Quantity <= 0 || item.SalePrice < 0 {
-			return nil, fmt.Errorf("invalid item data: quantity or sale price is non-positive")
+			return nil, fmt.Errorf("invalid item data: quantity or sale price is non-positive for product %v", item.ProductID)
 		}
 
-		totalPrice += item.Quantity * item.SalePrice
+		quantity := decimal.NewFromFloat(float64(item.Quantity))
+		salePrice := decimal.NewFromFloat(item.SalePrice)
+		totalItemPrice := quantity.Mul(salePrice)
+
+		totalPrice = totalPrice.Add(totalItemPrice)
+
+		total, _ := totalPrice.Float64()
+
 		soldProducts = append(soldProducts, entity.SalesItem{
 			ProductID:  item.ProductID,
 			Quantity:   item.Quantity,
 			SalePrice:  item.SalePrice,
-			TotalPrice: item.Quantity * item.SalePrice,
+			TotalPrice: total, // Сохраняем в виде int64
 		})
 	}
+
+	total, _ := totalPrice.Float64()
 
 	return &entity.SalesTotal{
 		ClientID:       in.ClientID,
 		SoldBy:         in.SoldBy,
-		TotalSalePrice: totalPrice,
+		TotalSalePrice: total,
 		PaymentMethod:  in.PaymentMethod,
 		SoldProducts:   soldProducts,
 		CompanyID:      in.CompanyID,
 	}, nil
 }
 
+// CreateSales creates a new sale record.
 func (s *SalesUseCase) CreateSales(in *entity.SaleRequest) (*pb.SaleResponse, error) {
 	total, err := s.CalculateTotalSales(in)
 	if err != nil {
@@ -93,6 +108,10 @@ func (s *SalesUseCase) CreateSales(in *entity.SaleRequest) (*pb.SaleResponse, er
 
 // UpdateSales updates an existing sale record.
 func (s *SalesUseCase) UpdateSales(in *pb.SaleUpdate) (*pb.SaleResponse, error) {
+	if in == nil {
+		return nil, errors.New("input sale update is nil")
+	}
+
 	res, err := s.repo.UpdateSale(in)
 	if err != nil {
 		s.log.Error("Error updating sale", "error", err)
@@ -103,6 +122,10 @@ func (s *SalesUseCase) UpdateSales(in *pb.SaleUpdate) (*pb.SaleResponse, error) 
 
 // GetSales retrieves a specific sale by ID.
 func (s *SalesUseCase) GetSales(req *pb.SaleID) (*pb.SaleResponse, error) {
+	if req == nil {
+		return nil, errors.New("sale ID request is nil")
+	}
+
 	res, err := s.repo.GetSale(req)
 	if err != nil {
 		s.log.Error("Error fetching sale", "saleID", req.Id, "error", err)
@@ -113,6 +136,10 @@ func (s *SalesUseCase) GetSales(req *pb.SaleID) (*pb.SaleResponse, error) {
 
 // GetListSales retrieves a list of sales based on filters.
 func (s *SalesUseCase) GetListSales(req *pb.SaleFilter) (*pb.SaleList, error) {
+	if req == nil {
+		return nil, errors.New("sale filter request is nil")
+	}
+
 	res, err := s.repo.GetSaleList(req)
 	if err != nil {
 		s.log.Error("Error fetching sales list", "filter", req, "error", err)
@@ -123,6 +150,10 @@ func (s *SalesUseCase) GetListSales(req *pb.SaleFilter) (*pb.SaleList, error) {
 
 // DeleteSales deletes a sale record and restores product stock.
 func (s *SalesUseCase) DeleteSales(req *pb.SaleID) (*pb.Message, error) {
+	if req == nil {
+		return nil, errors.New("sale ID request is nil")
+	}
+
 	sale, err := s.repo.GetSale(req)
 	if err != nil {
 		s.log.Error("Error fetching sale for deletion", "saleID", req.Id, "error", err)

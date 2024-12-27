@@ -19,18 +19,11 @@ import (
 const _ = grpc.SupportPackageIsVersion8
 
 const (
-	DebtsService_AddClient_FullMethodName           = "/debts.DebtsService/AddClient"
-	DebtsService_GetClient_FullMethodName           = "/debts.DebtsService/GetClient"
-	DebtsService_UpdateClient_FullMethodName        = "/debts.DebtsService/UpdateClient"
-	DebtsService_GetAllClients_FullMethodName       = "/debts.DebtsService/GetAllClients"
-	DebtsService_CreateDebt_FullMethodName          = "/debts.DebtsService/CreateDebt"
-	DebtsService_GetDebt_FullMethodName             = "/debts.DebtsService/GetDebt"
-	DebtsService_PayDebt_FullMethodName             = "/debts.DebtsService/PayDebt"
-	DebtsService_GetListDebts_FullMethodName        = "/debts.DebtsService/GetListDebts"
-	DebtsService_GetClientDebts_FullMethodName      = "/debts.DebtsService/GetClientDebts"
-	DebtsService_GetPayment_FullMethodName          = "/debts.DebtsService/GetPayment"
-	DebtsService_GetPaymentsByDebtId_FullMethodName = "/debts.DebtsService/GetPaymentsByDebtId"
-	DebtsService_GetPayments_FullMethodName         = "/debts.DebtsService/GetPayments"
+	DebtsService_CreateDebt_FullMethodName     = "/debts.DebtsService/CreateDebt"
+	DebtsService_GetDebt_FullMethodName        = "/debts.DebtsService/GetDebt"
+	DebtsService_PayDebt_FullMethodName        = "/debts.DebtsService/PayDebt"
+	DebtsService_GetListDebts_FullMethodName   = "/debts.DebtsService/GetListDebts"
+	DebtsService_GetClientDebts_FullMethodName = "/debts.DebtsService/GetClientDebts"
 )
 
 // DebtsServiceClient is the client API for DebtsService service.
@@ -39,18 +32,11 @@ const (
 //
 // ----------------------- Service --------------------
 type DebtsServiceClient interface {
-	AddClient(ctx context.Context, in *CreateClients, opts ...grpc.CallOption) (*Client, error)
-	GetClient(ctx context.Context, in *ClientID, opts ...grpc.CallOption) (*Client, error)
-	UpdateClient(ctx context.Context, in *ClientUpdate, opts ...grpc.CallOption) (*Client, error)
-	GetAllClients(ctx context.Context, in *FilterClient, opts ...grpc.CallOption) (*ClientList, error)
 	CreateDebt(ctx context.Context, in *DebtRequest, opts ...grpc.CallOption) (*Debt, error)
 	GetDebt(ctx context.Context, in *DebtID, opts ...grpc.CallOption) (*Debt, error)
 	PayDebt(ctx context.Context, in *PayDebtReq, opts ...grpc.CallOption) (*Debt, error)
 	GetListDebts(ctx context.Context, in *FilterDebt, opts ...grpc.CallOption) (*DebtsList, error)
 	GetClientDebts(ctx context.Context, in *ClientID, opts ...grpc.CallOption) (*DebtsList, error)
-	GetPayment(ctx context.Context, in *PaymentID, opts ...grpc.CallOption) (*Payment, error)
-	GetPaymentsByDebtId(ctx context.Context, in *DebtID, opts ...grpc.CallOption) (*PaymentList, error)
-	GetPayments(ctx context.Context, in *FilterPayment, opts ...grpc.CallOption) (*PaymentList, error)
 }
 
 type debtsServiceClient struct {
@@ -59,46 +45,6 @@ type debtsServiceClient struct {
 
 func NewDebtsServiceClient(cc grpc.ClientConnInterface) DebtsServiceClient {
 	return &debtsServiceClient{cc}
-}
-
-func (c *debtsServiceClient) AddClient(ctx context.Context, in *CreateClients, opts ...grpc.CallOption) (*Client, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(Client)
-	err := c.cc.Invoke(ctx, DebtsService_AddClient_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *debtsServiceClient) GetClient(ctx context.Context, in *ClientID, opts ...grpc.CallOption) (*Client, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(Client)
-	err := c.cc.Invoke(ctx, DebtsService_GetClient_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *debtsServiceClient) UpdateClient(ctx context.Context, in *ClientUpdate, opts ...grpc.CallOption) (*Client, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(Client)
-	err := c.cc.Invoke(ctx, DebtsService_UpdateClient_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *debtsServiceClient) GetAllClients(ctx context.Context, in *FilterClient, opts ...grpc.CallOption) (*ClientList, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ClientList)
-	err := c.cc.Invoke(ctx, DebtsService_GetAllClients_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
 }
 
 func (c *debtsServiceClient) CreateDebt(ctx context.Context, in *DebtRequest, opts ...grpc.CallOption) (*Debt, error) {
@@ -151,54 +97,17 @@ func (c *debtsServiceClient) GetClientDebts(ctx context.Context, in *ClientID, o
 	return out, nil
 }
 
-func (c *debtsServiceClient) GetPayment(ctx context.Context, in *PaymentID, opts ...grpc.CallOption) (*Payment, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(Payment)
-	err := c.cc.Invoke(ctx, DebtsService_GetPayment_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *debtsServiceClient) GetPaymentsByDebtId(ctx context.Context, in *DebtID, opts ...grpc.CallOption) (*PaymentList, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(PaymentList)
-	err := c.cc.Invoke(ctx, DebtsService_GetPaymentsByDebtId_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *debtsServiceClient) GetPayments(ctx context.Context, in *FilterPayment, opts ...grpc.CallOption) (*PaymentList, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(PaymentList)
-	err := c.cc.Invoke(ctx, DebtsService_GetPayments_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // DebtsServiceServer is the server API for DebtsService service.
 // All implementations must embed UnimplementedDebtsServiceServer
 // for forward compatibility
 //
 // ----------------------- Service --------------------
 type DebtsServiceServer interface {
-	AddClient(context.Context, *CreateClients) (*Client, error)
-	GetClient(context.Context, *ClientID) (*Client, error)
-	UpdateClient(context.Context, *ClientUpdate) (*Client, error)
-	GetAllClients(context.Context, *FilterClient) (*ClientList, error)
 	CreateDebt(context.Context, *DebtRequest) (*Debt, error)
 	GetDebt(context.Context, *DebtID) (*Debt, error)
 	PayDebt(context.Context, *PayDebtReq) (*Debt, error)
 	GetListDebts(context.Context, *FilterDebt) (*DebtsList, error)
 	GetClientDebts(context.Context, *ClientID) (*DebtsList, error)
-	GetPayment(context.Context, *PaymentID) (*Payment, error)
-	GetPaymentsByDebtId(context.Context, *DebtID) (*PaymentList, error)
-	GetPayments(context.Context, *FilterPayment) (*PaymentList, error)
 	mustEmbedUnimplementedDebtsServiceServer()
 }
 
@@ -206,18 +115,6 @@ type DebtsServiceServer interface {
 type UnimplementedDebtsServiceServer struct {
 }
 
-func (UnimplementedDebtsServiceServer) AddClient(context.Context, *CreateClients) (*Client, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AddClient not implemented")
-}
-func (UnimplementedDebtsServiceServer) GetClient(context.Context, *ClientID) (*Client, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetClient not implemented")
-}
-func (UnimplementedDebtsServiceServer) UpdateClient(context.Context, *ClientUpdate) (*Client, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UpdateClient not implemented")
-}
-func (UnimplementedDebtsServiceServer) GetAllClients(context.Context, *FilterClient) (*ClientList, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetAllClients not implemented")
-}
 func (UnimplementedDebtsServiceServer) CreateDebt(context.Context, *DebtRequest) (*Debt, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateDebt not implemented")
 }
@@ -233,15 +130,6 @@ func (UnimplementedDebtsServiceServer) GetListDebts(context.Context, *FilterDebt
 func (UnimplementedDebtsServiceServer) GetClientDebts(context.Context, *ClientID) (*DebtsList, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetClientDebts not implemented")
 }
-func (UnimplementedDebtsServiceServer) GetPayment(context.Context, *PaymentID) (*Payment, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetPayment not implemented")
-}
-func (UnimplementedDebtsServiceServer) GetPaymentsByDebtId(context.Context, *DebtID) (*PaymentList, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetPaymentsByDebtId not implemented")
-}
-func (UnimplementedDebtsServiceServer) GetPayments(context.Context, *FilterPayment) (*PaymentList, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetPayments not implemented")
-}
 func (UnimplementedDebtsServiceServer) mustEmbedUnimplementedDebtsServiceServer() {}
 
 // UnsafeDebtsServiceServer may be embedded to opt out of forward compatibility for this service.
@@ -253,78 +141,6 @@ type UnsafeDebtsServiceServer interface {
 
 func RegisterDebtsServiceServer(s grpc.ServiceRegistrar, srv DebtsServiceServer) {
 	s.RegisterService(&DebtsService_ServiceDesc, srv)
-}
-
-func _DebtsService_AddClient_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CreateClients)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(DebtsServiceServer).AddClient(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: DebtsService_AddClient_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DebtsServiceServer).AddClient(ctx, req.(*CreateClients))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _DebtsService_GetClient_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ClientID)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(DebtsServiceServer).GetClient(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: DebtsService_GetClient_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DebtsServiceServer).GetClient(ctx, req.(*ClientID))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _DebtsService_UpdateClient_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ClientUpdate)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(DebtsServiceServer).UpdateClient(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: DebtsService_UpdateClient_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DebtsServiceServer).UpdateClient(ctx, req.(*ClientUpdate))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _DebtsService_GetAllClients_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(FilterClient)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(DebtsServiceServer).GetAllClients(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: DebtsService_GetAllClients_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DebtsServiceServer).GetAllClients(ctx, req.(*FilterClient))
-	}
-	return interceptor(ctx, in, info, handler)
 }
 
 func _DebtsService_CreateDebt_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -417,60 +233,6 @@ func _DebtsService_GetClientDebts_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
-func _DebtsService_GetPayment_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(PaymentID)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(DebtsServiceServer).GetPayment(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: DebtsService_GetPayment_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DebtsServiceServer).GetPayment(ctx, req.(*PaymentID))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _DebtsService_GetPaymentsByDebtId_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(DebtID)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(DebtsServiceServer).GetPaymentsByDebtId(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: DebtsService_GetPaymentsByDebtId_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DebtsServiceServer).GetPaymentsByDebtId(ctx, req.(*DebtID))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _DebtsService_GetPayments_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(FilterPayment)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(DebtsServiceServer).GetPayments(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: DebtsService_GetPayments_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DebtsServiceServer).GetPayments(ctx, req.(*FilterPayment))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // DebtsService_ServiceDesc is the grpc.ServiceDesc for DebtsService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -478,22 +240,6 @@ var DebtsService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "debts.DebtsService",
 	HandlerType: (*DebtsServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
-		{
-			MethodName: "AddClient",
-			Handler:    _DebtsService_AddClient_Handler,
-		},
-		{
-			MethodName: "GetClient",
-			Handler:    _DebtsService_GetClient_Handler,
-		},
-		{
-			MethodName: "UpdateClient",
-			Handler:    _DebtsService_UpdateClient_Handler,
-		},
-		{
-			MethodName: "GetAllClients",
-			Handler:    _DebtsService_GetAllClients_Handler,
-		},
 		{
 			MethodName: "CreateDebt",
 			Handler:    _DebtsService_CreateDebt_Handler,
@@ -514,17 +260,377 @@ var DebtsService_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "GetClientDebts",
 			Handler:    _DebtsService_GetClientDebts_Handler,
 		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "debts/debt.proto",
+}
+
+const (
+	ClientService_AddClient_FullMethodName     = "/debts.ClientService/AddClient"
+	ClientService_GetClient_FullMethodName     = "/debts.ClientService/GetClient"
+	ClientService_UpdateClient_FullMethodName  = "/debts.ClientService/UpdateClient"
+	ClientService_GetAllClients_FullMethodName = "/debts.ClientService/GetAllClients"
+)
+
+// ClientServiceClient is the client API for ClientService service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type ClientServiceClient interface {
+	AddClient(ctx context.Context, in *CreateClients, opts ...grpc.CallOption) (*Client, error)
+	GetClient(ctx context.Context, in *ClientID, opts ...grpc.CallOption) (*Client, error)
+	UpdateClient(ctx context.Context, in *ClientUpdate, opts ...grpc.CallOption) (*Client, error)
+	GetAllClients(ctx context.Context, in *FilterClient, opts ...grpc.CallOption) (*ClientList, error)
+}
+
+type clientServiceClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewClientServiceClient(cc grpc.ClientConnInterface) ClientServiceClient {
+	return &clientServiceClient{cc}
+}
+
+func (c *clientServiceClient) AddClient(ctx context.Context, in *CreateClients, opts ...grpc.CallOption) (*Client, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Client)
+	err := c.cc.Invoke(ctx, ClientService_AddClient_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *clientServiceClient) GetClient(ctx context.Context, in *ClientID, opts ...grpc.CallOption) (*Client, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Client)
+	err := c.cc.Invoke(ctx, ClientService_GetClient_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *clientServiceClient) UpdateClient(ctx context.Context, in *ClientUpdate, opts ...grpc.CallOption) (*Client, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Client)
+	err := c.cc.Invoke(ctx, ClientService_UpdateClient_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *clientServiceClient) GetAllClients(ctx context.Context, in *FilterClient, opts ...grpc.CallOption) (*ClientList, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ClientList)
+	err := c.cc.Invoke(ctx, ClientService_GetAllClients_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// ClientServiceServer is the server API for ClientService service.
+// All implementations must embed UnimplementedClientServiceServer
+// for forward compatibility
+type ClientServiceServer interface {
+	AddClient(context.Context, *CreateClients) (*Client, error)
+	GetClient(context.Context, *ClientID) (*Client, error)
+	UpdateClient(context.Context, *ClientUpdate) (*Client, error)
+	GetAllClients(context.Context, *FilterClient) (*ClientList, error)
+	mustEmbedUnimplementedClientServiceServer()
+}
+
+// UnimplementedClientServiceServer must be embedded to have forward compatible implementations.
+type UnimplementedClientServiceServer struct {
+}
+
+func (UnimplementedClientServiceServer) AddClient(context.Context, *CreateClients) (*Client, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AddClient not implemented")
+}
+func (UnimplementedClientServiceServer) GetClient(context.Context, *ClientID) (*Client, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetClient not implemented")
+}
+func (UnimplementedClientServiceServer) UpdateClient(context.Context, *ClientUpdate) (*Client, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateClient not implemented")
+}
+func (UnimplementedClientServiceServer) GetAllClients(context.Context, *FilterClient) (*ClientList, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetAllClients not implemented")
+}
+func (UnimplementedClientServiceServer) mustEmbedUnimplementedClientServiceServer() {}
+
+// UnsafeClientServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to ClientServiceServer will
+// result in compilation errors.
+type UnsafeClientServiceServer interface {
+	mustEmbedUnimplementedClientServiceServer()
+}
+
+func RegisterClientServiceServer(s grpc.ServiceRegistrar, srv ClientServiceServer) {
+	s.RegisterService(&ClientService_ServiceDesc, srv)
+}
+
+func _ClientService_AddClient_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateClients)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ClientServiceServer).AddClient(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ClientService_AddClient_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ClientServiceServer).AddClient(ctx, req.(*CreateClients))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ClientService_GetClient_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ClientID)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ClientServiceServer).GetClient(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ClientService_GetClient_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ClientServiceServer).GetClient(ctx, req.(*ClientID))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ClientService_UpdateClient_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ClientUpdate)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ClientServiceServer).UpdateClient(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ClientService_UpdateClient_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ClientServiceServer).UpdateClient(ctx, req.(*ClientUpdate))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ClientService_GetAllClients_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FilterClient)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ClientServiceServer).GetAllClients(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ClientService_GetAllClients_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ClientServiceServer).GetAllClients(ctx, req.(*FilterClient))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// ClientService_ServiceDesc is the grpc.ServiceDesc for ClientService service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var ClientService_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "debts.ClientService",
+	HandlerType: (*ClientServiceServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "AddClient",
+			Handler:    _ClientService_AddClient_Handler,
+		},
+		{
+			MethodName: "GetClient",
+			Handler:    _ClientService_GetClient_Handler,
+		},
+		{
+			MethodName: "UpdateClient",
+			Handler:    _ClientService_UpdateClient_Handler,
+		},
+		{
+			MethodName: "GetAllClients",
+			Handler:    _ClientService_GetAllClients_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "debts/debt.proto",
+}
+
+const (
+	PaymentService_GetPayment_FullMethodName          = "/debts.PaymentService/GetPayment"
+	PaymentService_GetPaymentsByDebtId_FullMethodName = "/debts.PaymentService/GetPaymentsByDebtId"
+	PaymentService_GetPayments_FullMethodName         = "/debts.PaymentService/GetPayments"
+)
+
+// PaymentServiceClient is the client API for PaymentService service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type PaymentServiceClient interface {
+	GetPayment(ctx context.Context, in *PaymentID, opts ...grpc.CallOption) (*Payment, error)
+	GetPaymentsByDebtId(ctx context.Context, in *DebtID, opts ...grpc.CallOption) (*PaymentList, error)
+	GetPayments(ctx context.Context, in *FilterPayment, opts ...grpc.CallOption) (*PaymentList, error)
+}
+
+type paymentServiceClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewPaymentServiceClient(cc grpc.ClientConnInterface) PaymentServiceClient {
+	return &paymentServiceClient{cc}
+}
+
+func (c *paymentServiceClient) GetPayment(ctx context.Context, in *PaymentID, opts ...grpc.CallOption) (*Payment, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Payment)
+	err := c.cc.Invoke(ctx, PaymentService_GetPayment_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *paymentServiceClient) GetPaymentsByDebtId(ctx context.Context, in *DebtID, opts ...grpc.CallOption) (*PaymentList, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PaymentList)
+	err := c.cc.Invoke(ctx, PaymentService_GetPaymentsByDebtId_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *paymentServiceClient) GetPayments(ctx context.Context, in *FilterPayment, opts ...grpc.CallOption) (*PaymentList, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PaymentList)
+	err := c.cc.Invoke(ctx, PaymentService_GetPayments_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// PaymentServiceServer is the server API for PaymentService service.
+// All implementations must embed UnimplementedPaymentServiceServer
+// for forward compatibility
+type PaymentServiceServer interface {
+	GetPayment(context.Context, *PaymentID) (*Payment, error)
+	GetPaymentsByDebtId(context.Context, *DebtID) (*PaymentList, error)
+	GetPayments(context.Context, *FilterPayment) (*PaymentList, error)
+	mustEmbedUnimplementedPaymentServiceServer()
+}
+
+// UnimplementedPaymentServiceServer must be embedded to have forward compatible implementations.
+type UnimplementedPaymentServiceServer struct {
+}
+
+func (UnimplementedPaymentServiceServer) GetPayment(context.Context, *PaymentID) (*Payment, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetPayment not implemented")
+}
+func (UnimplementedPaymentServiceServer) GetPaymentsByDebtId(context.Context, *DebtID) (*PaymentList, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetPaymentsByDebtId not implemented")
+}
+func (UnimplementedPaymentServiceServer) GetPayments(context.Context, *FilterPayment) (*PaymentList, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetPayments not implemented")
+}
+func (UnimplementedPaymentServiceServer) mustEmbedUnimplementedPaymentServiceServer() {}
+
+// UnsafePaymentServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to PaymentServiceServer will
+// result in compilation errors.
+type UnsafePaymentServiceServer interface {
+	mustEmbedUnimplementedPaymentServiceServer()
+}
+
+func RegisterPaymentServiceServer(s grpc.ServiceRegistrar, srv PaymentServiceServer) {
+	s.RegisterService(&PaymentService_ServiceDesc, srv)
+}
+
+func _PaymentService_GetPayment_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PaymentID)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PaymentServiceServer).GetPayment(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PaymentService_GetPayment_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PaymentServiceServer).GetPayment(ctx, req.(*PaymentID))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PaymentService_GetPaymentsByDebtId_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DebtID)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PaymentServiceServer).GetPaymentsByDebtId(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PaymentService_GetPaymentsByDebtId_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PaymentServiceServer).GetPaymentsByDebtId(ctx, req.(*DebtID))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PaymentService_GetPayments_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FilterPayment)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PaymentServiceServer).GetPayments(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PaymentService_GetPayments_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PaymentServiceServer).GetPayments(ctx, req.(*FilterPayment))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// PaymentService_ServiceDesc is the grpc.ServiceDesc for PaymentService service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var PaymentService_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "debts.PaymentService",
+	HandlerType: (*PaymentServiceServer)(nil),
+	Methods: []grpc.MethodDesc{
 		{
 			MethodName: "GetPayment",
-			Handler:    _DebtsService_GetPayment_Handler,
+			Handler:    _PaymentService_GetPayment_Handler,
 		},
 		{
 			MethodName: "GetPaymentsByDebtId",
-			Handler:    _DebtsService_GetPaymentsByDebtId_Handler,
+			Handler:    _PaymentService_GetPaymentsByDebtId_Handler,
 		},
 		{
 			MethodName: "GetPayments",
-			Handler:    _DebtsService_GetPayments_Handler,
+			Handler:    _PaymentService_GetPayments_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -10,6 +10,9 @@ github.com/joho/godotenv
 github.com/lib/pq
 github.com/lib/pq/oid
 github.com/lib/pq/scram
+# github.com/shopspring/decimal v1.4.0
+## explicit; go 1.10
+github.com/shopspring/decimal
 # golang.org/x/net v0.29.0
 ## explicit; go 1.18
 golang.org/x/net/http/httpguts
@@ -123,5 +126,4 @@ google.golang.org/protobuf/runtime/protoiface
 google.golang.org/protobuf/runtime/protoimpl
 google.golang.org/protobuf/types/known/anypb
 google.golang.org/protobuf/types/known/durationpb
-google.golang.org/protobuf/types/known/emptypb
 google.golang.org/protobuf/types/known/timestamppb

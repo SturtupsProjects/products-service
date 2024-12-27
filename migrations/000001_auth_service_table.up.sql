@@ -2,7 +2,6 @@
 CREATE TYPE payment_method AS ENUM ('uzs', 'usd', 'card');
 CREATE TYPE transaction_type AS ENUM ('income', 'expense');
 
-
 -- Таблица категорий товаров
 CREATE TABLE product_categories
 (
@@ -22,8 +21,8 @@ CREATE TABLE products
     name           VARCHAR(50)                             NOT NULL,
     image_url      VARCHAR   DEFAULT 'no image'            NOT NULL,
     bill_format    VARCHAR(5)                              NOT NULL, -- можно заменить на ENUM, если есть ограниченное количество форматов
-    incoming_price BIGINT                                  NOT NULL,
-    standard_price BIGINT                                  NOT NULL,
+    incoming_price DECIMAL(10,1)                           NOT NULL,
+    standard_price DECIMAL(10,1)                           NOT NULL,
     total_count    INT       DEFAULT 0,
     company_id     UUID                                    NOT NULL,
     created_by     UUID                                    NOT NULL,
@@ -36,7 +35,7 @@ CREATE TABLE sales
     id               UUID           DEFAULT gen_random_uuid() PRIMARY KEY,
     client_id        UUID   NOT NULL,
     sold_by          UUID   NOT NULL,
-    total_sale_price BIGINT NOT NULL, -- общая сумма заказа
+    total_sale_price DECIMAL(10,1)  NOT NULL, -- общая сумма заказа
     payment_method   payment_method DEFAULT 'uzs',
     company_id       UUID   NOT NULL,
     created_at       TIMESTAMP      DEFAULT NOW()
@@ -49,10 +48,10 @@ CREATE TABLE sales_items
     sale_id     UUID REFERENCES sales (id)    NOT NULL,
     product_id  UUID REFERENCES products (id) NOT NULL,
     quantity    INT       DEFAULT 1           NOT NULL,
-    sale_price  BIGINT                        NOT NULL,
+    sale_price  DECIMAL(10,1)                 NOT NULL,
     created_at  TIMESTAMP DEFAULT NOW(),
     company_id  UUID                          NOT NULL,
-    total_price BIGINT                        NOT NULL -- общая цена за конкретный товар в заказе
+    total_price DECIMAL(10,1)                 NOT NULL -- общая цена за конкретный товар в заказе
 );
 
 -- Категории для учета денежных потоков
@@ -68,7 +67,7 @@ CREATE TABLE cash_flow
     id               UUID           DEFAULT gen_random_uuid() PRIMARY KEY,
     user_id          UUID                               NOT NULL,
     transaction_date TIMESTAMP      DEFAULT NOW(),
-    amount           BIGINT                             NOT NULL,
+    amount           DECIMAL(10,1)                     NOT NULL,
     transaction_type transaction_type                   NOT NULL,
     category_id      UUID REFERENCES cash_category (id) NOT NULL,
     description      VARCHAR(255),
@@ -82,8 +81,8 @@ CREATE TABLE debts
     id            UUID      DEFAULT gen_random_uuid() PRIMARY KEY,
     order_id      UUID REFERENCES sales (id) NOT NULL, -- Привязка долга к заказу
     client_id     UUID                       NOT NULL,
-    amount_paid   BIGINT                     NOT NULL,
-    total_debt    BIGINT                     NOT NULL, -- Общая сумма долга
+    amount_paid   DECIMAL(10,1)              NOT NULL,
+    total_debt    DECIMAL(10,1)              NOT NULL, -- Общая сумма долга
     is_fully_paid BOOLEAN   DEFAULT FALSE,
     should_pay_at DATE                       NOT NULL,
     recipient_id  UUID                       NOT NULL, -- Кто принял платёж
@@ -97,7 +96,7 @@ CREATE TABLE debt_payments
     id           UUID      DEFAULT gen_random_uuid() PRIMARY KEY,
     debt_id      UUID REFERENCES debts (id) NOT NULL, -- Привязка к задолженности
     payment_date TIMESTAMP DEFAULT NOW(),
-    amount       BIGINT                     NOT NULL, -- Сумма частичного платежа
+    amount       DECIMAL(10,1)              NOT NULL, -- Сумма частичного платежа
     paid_by      UUID                       NOT NULL, -- Кто внес платёж
     company_id   UUID                       NOT NULL
 );
@@ -108,7 +107,7 @@ CREATE TABLE purchases
     id             UUID           DEFAULT gen_random_uuid() PRIMARY KEY,
     supplier_id    UUID                         NOT NULL, -- Название поставщика или имя компании
     purchased_by   UUID                         NOT NULL, -- Кто произвел закупку
-    total_cost     BIGINT                       NOT NULL, -- Общая сумма закупки
+    total_cost     DECIMAL(10,1)               NOT NULL, -- Общая сумма закупки
     payment_method payment_method DEFAULT 'uzs' NOT NULL, -- Способ оплаты
     description    TEXT           DEFAULT ''    NOT NULL,
     company_id     UUID                         NOT NULL,
@@ -122,7 +121,7 @@ CREATE TABLE purchase_items
     purchase_id    UUID REFERENCES purchases (id) NOT NULL, -- Ссылка на закупку
     product_id     UUID REFERENCES products (id)  NOT NULL, -- Ссылка на товар
     quantity       INT                            NOT NULL, -- Количество закупленного товара
-    purchase_price BIGINT                         NOT NULL, -- Цена закупки за единицу товара
-    total_price    BIGINT                         NOT NULL, -- Общая стоимость конкретного товара в закупке
+    purchase_price DECIMAL(10,1)                 NOT NULL, -- Цена закупки за единицу товара
+    total_price    DECIMAL(10,1)                 NOT NULL, -- Общая стоимость конкретного товара в закупке
     company_id     UUID                           NOT NULL
 );
