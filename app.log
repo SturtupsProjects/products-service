@@ -1,7 +1,20 @@
-{"time":"2024-12-25T22:22:17.321233095+05:00","level":"ERROR","msg":"GetProduct","error":"failed to get product: pq: invalid input syntax for type uuid: \"most-sold-by-day\""}
-{"time":"2024-12-25T22:22:17.321359273+05:00","level":"ERROR","msg":"Failed to retrieve product","error":"failed to get product: pq: invalid input syntax for type uuid: \"most-sold-by-day\""}
-{"time":"2024-12-25T22:24:44.183168083+05:00","level":"ERROR","msg":"GetProduct","error":"failed to get product: pq: invalid input syntax for type uuid: \"most-sold\""}
-{"time":"2024-12-25T22:24:44.183382115+05:00","level":"ERROR","msg":"Failed to retrieve product","error":"failed to get product: pq: invalid input syntax for type uuid: \"most-sold\""}
-{"time":"2024-12-27T21:49:08.586858333+05:00","level":"INFO","msg":"TotalSoldProducts called"}
-{"time":"2024-12-27T21:49:33.444906943+05:00","level":"INFO","msg":"TotalPurchaseProducts called"}
-{"time":"2024-12-27T21:49:56.233793971+05:00","level":"INFO","msg":"TotalPriceOfProducts called"}
+{"time":"2024-12-28T17:29:50.353218424+05:00","level":"ERROR","msg":"Failed to create cash flow entry for purchase","error":"failed to create expense: pq: null value in column \"category_id\" of relation \"cash_flow\" violates not-null constraint"}
+{"time":"2024-12-28T17:29:50.353372742+05:00","level":"ERROR","msg":"Failed to create purchase","error":"error creating cash flow entry: failed to create expense: pq: null value in column \"category_id\" of relation \"cash_flow\" violates not-null constraint"}
+{"time":"2024-12-28T17:30:22.442184475+05:00","level":"ERROR","msg":"Failed to create cash flow entry for purchase","error":"failed to create expense: pq: null value in column \"category_id\" of relation \"cash_flow\" violates not-null constraint"}
+{"time":"2024-12-28T17:30:22.442345909+05:00","level":"ERROR","msg":"Failed to create purchase","error":"error creating cash flow entry: failed to create expense: pq: null value in column \"category_id\" of relation \"cash_flow\" violates not-null constraint"}
+{"time":"2024-12-28T17:31:13.760795841+05:00","level":"ERROR","msg":"Failed to create cash flow entry for purchase","error":"failed to create expense: pq: null value in column \"category_id\" of relation \"cash_flow\" violates not-null constraint"}
+{"time":"2024-12-28T17:31:13.760923516+05:00","level":"ERROR","msg":"Failed to create purchase","error":"error creating cash flow entry: failed to create expense: pq: null value in column \"category_id\" of relation \"cash_flow\" violates not-null constraint"}
+{"time":"2024-12-28T17:33:34.475048257+05:00","level":"ERROR","msg":"Failed to create cash flow entry for purchase","error":"failed to create expense: pq: null value in column \"category_id\" of relation \"cash_flow\" violates not-null constraint"}
+{"time":"2024-12-28T17:33:34.475271389+05:00","level":"ERROR","msg":"Failed to create purchase","error":"error creating cash flow entry: failed to create expense: pq: null value in column \"category_id\" of relation \"cash_flow\" violates not-null constraint"}
+{"time":"2024-12-28T17:33:57.772384095+05:00","level":"ERROR","msg":"Failed to create cash flow entry for purchase","error":"failed to create expense: pq: null value in column \"category_id\" of relation \"cash_flow\" violates not-null constraint"}
+{"time":"2024-12-28T17:33:57.772519823+05:00","level":"ERROR","msg":"Failed to create purchase","error":"error creating cash flow entry: failed to create expense: pq: null value in column \"category_id\" of relation \"cash_flow\" violates not-null constraint"}
+{"time":"2024-12-28T17:42:01.753087505+05:00","level":"ERROR","msg":"Error creating sale","error":"failed to create sale: pq: invalid input syntax for type uuid: \"string\""}
+{"time":"2024-12-28T17:42:01.753203002+05:00","level":"ERROR","msg":"Failed to create sale","error":"error creating sale: failed to create sale: pq: invalid input syntax for type uuid: \"string\""}
+{"time":"2024-12-28T17:42:23.730405553+05:00","level":"INFO","msg":"Created cash flow record","cashFlowID":"82748685-c59b-46d3-8e33-4bc2ba62b836"}
+{"time":"2024-12-28T18:21:53.493452644+05:00","level":"INFO","msg":"GetCashFlow called"}
+{"time":"2024-12-28T18:22:41.48242318+05:00","level":"INFO","msg":"CreateExpense called"}
+{"time":"2024-12-28T18:22:41.690854214+05:00","level":"ERROR","msg":"Error in CreateExpense","error":"failed to create expense: pq: invalid input syntax for type uuid: \"string\""}
+{"time":"2024-12-28T18:24:33.185884306+05:00","level":"INFO","msg":"CreateExpense called"}
+{"time":"2024-12-28T18:24:41.76424353+05:00","level":"INFO","msg":"GetCashFlow called"}
+{"time":"2024-12-28T18:26:17.773606228+05:00","level":"INFO","msg":"CreateIncome called"}
+{"time":"2024-12-28T18:26:24.477568071+05:00","level":"INFO","msg":"GetCashFlow called"}

@@ -40,6 +40,9 @@ const (
 	Products_GetSales_FullMethodName                 = "/products.Products/GetSales"
 	Products_GetListSales_FullMethodName             = "/products.Products/GetListSales"
 	Products_DeleteSales_FullMethodName              = "/products.Products/DeleteSales"
+	Products_GetCashFlow_FullMethodName              = "/products.Products/GetCashFlow"
+	Products_CreateIncome_FullMethodName             = "/products.Products/CreateIncome"
+	Products_CreateExpense_FullMethodName            = "/products.Products/CreateExpense"
 	Products_TotalPriceOfProducts_FullMethodName     = "/products.Products/TotalPriceOfProducts"
 	Products_TotalSoldProducts_FullMethodName        = "/products.Products/TotalSoldProducts"
 	Products_TotalPurchaseProducts_FullMethodName    = "/products.Products/TotalPurchaseProducts"
@@ -79,6 +82,10 @@ type ProductsClient interface {
 	GetSales(ctx context.Context, in *SaleID, opts ...grpc.CallOption) (*SaleResponse, error)
 	GetListSales(ctx context.Context, in *SaleFilter, opts ...grpc.CallOption) (*SaleList, error)
 	DeleteSales(ctx context.Context, in *SaleID, opts ...grpc.CallOption) (*Message, error)
+	// -------------------- Cash Flow ----------------------------
+	GetCashFlow(ctx context.Context, in *StatisticReq, opts ...grpc.CallOption) (*ListCashFlow, error)
+	CreateIncome(ctx context.Context, in *CashFlowRequest, opts ...grpc.CallOption) (*CashFlow, error)
+	CreateExpense(ctx context.Context, in *CashFlowRequest, opts ...grpc.CallOption) (*CashFlow, error)
 	// ------------------- statistics --------------------------
 	TotalPriceOfProducts(ctx context.Context, in *StatisticReq, opts ...grpc.CallOption) (*PriceProducts, error)
 	TotalSoldProducts(ctx context.Context, in *StatisticReq, opts ...grpc.CallOption) (*PriceProducts, error)
@@ -306,6 +313,36 @@ func (c *productsClient) DeleteSales(ctx context.Context, in *SaleID, opts ...gr
 	return out, nil
 }
 
+func (c *productsClient) GetCashFlow(ctx context.Context, in *StatisticReq, opts ...grpc.CallOption) (*ListCashFlow, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListCashFlow)
+	err := c.cc.Invoke(ctx, Products_GetCashFlow_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *productsClient) CreateIncome(ctx context.Context, in *CashFlowRequest, opts ...grpc.CallOption) (*CashFlow, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CashFlow)
+	err := c.cc.Invoke(ctx, Products_CreateIncome_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *productsClient) CreateExpense(ctx context.Context, in *CashFlowRequest, opts ...grpc.CallOption) (*CashFlow, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CashFlow)
+	err := c.cc.Invoke(ctx, Products_CreateExpense_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *productsClient) TotalPriceOfProducts(ctx context.Context, in *StatisticReq, opts ...grpc.CallOption) (*PriceProducts, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(PriceProducts)
@@ -397,6 +434,10 @@ type ProductsServer interface {
 	GetSales(context.Context, *SaleID) (*SaleResponse, error)
 	GetListSales(context.Context, *SaleFilter) (*SaleList, error)
 	DeleteSales(context.Context, *SaleID) (*Message, error)
+	// -------------------- Cash Flow ----------------------------
+	GetCashFlow(context.Context, *StatisticReq) (*ListCashFlow, error)
+	CreateIncome(context.Context, *CashFlowRequest) (*CashFlow, error)
+	CreateExpense(context.Context, *CashFlowRequest) (*CashFlow, error)
 	// ------------------- statistics --------------------------
 	TotalPriceOfProducts(context.Context, *StatisticReq) (*PriceProducts, error)
 	TotalSoldProducts(context.Context, *StatisticReq) (*PriceProducts, error)
@@ -473,6 +514,15 @@ func (UnimplementedProductsServer) GetListSales(context.Context, *SaleFilter) (*
 }
 func (UnimplementedProductsServer) DeleteSales(context.Context, *SaleID) (*Message, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteSales not implemented")
+}
+func (UnimplementedProductsServer) GetCashFlow(context.Context, *StatisticReq) (*ListCashFlow, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetCashFlow not implemented")
+}
+func (UnimplementedProductsServer) CreateIncome(context.Context, *CashFlowRequest) (*CashFlow, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateIncome not implemented")
+}
+func (UnimplementedProductsServer) CreateExpense(context.Context, *CashFlowRequest) (*CashFlow, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateExpense not implemented")
 }
 func (UnimplementedProductsServer) TotalPriceOfProducts(context.Context, *StatisticReq) (*PriceProducts, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method TotalPriceOfProducts not implemented")
@@ -883,6 +933,60 @@ func _Products_DeleteSales_Handler(srv interface{}, ctx context.Context, dec fun
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Products_GetCashFlow_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(StatisticReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProductsServer).GetCashFlow(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Products_GetCashFlow_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProductsServer).GetCashFlow(ctx, req.(*StatisticReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Products_CreateIncome_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CashFlowRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProductsServer).CreateIncome(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Products_CreateIncome_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProductsServer).CreateIncome(ctx, req.(*CashFlowRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Products_CreateExpense_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CashFlowRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProductsServer).CreateExpense(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Products_CreateExpense_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProductsServer).CreateExpense(ctx, req.(*CashFlowRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _Products_TotalPriceOfProducts_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(StatisticReq)
 	if err := dec(in); err != nil {
@@ -1081,6 +1185,18 @@ var Products_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteSales",
 			Handler:    _Products_DeleteSales_Handler,
+		},
+		{
+			MethodName: "GetCashFlow",
+			Handler:    _Products_GetCashFlow_Handler,
+		},
+		{
+			MethodName: "CreateIncome",
+			Handler:    _Products_CreateIncome_Handler,
+		},
+		{
+			MethodName: "CreateExpense",
+			Handler:    _Products_CreateExpense_Handler,
 		},
 		{
 			MethodName: "TotalPriceOfProducts",

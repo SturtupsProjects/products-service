@@ -10,4 +10,5 @@ DROP TABLE IF EXISTS products;
 DROP TABLE IF EXISTS product_categories;
 
 DROP TYPE IF EXISTS transaction_type;
+DROP TYPE IF EXISTS transaction_type;
 DROP TYPE IF EXISTS payment_method;

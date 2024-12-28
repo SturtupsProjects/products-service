@@ -8,19 +8,22 @@ import (
 	"github.com/shopspring/decimal"
 	"log"
 	"log/slog"
+	"math"
 	"sync"
 )
 
 type SalesUseCase struct {
 	repo    SalesRepo
 	product ProductQuantity
+	cash    CashFlowRepo
 	log     *slog.Logger
 }
 
-func NewSalesUseCase(repo SalesRepo, pr ProductQuantity, log *slog.Logger) *SalesUseCase {
+func NewSalesUseCase(repo SalesRepo, pr ProductQuantity, log *slog.Logger, cash CashFlowRepo) *SalesUseCase {
 	return &SalesUseCase{
 		repo:    repo,
 		product: pr,
+		cash:    cash,
 		log:     log,
 	}
 }
@@ -31,12 +34,20 @@ func (s *SalesUseCase) CalculateTotalSales(in *entity.SaleRequest) (*entity.Sale
 		return nil, errors.New("input sale request is nil")
 	}
 
+	if in.SoldProducts == nil || len(in.SoldProducts) == 0 {
+		return nil, errors.New("sold products list is empty")
+	}
+
 	var totalPrice decimal.Decimal
 	var soldProducts []entity.SalesItem
 
 	for _, item := range in.SoldProducts {
-		if item.Quantity <= 0 || item.SalePrice < 0 {
-			return nil, fmt.Errorf("invalid item data: quantity or sale price is non-positive for product %v", item.ProductID)
+		if item.Quantity <= 0 {
+			s.log.Warn("Skipping item with non-positive quantity", "ProductID", item.ProductID)
+			continue
+		}
+		if item.SalePrice < 0 {
+			return nil, fmt.Errorf("invalid sale price for product %v: cannot be negative", item.ProductID)
 		}
 
 		quantity := decimal.NewFromFloat(float64(item.Quantity))
@@ -45,29 +56,31 @@ func (s *SalesUseCase) CalculateTotalSales(in *entity.SaleRequest) (*entity.Sale
 
 		totalPrice = totalPrice.Add(totalItemPrice)
 
-		total, _ := totalPrice.Float64()
+		// Преобразуем и округляем itemTotalPrice до двух знаков после запятой
+		itemTotalPriceRounded := math.Round(totalItemPrice.InexactFloat64()*100) / 100
 
 		soldProducts = append(soldProducts, entity.SalesItem{
 			ProductID:  item.ProductID,
 			Quantity:   item.Quantity,
 			SalePrice:  item.SalePrice,
-			TotalPrice: total, // Сохраняем в виде int64
+			TotalPrice: itemTotalPriceRounded, // Округленная цена
 		})
 	}
 
-	total, _ := totalPrice.Float64()
+	// Преобразуем и округляем totalPrice до двух знаков после запятой
+	totalSalePrice := math.Round(totalPrice.InexactFloat64()*100) / 100
 
 	return &entity.SalesTotal{
 		ClientID:       in.ClientID,
 		SoldBy:         in.SoldBy,
-		TotalSalePrice: total,
+		TotalSalePrice: totalSalePrice, // Округленная итоговая сумма
 		PaymentMethod:  in.PaymentMethod,
 		SoldProducts:   soldProducts,
 		CompanyID:      in.CompanyID,
 	}, nil
 }
 
-// CreateSales creates a new sale record.
+// CreateSales creates a new sale record and a cash flow record for the sale.
 func (s *SalesUseCase) CreateSales(in *entity.SaleRequest) (*pb.SaleResponse, error) {
 	total, err := s.CalculateTotalSales(in)
 	if err != nil {
@@ -75,12 +88,33 @@ func (s *SalesUseCase) CreateSales(in *entity.SaleRequest) (*pb.SaleResponse, er
 		return nil, fmt.Errorf("error calculating total sale cost: %w", err)
 	}
 
+	// Create the sale record
 	res, err := s.repo.CreateSale(total)
 	if err != nil {
 		s.log.Error("Error creating sale", "error", err)
 		return nil, fmt.Errorf("error creating sale: %w", err)
 	}
 
+	// Create a cash flow record for this sale
+	cashFlowRequest := &pb.CashFlowRequest{
+		UserId:        in.SoldBy,
+		Amount:        total.TotalSalePrice,
+		Description:   fmt.Sprintf("Sale for client %s", in.ClientID),
+		PaymentMethod: in.PaymentMethod,
+		CompanyId:     in.CompanyID,
+	}
+
+	// Add to cash flow
+	cashFlow, err := s.cash.CreateIncome(cashFlowRequest)
+	if err != nil {
+		s.log.Error("Error creating cash flow", "error", err)
+		return nil, fmt.Errorf("error creating cash flow: %w", err)
+	}
+
+	// Log the successful creation of cash flow
+	s.log.Info("Created cash flow record", "cashFlowID", cashFlow.Id)
+
+	// Update stock quantities concurrently
 	var wg sync.WaitGroup
 	semaphore := make(chan struct{}, 10)
 
@@ -149,17 +183,20 @@ func (s *SalesUseCase) GetListSales(req *pb.SaleFilter) (*pb.SaleList, error) {
 }
 
 // DeleteSales deletes a sale record and restores product stock.
+// DeleteSales deletes a sale record and restores product stock, as well as removes the corresponding cash flow entry.
 func (s *SalesUseCase) DeleteSales(req *pb.SaleID) (*pb.Message, error) {
 	if req == nil {
 		return nil, errors.New("sale ID request is nil")
 	}
 
+	// Fetch the sale to be deleted
 	sale, err := s.repo.GetSale(req)
 	if err != nil {
 		s.log.Error("Error fetching sale for deletion", "saleID", req.Id, "error", err)
 		return nil, fmt.Errorf("error fetching sale for deletion: %w", err)
 	}
 
+	// Restore the product stock
 	var wg sync.WaitGroup
 	semaphore := make(chan struct{}, 10)
 
@@ -170,6 +207,7 @@ func (s *SalesUseCase) DeleteSales(req *pb.SaleID) (*pb.Message, error) {
 			semaphore <- struct{}{}
 			defer func() { <-semaphore }()
 
+			// Restore product stock
 			productQuantityReq := &entity.CountProductReq{
 				ID:    item.ProductId,
 				Count: int(item.Quantity),
@@ -183,11 +221,32 @@ func (s *SalesUseCase) DeleteSales(req *pb.SaleID) (*pb.Message, error) {
 
 	wg.Wait()
 
+	// Delete the sale record from the database
 	res, err := s.repo.DeleteSale(req)
 	if err != nil {
 		s.log.Error("Error deleting sale", "saleID", req.Id, "error", err)
 		return nil, fmt.Errorf("error deleting sale: %w", err)
 	}
+
+	// Now, handle the cash flow for the sale
+	// We assume that the cash flow related to this sale needs to be reversed or deleted.
+	cashFlowRequest := &pb.CashFlowRequest{
+		UserId:        sale.SoldBy,
+		Amount:        sale.TotalSalePrice,
+		Description:   fmt.Sprintf("Refund for sale ID %s", req.Id),
+		PaymentMethod: sale.PaymentMethod,
+		CompanyId:     req.CompanyId,
+	}
+
+	// Delete the related cash flow entry
+	_, err = s.cash.CreateExpense(cashFlowRequest) // Assuming you have a Delete method in CashFlowRepo
+	if err != nil {
+		s.log.Error("Error deleting cash flow for the sale", "saleID", req.Id, "error", err)
+		return nil, fmt.Errorf("error deleting cash flow: %w", err)
+	}
+
+	// Log the successful deletion of sale and cash flow
+	s.log.Info("Successfully deleted sale and corresponding cash flow", "saleID", req.Id)
 
 	return res, nil
 }

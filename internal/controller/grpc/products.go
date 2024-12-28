@@ -12,6 +12,7 @@ import (
 
 type ProductsGrpc struct {
 	statistics usecase.StatisticsRepo
+	cashFlow   usecase.CashFlowRepo
 	product    *usecase.ProductsUseCase
 	purchase   *usecase.PurchaseUseCase
 	sales      *usecase.SalesUseCase
@@ -20,12 +21,13 @@ type ProductsGrpc struct {
 	pb.UnimplementedProductsServer
 }
 
-func NewProductGrpc(ctrl *controller.Controller, log *slog.Logger, statistics usecase.StatisticsRepo) *ProductsGrpc {
+func NewProductGrpc(ctrl *controller.Controller, log *slog.Logger, statistics usecase.StatisticsRepo, cash usecase.CashFlowRepo) *ProductsGrpc {
 	return &ProductsGrpc{
 		product:    ctrl.Product,
 		statistics: statistics,
 		purchase:   ctrl.Purchase,
 		sales:      ctrl.Sales,
+		cashFlow:   cash,
 		log:        log,
 	}
 }

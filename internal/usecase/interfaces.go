@@ -51,6 +51,12 @@ type StatisticsRepo interface {
 	TotalPurchaseProducts(id *pb.StatisticReq) (*pb.PriceProducts, error)
 }
 
+type CashFlowRepo interface {
+	CreateIncome(in *pb.CashFlowRequest) (*pb.CashFlow, error)
+	CreateExpense(in *pb.CashFlowRequest) (*pb.CashFlow, error)
+	Get(in *pb.StatisticReq) (*pb.ListCashFlow, error)
+}
+
 type ReturnedProductsRepo interface {
 	CreateReturnedProducts() error
 	UpdateReturnedProducts() error

@@ -19,11 +19,12 @@ func NewController(db *sqlx.DB, log *slog.Logger) *Controller {
 	purchaseRepo := repo.NewPurchasesRepo(db)
 	salesRepo := repo.NewSalesRepo(db)
 	productQuantityRepo := repo.NewProductQuantity(db)
+	cashFlowRepo := repo.NewCashFlow(db)
 
 	ctr := &Controller{
 		Product:  usecase.NewProductsUseCase(productRepo, log),
-		Purchase: usecase.NewPurchaseUseCase(purchaseRepo, productQuantityRepo, log),
-		Sales:    usecase.NewSalesUseCase(salesRepo, productQuantityRepo, log),
+		Purchase: usecase.NewPurchaseUseCase(purchaseRepo, productQuantityRepo, log, cashFlowRepo),
+		Sales:    usecase.NewSalesUseCase(salesRepo, productQuantityRepo, log, cashFlowRepo),
 	}
 
 	return ctr

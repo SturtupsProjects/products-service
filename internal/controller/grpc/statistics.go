@@ -40,3 +40,41 @@ func (p *ProductsGrpc) TotalPurchaseProducts(ctx context.Context, in *pb.Statist
 
 	return res, nil
 }
+
+// --------------------------------------------------- Cash Flow -------------------------------------------------------
+
+func (p *ProductsGrpc) GetCashFlow(ctx context.Context, in *pb.StatisticReq) (*pb.ListCashFlow, error) {
+	p.log.Info("GetCashFlow called")
+
+	res, err := p.cashFlow.Get(in)
+	if err != nil {
+		p.log.Error("Error in GetCashFlow", "error", err)
+		return nil, err
+	}
+
+	return res, nil
+}
+
+func (p *ProductsGrpc) CreateIncome(ctx context.Context, in *pb.CashFlowRequest) (*pb.CashFlow, error) {
+	p.log.Info("CreateIncome called")
+
+	res, err := p.cashFlow.CreateIncome(in)
+	if err != nil {
+		p.log.Error("Error in CreateIncome", "error", err)
+		return nil, err
+	}
+
+	return res, nil
+}
+
+func (p *ProductsGrpc) CreateExpense(ctx context.Context, in *pb.CashFlowRequest) (*pb.CashFlow, error) {
+	p.log.Info("CreateExpense called")
+
+	res, err := p.cashFlow.CreateExpense(in)
+	if err != nil {
+		p.log.Error("Error in CreateExpense", "error", err)
+		return nil, err
+	}
+
+	return res, nil
+}

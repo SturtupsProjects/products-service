@@ -23,9 +23,10 @@ func Run(cfg config.Config) {
 	}
 
 	statistics := repo.NewStatisticsRepo(db)
+	cashFlowRepo := repo.NewCashFlow(db)
 
 	controller1 := controller.NewController(db, logger1)
-	pr := grpc1.NewProductGrpc(controller1, logger1, statistics)
+	pr := grpc1.NewProductGrpc(controller1, logger1, statistics, cashFlowRepo)
 
 	listen, err := net.Listen("tcp", cfg.RUN_PORT)
 	if err != nil {
