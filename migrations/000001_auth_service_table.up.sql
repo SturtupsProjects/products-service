@@ -22,8 +22,8 @@ CREATE TABLE products
     name           VARCHAR(50)                             NOT NULL,
     image_url      VARCHAR   DEFAULT 'no image'            NOT NULL,
     bill_format    VARCHAR(5)                              NOT NULL, -- можно заменить на ENUM, если есть ограниченное количество форматов
-    incoming_price DECIMAL(10,2)                           NOT NULL,
-    standard_price DECIMAL(10,2)                           NOT NULL,
+    incoming_price DECIMAL(10, 2)                          NOT NULL,
+    standard_price DECIMAL(10, 2)                          NOT NULL,
     total_count    INT       DEFAULT 0,
     company_id     UUID                                    NOT NULL,
     created_by     UUID                                    NOT NULL,
@@ -34,11 +34,11 @@ CREATE TABLE products
 CREATE TABLE sales
 (
     id               UUID           DEFAULT gen_random_uuid() PRIMARY KEY,
-    client_id        UUID   NOT NULL,
-    sold_by          UUID   NOT NULL,
-    total_sale_price DECIMAL(10,2)  NOT NULL, -- общая сумма заказа
+    client_id        UUID           NOT NULL,
+    sold_by          UUID           NOT NULL,
+    total_sale_price DECIMAL(10, 2) NOT NULL, -- общая сумма заказа
     payment_method   payment_method DEFAULT 'uzs',
-    company_id       UUID   NOT NULL,
+    company_id       UUID           NOT NULL,
     created_at       TIMESTAMP      DEFAULT NOW()
 );
 
@@ -49,22 +49,22 @@ CREATE TABLE sales_items
     sale_id     UUID REFERENCES sales (id)    NOT NULL,
     product_id  UUID REFERENCES products (id) NOT NULL,
     quantity    INT       DEFAULT 1           NOT NULL,
-    sale_price  DECIMAL(10,2)                 NOT NULL,
+    sale_price  DECIMAL(10, 2)                NOT NULL,
     created_at  TIMESTAMP DEFAULT NOW(),
     company_id  UUID                          NOT NULL,
-    total_price DECIMAL(10,2)                 NOT NULL -- общая цена за конкретный товар в заказе
+    total_price DECIMAL(10, 2)                NOT NULL -- общая цена за конкретный товар в заказе
 );
 
 -- Таблица денежных потоков
 CREATE TABLE cash_flow
 (
     id               UUID           DEFAULT gen_random_uuid() PRIMARY KEY,
-    user_id          UUID                               NOT NULL,
+    user_id          UUID             NOT NULL,
     transaction_date TIMESTAMP      DEFAULT NOW(),
-    amount           DECIMAL(10,2)                     NOT NULL,
-    transaction_type transaction_type                   NOT NULL,
+    amount           DECIMAL(10, 2)   NOT NULL,
+    transaction_type transaction_type NOT NULL,
     description      VARCHAR(255),
-    company_id       UUID                               NOT NULL,
+    company_id       UUID             NOT NULL,
     payment_method   payment_method DEFAULT 'uzs'
 );
 
@@ -74,7 +74,7 @@ CREATE TABLE purchases
     id             UUID           DEFAULT gen_random_uuid() PRIMARY KEY,
     supplier_id    UUID                         NOT NULL, -- Название поставщика или имя компании
     purchased_by   UUID                         NOT NULL, -- Кто произвел закупку
-    total_cost     DECIMAL(10,2)               NOT NULL, -- Общая сумма закупки
+    total_cost     DECIMAL(10, 2)               NOT NULL, -- Общая сумма закупки
     payment_method payment_method DEFAULT 'uzs' NOT NULL, -- Способ оплаты
     description    TEXT           DEFAULT ''    NOT NULL,
     company_id     UUID                         NOT NULL,
@@ -88,8 +88,8 @@ CREATE TABLE purchase_items
     purchase_id    UUID REFERENCES purchases (id) NOT NULL, -- Ссылка на закупку
     product_id     UUID REFERENCES products (id)  NOT NULL, -- Ссылка на товар
     quantity       INT                            NOT NULL, -- Количество закупленного товара
-    purchase_price DECIMAL(10,2)                 NOT NULL, -- Цена закупки за единицу товара
-    total_price    DECIMAL(10,2)                 NOT NULL, -- Общая стоимость конкретного товара в закупке
+    purchase_price DECIMAL(10, 2)                 NOT NULL, -- Цена закупки за единицу товара
+    total_price    DECIMAL(10, 2)                 NOT NULL, -- Общая стоимость конкретного товара в закупке
     company_id     UUID                           NOT NULL
 );
 
