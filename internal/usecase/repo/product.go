@@ -176,6 +176,57 @@ func (p *productRepo) CreateProduct(in *pb.CreateProductRequest) (*pb.Product, e
 	return &product, nil
 }
 
+func (p *productRepo) CreateBulkProducts(in *pb.CreateBulkProductsRequest) (*pb.BulkCreateResponse, error) {
+	// Start a transaction
+	tx, err := p.db.Beginx()
+	if err != nil {
+		return nil, fmt.Errorf("failed to start transaction: %w", err)
+	}
+
+	// Prepare the query for inserting products
+	query := `
+		INSERT INTO products (category_id, name, image_url, bill_format, incoming_price, standard_price, company_id, created_by, total_count)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, COALESCE($9, 0))
+		RETURNING id, category_id, name, image_url, bill_format, incoming_price, standard_price, total_count, created_by, created_at
+	`
+
+	var createdProducts []*pb.Product
+
+	// Iterate over the list of products and insert each one
+	for _, productReq := range in.Products {
+		var product pb.Product
+		err := tx.QueryRowx(query, in.CategoryId, productReq.Name, productReq.ImageUrl, productReq.BillFormat, productReq.IncomingPrice,
+			productReq.StandardPrice, productReq.CompanyId, productReq.CreatedBy, productReq.TotalCount).
+			Scan(&product.Id, &product.CategoryId, &product.Name, &product.ImageUrl, &product.BillFormat, &product.IncomingPrice,
+				&product.StandardPrice, &product.TotalCount, &product.CreatedBy, &product.CreatedAt)
+
+		if err != nil {
+			// Roll back the transaction on error
+			if rollbackErr := tx.Rollback(); rollbackErr != nil {
+				return nil, fmt.Errorf("failed to rollback transaction after error: %w", rollbackErr)
+			}
+			return nil, fmt.Errorf("failed to create product: %w", err)
+		}
+
+		// Add the successfully created product to the response list
+		createdProducts = append(createdProducts, &product)
+	}
+
+	// Commit the transaction
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	// Build the bulk creation response
+	response := &pb.BulkCreateResponse{
+		Success:  true,
+		Products: createdProducts,
+		Message:  "Bulk products created successfully",
+	}
+
+	return response, nil
+}
+
 func (p *productRepo) UpdateProduct(in *pb.UpdateProductRequest) (*pb.Product, error) {
 	product := &pb.Product{}
 	query := `UPDATE products SET `

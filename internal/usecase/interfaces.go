@@ -13,6 +13,7 @@ type ProductsRepo interface {
 	GetListProductCategory(in *pb.CategoryName) (*pb.CategoryList, error)
 
 	CreateProduct(in *pb.CreateProductRequest) (*pb.Product, error)
+	CreateBulkProducts(in *pb.CreateBulkProductsRequest) (*pb.BulkCreateResponse, error)
 	UpdateProduct(in *pb.UpdateProductRequest) (*pb.Product, error)
 	DeleteProduct(in *pb.GetProductRequest) (*pb.Message, error)
 	GetProduct(in *pb.GetProductRequest) (*pb.Product, error)

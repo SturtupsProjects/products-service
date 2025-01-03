@@ -83,6 +83,16 @@ func (p *ProductsUseCase) CreateProduct(in *pb.CreateProductRequest) (*pb.Produc
 
 	return res, nil
 }
+func (p *ProductsUseCase) CreateBulkProducts(in *pb.CreateBulkProductsRequest) (*pb.BulkCreateResponse, error) {
+	res, err := p.repo.CreateBulkProducts(in)
+
+	if err != nil {
+		p.log.Error("CreateBulkProducts", "error", err.Error())
+		return nil, err
+	}
+
+	return res, nil
+}
 
 func (p *ProductsUseCase) UpdateProduct(in *pb.UpdateProductRequest) (*pb.Product, error) {
 	res, err := p.repo.UpdateProduct(in)

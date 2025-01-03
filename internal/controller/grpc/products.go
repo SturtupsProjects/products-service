@@ -107,6 +107,13 @@ func (p *ProductsGrpc) CreateProduct(ctx context.Context, in *pb.CreateProductRe
 
 	return product, nil
 }
+func (p *ProductsGrpc) CreateBulkProducts(ctx context.Context, in *pb.CreateBulkProductsRequest) (*pb.BulkCreateResponse, error) {
+	products, err := p.product.CreateBulkProducts(in)
+	if err != nil {
+		return nil, err
+	}
+	return products, nil
+}
 
 func (p *ProductsGrpc) UpdateProduct(ctx context.Context, in *pb.UpdateProductRequest) (*pb.Product, error) {
 
