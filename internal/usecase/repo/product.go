@@ -195,7 +195,7 @@ func (p *productRepo) CreateBulkProducts(in *pb.CreateBulkProductsRequest) (*pb.
 	// Iterate over the list of products and insert each one
 	for _, productReq := range in.Products {
 		var product pb.Product
-		err := tx.QueryRowx(query, in.CategoryId, productReq.Name, productReq.ImageUrl, productReq.BillFormat, productReq.IncomingPrice,
+		err := tx.QueryRowx(query, in.CategoryId, productReq.Name, "https://smartadmin.uz/static/media/gif2.aff05f0cb04b5d100ae4.png", productReq.BillFormat, productReq.IncomingPrice,
 			productReq.StandardPrice, in.CompanyId, in.CreatedBy, productReq.TotalCount).
 			Scan(&product.Id, &product.CategoryId, &product.Name, &product.ImageUrl, &product.BillFormat, &product.IncomingPrice,
 				&product.StandardPrice, &product.TotalCount, &product.CreatedBy, &product.CreatedAt)
