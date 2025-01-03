@@ -19,7 +19,7 @@ CREATE TABLE products
 (
     id             UUID      DEFAULT gen_random_uuid() PRIMARY KEY,
     category_id    UUID REFERENCES product_categories (id) NOT NULL,
-    name           VARCHAR(50)                             NOT NULL,
+    name           VARCHAR(100)                             NOT NULL,
     image_url      VARCHAR   DEFAULT 'no image'            NOT NULL,
     bill_format    VARCHAR(5)                              NOT NULL, -- можно заменить на ENUM, если есть ограниченное количество форматов
     incoming_price DECIMAL(10, 2)                          NOT NULL,
