@@ -185,10 +185,10 @@ func (p *productRepo) CreateBulkProducts(in *pb.CreateBulkProductsRequest) (*pb.
 
 	// Prepare the query for inserting products
 	query := `
-		INSERT INTO products (category_id, name, image_url, bill_format, incoming_price, standard_price, company_id, created_by, total_count)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, COALESCE($9, 0))
-		RETURNING id, category_id, name, image_url, bill_format, incoming_price, standard_price, total_count, created_by, created_at
-	`
+        INSERT INTO products (category_id, name, image_url, bill_format, incoming_price, standard_price, company_id, created_by, total_count)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, COALESCE($9, 0))
+        RETURNING id, category_id, name, image_url, bill_format, incoming_price, standard_price, total_count, created_by, created_at
+    `
 
 	var createdProducts []*pb.Product
 
@@ -196,7 +196,7 @@ func (p *productRepo) CreateBulkProducts(in *pb.CreateBulkProductsRequest) (*pb.
 	for _, productReq := range in.Products {
 		var product pb.Product
 		err := tx.QueryRowx(query, in.CategoryId, productReq.Name, productReq.ImageUrl, productReq.BillFormat, productReq.IncomingPrice,
-			productReq.StandardPrice, productReq.CompanyId, productReq.CreatedBy, productReq.TotalCount).
+			productReq.StandardPrice, in.CompanyId, in.CreatedBy, productReq.TotalCount).
 			Scan(&product.Id, &product.CategoryId, &product.Name, &product.ImageUrl, &product.BillFormat, &product.IncomingPrice,
 				&product.StandardPrice, &product.TotalCount, &product.CreatedBy, &product.CreatedAt)
 
