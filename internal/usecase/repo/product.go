@@ -341,44 +341,47 @@ func (p *productRepo) GetProductList(in *pb.ProductFilter) (*pb.ProductList, err
 	baseQuery := `
 		SELECT id, category_id, name, image_url, bill_format, incoming_price, standard_price, total_count, created_by, created_at
 		FROM products
-		WHERE company_id = $1` // Жёсткое условие для company_id
-	var args []interface{}
-	args = append(args, in.CompanyId) // Первым параметром всегда будет company_id
+		WHERE company_id = $1`
+	args := []interface{}{in.CompanyId}
+	conditions := []string{}
 
-	var conditions []string
-
+	// Add conditions based on filter
 	if in.CategoryId != "" {
 		conditions = append(conditions, fmt.Sprintf("category_id = $%d", len(args)+1))
 		args = append(args, in.CategoryId)
 	}
-
 	if in.Name != "" {
-		conditions = append(conditions, fmt.Sprintf("name LIKE $%d", len(args)+1))
+		conditions = append(conditions, fmt.Sprintf("name ILIKE $%d", len(args)+1)) // Case-insensitive search
 		args = append(args, "%"+in.Name+"%")
 	}
-
 	if in.CreatedBy != "" {
 		conditions = append(conditions, fmt.Sprintf("created_by = $%d", len(args)+1))
 		args = append(args, in.CreatedBy)
 	}
-
 	if in.CreatedAt != "" {
 		conditions = append(conditions, fmt.Sprintf("created_at = $%d", len(args)+1))
 		args = append(args, in.CreatedAt)
 	}
 
+	// Add conditions to query
 	if len(conditions) > 0 {
 		baseQuery += " AND " + strings.Join(conditions, " AND ")
 	}
 
-	// Выполнение запроса
+	// Add pagination
+	if in.Limit > 0 && in.Page > 0 {
+		baseQuery += fmt.Sprintf(" ORDER BY created_at DESC LIMIT $%d OFFSET $%d", len(args)+1, len(args)+2)
+		args = append(args, in.Limit, (in.Page-1)*in.Limit)
+	}
+
+	// Execute the query
 	rows, err := p.db.Queryx(baseQuery, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute query: %w", err)
 	}
 	defer rows.Close()
 
-	// Чтение строк из результата
+	// Parse the rows
 	for rows.Next() {
 		var product pb.Product
 		if err := rows.Scan(
@@ -398,6 +401,7 @@ func (p *productRepo) GetProductList(in *pb.ProductFilter) (*pb.ProductList, err
 		products = append(products, &product)
 	}
 
+	// Check for row errors
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("error while iterating rows: %w", err)
 	}
