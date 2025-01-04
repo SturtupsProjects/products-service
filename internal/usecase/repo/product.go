@@ -372,6 +372,8 @@ func (p *productRepo) GetProductList(in *pb.ProductFilter) (*pb.ProductList, err
 	if in.Limit > 0 && in.Page > 0 {
 		baseQuery += fmt.Sprintf(" ORDER BY created_at DESC LIMIT $%d OFFSET $%d", len(args)+1, len(args)+2)
 		args = append(args, in.Limit, (in.Page-1)*in.Limit)
+	} else {
+		baseQuery += " ORDER BY created_at DESC"
 	}
 
 	// Execute the query
