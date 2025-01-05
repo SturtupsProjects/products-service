@@ -88,3 +88,114 @@ func (c *cashFlow) Get(in *pb.StatisticReq) (*pb.ListCashFlow, error) {
 
 	return &pb.ListCashFlow{Cash: cashFlows}, nil
 }
+
+// GetTotalIncome возвращает общую сумму доходов за указанный период, сгруппированную по типу денег
+func (cf *cashFlow) GetTotalIncome(req *pb.StatisticReq) (*pb.PriceProducts, error) {
+	query := `
+		SELECT 
+			payment_method AS many_type, 
+			SUM(amount) AS total_price
+		FROM 
+			cash_flow
+		WHERE 
+			transaction_type = 'income'
+			AND transaction_date BETWEEN $1 AND $2
+			AND company_id = $3
+		GROUP BY 
+			payment_method;
+	`
+
+	rows, err := cf.db.Query(query, req.StartDate, req.EndDate, req.CompanyId)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var prices []*pb.Price
+	for rows.Next() {
+		var price pb.Price
+		if err := rows.Scan(&price.ManyType, &price.TotalPrice); err != nil {
+			return nil, err
+		}
+		prices = append(prices, &price)
+	}
+
+	return &pb.PriceProducts{
+		CompanyId: req.CompanyId,
+		Sum:       prices,
+	}, nil
+}
+
+// GetTotalExpense возвращает общую сумму расходов за указанный период, сгруппированную по типу денег
+func (cf *cashFlow) GetTotalExpense(req *pb.StatisticReq) (*pb.PriceProducts, error) {
+	query := `
+		SELECT 
+			payment_method AS many_type, 
+			SUM(amount) AS total_price
+		FROM 
+			cash_flow
+		WHERE 
+			transaction_type = 'expense'
+			AND transaction_date BETWEEN $1 AND $2
+			AND company_id = $3
+		GROUP BY 
+			payment_method;
+	`
+
+	rows, err := cf.db.Query(query, req.StartDate, req.EndDate, req.CompanyId)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var prices []*pb.Price
+	for rows.Next() {
+		var price pb.Price
+		if err := rows.Scan(&price.ManyType, &price.TotalPrice); err != nil {
+			return nil, err
+		}
+		prices = append(prices, &price)
+	}
+
+	return &pb.PriceProducts{
+		CompanyId: req.CompanyId,
+		Sum:       prices,
+	}, nil
+}
+
+// GetNetProfit возвращает чистую прибыль за указанный период, сгруппированную по типу денег
+func (cf *cashFlow) GetNetProfit(req *pb.StatisticReq) (*pb.PriceProducts, error) {
+	query := `
+		SELECT 
+			payment_method AS many_type, 
+			SUM(CASE WHEN transaction_type = 'income' THEN amount ELSE 0 END) -
+			SUM(CASE WHEN transaction_type = 'expense' THEN amount ELSE 0 END) AS total_price
+		FROM 
+			cash_flow
+		WHERE 
+			transaction_date BETWEEN $1 AND $2
+			AND company_id = $3
+		GROUP BY 
+			payment_method;
+	`
+
+	rows, err := cf.db.Query(query, req.StartDate, req.EndDate, req.CompanyId)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var prices []*pb.Price
+	for rows.Next() {
+		var price pb.Price
+		if err := rows.Scan(&price.ManyType, &price.TotalPrice); err != nil {
+			return nil, err
+		}
+		prices = append(prices, &price)
+	}
+
+	return &pb.PriceProducts{
+		CompanyId: req.CompanyId,
+		Sum:       prices,
+	}, nil
+}

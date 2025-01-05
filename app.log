@@ -18,3 +18,6 @@
 {"time":"2024-12-28T18:24:41.76424353+05:00","level":"INFO","msg":"GetCashFlow called"}
 {"time":"2024-12-28T18:26:17.773606228+05:00","level":"INFO","msg":"CreateIncome called"}
 {"time":"2024-12-28T18:26:24.477568071+05:00","level":"INFO","msg":"GetCashFlow called"}
+{"time":"2025-01-05T15:34:43.05029026+05:00","level":"INFO","msg":"GetNetProfit called"}
+{"time":"2025-01-05T15:35:57.97652039+05:00","level":"INFO","msg":"GetTotalExpense called"}
+{"time":"2025-01-05T15:36:31.609580263+05:00","level":"INFO","msg":"GetTotalIncome called"}

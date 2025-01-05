@@ -78,3 +78,39 @@ func (p *ProductsGrpc) CreateExpense(ctx context.Context, in *pb.CashFlowRequest
 
 	return res, nil
 }
+
+func (p *ProductsGrpc) GetTotalIncome(ctx context.Context, in *pb.StatisticReq) (*pb.PriceProducts, error) {
+	p.log.Info("GetTotalIncome called")
+
+	res, err := p.cashFlow.GetTotalIncome(in)
+	if err != nil {
+		p.log.Error("Error in GetTotalIncome", "error", err)
+		return nil, err
+	}
+
+	return res, nil
+}
+
+func (p *ProductsGrpc) GetTotalExpense(ctx context.Context, in *pb.StatisticReq) (*pb.PriceProducts, error) {
+	p.log.Info("GetTotalExpense called")
+
+	res, err := p.cashFlow.GetTotalExpense(in)
+	if err != nil {
+		p.log.Error("Error in GetTotalExpense", "error", err)
+		return nil, err
+	}
+
+	return res, nil
+}
+
+func (p *ProductsGrpc) GetNetProfit(ctx context.Context, in *pb.StatisticReq) (*pb.PriceProducts, error) {
+	p.log.Info("GetNetProfit called")
+
+	res, err := p.cashFlow.GetNetProfit(in)
+	if err != nil {
+		p.log.Error("Error in GetNetProfit", "error", err)
+		return nil, err
+	}
+
+	return res, nil
+}
