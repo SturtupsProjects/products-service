@@ -127,8 +127,10 @@ func (p *productRepo) GetListProductCategory(in *pb.CategoryName) (*pb.CategoryL
 	var queryBuilder strings.Builder
 	queryBuilder.WriteString("SELECT id, name, image_url, created_by, created_at FROM product_categories WHERE company_id = $1")
 
+	args = append(args, in.CompanyId)
+
 	if in.Name != "" {
-		queryBuilder.WriteString(" AND name LIKE $2")
+		queryBuilder.WriteString(" AND name ILIKE $2") // Use ILIKE for case-insensitive matching
 		args = append(args, "%"+in.Name+"%")
 	}
 
