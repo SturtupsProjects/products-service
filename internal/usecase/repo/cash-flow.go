@@ -64,7 +64,7 @@ func (c *cashFlow) Get(in *pb.StatisticReq) (*pb.ListCashFlow, error) {
 		SELECT id, user_id, transaction_date, amount, transaction_type, description, payment_method, company_id
 		FROM cash_flow
 		WHERE company_id = $1
-		AND transaction_date BETWEEN $2 AND $3
+		AND transaction_date BETWEEN $2 AND $3 ORDER BY transaction_date DESC 
 	`
 
 	var cashFlows []*pb.CashFlow

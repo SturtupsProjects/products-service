@@ -122,15 +122,18 @@ func (p *productRepo) GetProductCategory(in *pb.GetCategoryRequest) (*pb.Categor
 
 func (p *productRepo) GetListProductCategory(in *pb.CategoryName) (*pb.CategoryList, error) {
 	var categories []*pb.Category
-	query := `SELECT id, name, image_url, created_by, created_at FROM product_categories WHERE company_id = $1`
 	var args []interface{}
 
-	args = append(args, in.CompanyId)
+	var queryBuilder strings.Builder
+	queryBuilder.WriteString("SELECT id, name, image_url, created_by, created_at FROM product_categories WHERE company_id = $1")
 
 	if in.Name != "" {
-		query += " AND name LIKE $2"
+		queryBuilder.WriteString(" AND name LIKE $2")
 		args = append(args, "%"+in.Name+"%")
 	}
+
+	queryBuilder.WriteString(" ORDER BY created_at DESC")
+	query := queryBuilder.String()
 
 	rows, err := p.db.Queryx(query, args...)
 	if err != nil {
@@ -372,9 +375,9 @@ func (p *productRepo) GetProductList(in *pb.ProductFilter) (*pb.ProductList, err
 	if in.Limit > 0 && in.Page > 0 {
 		baseQuery += fmt.Sprintf(" ORDER BY created_at DESC LIMIT $%d OFFSET $%d", len(args)+1, len(args)+2)
 		args = append(args, in.Limit, (in.Page-1)*in.Limit)
-	} else {
-		baseQuery += " ORDER BY created_at DESC"
 	}
+
+	baseQuery += " ORDER BY created_at DESC"
 
 	// Execute the query
 	rows, err := p.db.Queryx(baseQuery, args...)
