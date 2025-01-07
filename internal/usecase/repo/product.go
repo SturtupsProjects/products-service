@@ -364,7 +364,7 @@ func (p *productRepo) GetProductList(in *pb.ProductFilter) (*pb.ProductList, err
 		args = append(args, in.CreatedBy)
 	}
 	if in.CreatedAt != "" {
-		conditions = append(conditions, fmt.Sprintf("created_at = $%d", len(args)+1))
+		conditions = append(conditions, fmt.Sprintf("created_at = $%d", len(args)+1)) // Add proper comparison if needed
 		args = append(args, in.CreatedAt)
 	}
 
@@ -374,12 +374,14 @@ func (p *productRepo) GetProductList(in *pb.ProductFilter) (*pb.ProductList, err
 	}
 
 	// Add pagination
-	if in.Limit > 0 && in.Page > 0 {
-		baseQuery += fmt.Sprintf(" ORDER BY created_at DESC LIMIT $%d OFFSET $%d", len(args)+1, len(args)+2)
-		args = append(args, in.Limit, (in.Page-1)*in.Limit)
+	if in.Limit == 0 {
+		in.Limit = 10 // Default limit
 	}
-
-	baseQuery += " ORDER BY created_at DESC"
+	if in.Page == 0 {
+		in.Page = 1 // Default page
+	}
+	baseQuery += fmt.Sprintf(" ORDER BY created_at DESC LIMIT $%d OFFSET $%d", len(args)+1, len(args)+2)
+	args = append(args, in.Limit, (in.Page-1)*in.Limit)
 
 	// Execute the query
 	rows, err := p.db.Queryx(baseQuery, args...)
