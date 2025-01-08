@@ -373,15 +373,14 @@ func (p *productRepo) GetProductList(in *pb.ProductFilter) (*pb.ProductList, err
 		baseQuery += " AND " + strings.Join(conditions, " AND ")
 	}
 
-	// Add pagination
-	if in.Limit == 0 {
-		in.Limit = 10 // Default limit
+	// Add sorting
+	baseQuery += " ORDER BY created_at DESC"
+
+	// Add pagination only if Limit and Page are greater than 0
+	if in.Limit > 0 && in.Page > 0 {
+		baseQuery += fmt.Sprintf(" LIMIT $%d OFFSET $%d", len(args)+1, len(args)+2)
+		args = append(args, in.Limit, (in.Page-1)*in.Limit)
 	}
-	if in.Page == 0 {
-		in.Page = 1 // Default page
-	}
-	baseQuery += fmt.Sprintf(" ORDER BY created_at DESC LIMIT $%d OFFSET $%d", len(args)+1, len(args)+2)
-	args = append(args, in.Limit, (in.Page-1)*in.Limit)
 
 	// Execute the query
 	rows, err := p.db.Queryx(baseQuery, args...)
