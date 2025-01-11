@@ -9,7 +9,6 @@ import (
 	"github.com/jmoiron/sqlx"
 	"log"
 	"strings"
-	"time"
 )
 
 type salesRepoImpl struct {
@@ -24,6 +23,7 @@ func NewSalesRepo(db *sqlx.DB) usecase.SalesRepo {
 type SaleUpdateParams struct {
 	ID            string  `db:"id"`
 	CompanyID     string  `db:"company_id"`
+	BranchID      string  `db:"branch_id"`
 	ClientID      *string `db:"client_id,omitempty"`
 	PaymentMethod *string `db:"payment_method,omitempty"`
 }
@@ -36,12 +36,12 @@ func (r *salesRepoImpl) CreateSale(in *entity.SalesTotal) (*pb.SaleResponse, err
 
 	sale := &pb.SaleResponse{}
 	query := `
-		INSERT INTO sales (company_id, client_id, sold_by, total_sale_price, payment_method)
-		VALUES ($1, $2, $3, $4, $5) 
+		INSERT INTO sales (company_id, branch_id, client_id, sold_by, total_sale_price, payment_method)
+		VALUES ($1, $2, $3, $4, $5, $6) 
 		RETURNING id, created_at
 	`
 
-	err := r.db.QueryRowx(query, in.CompanyID, in.ClientID, in.SoldBy, in.TotalSalePrice, in.PaymentMethod).
+	err := r.db.QueryRowx(query, in.CompanyID, in.BranchID, in.ClientID, in.SoldBy, in.TotalSalePrice, in.PaymentMethod).
 		Scan(&sale.Id, &sale.CreatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create sale: %w", err)
@@ -60,10 +60,10 @@ func (r *salesRepoImpl) CreateSale(in *entity.SalesTotal) (*pb.SaleResponse, err
 	for _, item := range in.SoldProducts {
 		item.SaleID = sale.Id
 		itemQuery := `
-			INSERT INTO sales_items (company_id, sale_id, product_id, quantity, sale_price, total_price)
-			VALUES ($1, $2, $3, $4, $5, $6)
+			INSERT INTO sales_items (company_id, branch_id, sale_id, product_id, quantity, sale_price, total_price)
+			VALUES ($1, $2, $3, $4, $5, $6, $7)
 		`
-		_, err = tx.Exec(itemQuery, in.CompanyID, item.SaleID, item.ProductID, item.Quantity, item.SalePrice, item.TotalPrice)
+		_, err = tx.Exec(itemQuery, in.CompanyID, in.BranchID, item.SaleID, item.ProductID, item.Quantity, item.SalePrice, item.TotalPrice)
 		if err != nil {
 			return nil, fmt.Errorf("failed to insert sales item: %w", err)
 		}
@@ -88,7 +88,7 @@ func (r *salesRepoImpl) UpdateSale(in *pb.SaleUpdate) (*pb.SaleResponse, error) 
 	}
 
 	updates := []string{}
-	params := []interface{}{in.Id, in.CompanyId}
+	params := []interface{}{in.Id, in.CompanyId, in.BranchId}
 
 	if in.ClientId != "" {
 		updates = append(updates, fmt.Sprintf("client_id = $%d", len(params)+1))
@@ -101,7 +101,7 @@ func (r *salesRepoImpl) UpdateSale(in *pb.SaleUpdate) (*pb.SaleResponse, error) 
 
 	query := fmt.Sprintf(`
 		UPDATE sales SET %s
-		WHERE id = $1 AND company_id = $2
+		WHERE id = $1 AND company_id = $2 AND branch_id = $3
 		RETURNING id, client_id, sold_by, total_sale_price, payment_method, created_at
 	`, strings.Join(updates, ", "))
 
@@ -123,13 +123,13 @@ func (r *salesRepoImpl) GetSale(in *pb.SaleID) (*pb.SaleResponse, error) {
 			i.id AS item_id, i.product_id, i.quantity, i.sale_price, i.total_price
 		FROM sales s
 		LEFT JOIN sales_items i ON s.id = i.sale_id
-		WHERE s.id = $1 AND s.company_id = $2
+		WHERE s.id = $1 AND s.company_id = $2 AND s.branch_id = $3
 	`
 
 	sale := &pb.SaleResponse{}
 	var soldProducts []*pb.SalesItem
 
-	rows, err := r.db.Queryx(query, in.Id, in.CompanyId)
+	rows, err := r.db.Queryx(query, in.Id, in.CompanyId, in.BranchId)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query sale: %w", err)
 	}
@@ -171,16 +171,16 @@ func (r *salesRepoImpl) GetSaleList(in *pb.SaleFilter) (*pb.SaleList, error) {
 	var sales []*pb.SaleResponse
 	var queryBuilder strings.Builder
 	var args []interface{}
-	argIndex := 2 // Первый аргумент уже используется для CompanyId
+	argIndex := 3 // Первый аргумент уже используется для CompanyId и BranchId
 
 	queryBuilder.WriteString(`
 		SELECT s.id, s.client_id, s.sold_by, s.total_sale_price, s.payment_method, s.created_at,
 			   i.id AS item_id, i.product_id, i.quantity, i.sale_price, i.total_price 
 		FROM sales s 
 		LEFT JOIN sales_items i ON s.id = i.sale_id
-		WHERE s.company_id = $1
+		WHERE s.company_id = $1 AND s.branch_id = $2
 	`)
-	args = append(args, in.CompanyId)
+	args = append(args, in.CompanyId, in.BranchId)
 
 	if in.ClientId != "" {
 		queryBuilder.WriteString(fmt.Sprintf(" AND s.client_id ILIKE '%%' || $%d || '%%'", argIndex))
@@ -269,12 +269,12 @@ func (r *salesRepoImpl) DeleteSale(in *pb.SaleID) (*pb.Message, error) {
 		}
 	}()
 
-	_, err = tx.Exec(`DELETE FROM sales_items WHERE sale_id = $1 AND company_id = $2`, in.Id, in.CompanyId)
+	_, err = tx.Exec(`DELETE FROM sales_items WHERE sale_id = $1 AND company_id = $2 AND branch_id = $3`, in.Id, in.CompanyId, in.BranchId)
 	if err != nil {
 		return nil, fmt.Errorf("failed to delete sales items: %w", err)
 	}
 
-	result, err := tx.Exec(`DELETE FROM sales WHERE id = $1 AND company_id = $2`, in.Id, in.CompanyId)
+	result, err := tx.Exec(`DELETE FROM sales WHERE id = $1 AND company_id = $2 AND branch_id = $3`, in.Id, in.CompanyId, in.BranchId)
 	if err != nil {
 		return nil, fmt.Errorf("failed to delete sale: %w", err)
 	}
@@ -306,47 +306,32 @@ func (r *salesRepoImpl) GetSalesByDay(request *pb.MostSoldProductsRequest) ([]*p
 		FROM sales s
 		INNER JOIN sales_items si ON s.id = si.sale_id
 		INNER JOIN products p ON si.product_id = p.id
-		WHERE s.company_id = $1 AND s.created_at BETWEEN $2 AND $3
+		WHERE s.company_id = $1 AND s.branch_id = $2 AND s.created_at BETWEEN $3 AND $4
 		GROUP BY day, p.name
 		ORDER BY day, total_quantity DESC
 	`
 
-	startDate, err := time.Parse(time.RFC3339, request.GetStartDate())
+	rows, err := r.db.Queryx(query, request.CompanyId, request.BranchId, request.StartDate, request.EndDate)
 	if err != nil {
-		return nil, fmt.Errorf("invalid start date format: %w", err)
-	}
-	endDate, err := time.Parse(time.RFC3339, request.GetEndDate())
-	if err != nil {
-		return nil, fmt.Errorf("invalid end date format: %w", err)
-	}
-
-	rows, err := r.db.Query(query, request.GetCompanyId(), startDate, endDate)
-	if err != nil {
-		return nil, fmt.Errorf("failed to query sales by day: %w", err)
+		return nil, fmt.Errorf("failed to get sales by day: %w", err)
 	}
 	defer rows.Close()
 
-	var results []*pb.DailySales
+	var dailySales []*pb.DailySales
 	for rows.Next() {
-		var day, productName string
-		var totalQuantity int64
-
-		if err := rows.Scan(&day, &productName, &totalQuantity); err != nil {
+		var sales pb.DailySales
+		err := rows.Scan(&sales.Day, &sales.ProductName, &sales.TotalQuantity)
+		if err != nil {
 			return nil, fmt.Errorf("failed to scan sales by day row: %w", err)
 		}
-
-		results = append(results, &pb.DailySales{
-			Day:           strings.TrimSpace(day),
-			ProductName:   productName,
-			TotalQuantity: totalQuantity,
-		})
+		dailySales = append(dailySales, &sales)
 	}
 
-	if err := rows.Err(); err != nil {
+	if err = rows.Err(); err != nil {
 		return nil, fmt.Errorf("error iterating over sales by day rows: %w", err)
 	}
 
-	return results, nil
+	return dailySales, nil
 }
 
 // GetTopClients получает топ клиентов по общей сумме продаж

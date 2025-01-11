@@ -17,6 +17,7 @@ func (p *ProductsGrpc) CreatePurchase(ctx context.Context, in *pb.PurchaseReques
 		Description:   in.GetDescription(),
 		PaymentMethod: in.GetPaymentMethod(),
 		CompanyID:     in.GetCompanyId(),
+		BranchID:      in.GetBranchId(),
 		PurchaseItems: *mapPbPurchaseItemToEntity(in.GetItems()), // Map items
 	}
 

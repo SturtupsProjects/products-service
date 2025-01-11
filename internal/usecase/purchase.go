@@ -28,7 +28,6 @@ func NewPurchaseUseCase(repo PurchasesRepo, pr ProductQuantity, log *slog.Logger
 	}
 }
 
-// CalculateTotalPurchases вычисляет общую стоимость покупки
 func (p *PurchaseUseCase) CalculateTotalPurchases(in *entity.Purchase) (*entity.PurchaseRequest, error) {
 
 	if in == nil {
@@ -79,12 +78,12 @@ func (p *PurchaseUseCase) CalculateTotalPurchases(in *entity.Purchase) (*entity.
 		PaymentMethod: in.PaymentMethod,
 		Description:   in.Description,
 		CompanyID:     in.CompanyID,
+		BranchID:      in.BranchID,
 	}
 
 	return &result, nil
 }
 
-// CreatePurchase создает новую покупку
 func (p *PurchaseUseCase) CreatePurchase(in *entity.Purchase) (*pb.PurchaseResponse, error) {
 	req, err := p.CalculateTotalPurchases(in)
 	if err != nil {

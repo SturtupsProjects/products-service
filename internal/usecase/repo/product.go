@@ -25,16 +25,16 @@ func NewProductQuantity(db *sqlx.DB) usecase.ProductQuantity {
 	return &productQuantity{db: db}
 }
 
-//---------------- Product Category CRUD -----------------------------------------------------------------------------
+// ---------------- Product Category CRUD -----------------------------------------------------------------------------
 
 func (p *productRepo) CreateProductCategory(in *pb.CreateCategoryRequest) (*pb.Category, error) {
 	var category pb.Category
 
-	query := `INSERT INTO product_categories (name, image_url, created_by, company_id) 
-              VALUES ($1, $2, $3, $4) 
-              RETURNING id, name, image_url, created_by, company_id, created_at`
-	err := p.db.QueryRowx(query, in.Name, in.ImageUrl, in.CreatedBy, in.CompanyId).
-		Scan(&category.Id, &category.Name, &category.ImageUrl, &category.CreatedBy, &category.CompanyId, &category.CreatedAt)
+	query := `INSERT INTO product_categories (name, image_url, created_by, company_id, branch_id) 
+              VALUES ($1, $2, $3, $4, $5) 
+              RETURNING id, name, image_url, created_by, company_id, branch_id, created_at`
+	err := p.db.QueryRowx(query, in.Name, in.ImageUrl, in.CreatedBy, in.CompanyId, in.BranchId).
+		Scan(&category.Id, &category.Name, &category.ImageUrl, &category.CreatedBy, &category.CompanyId, &category.BranchId, &category.CreatedAt)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to create product category: %w", err)
@@ -63,9 +63,9 @@ func (p *productRepo) UpdateProductCategory(in *pb.UpdateCategoryRequest) (*pb.C
 		return nil, fmt.Errorf("no fields to update")
 	}
 
-	query = query[:len(query)-2] + fmt.Sprintf(" WHERE id = $%d AND company_id = $%d "+
-		"RETURNING id, name, image_url, created_by, company_id, created_at", argCounter, argCounter+1)
-	args = append(args, in.Id, in.CompanyId)
+	query = query[:len(query)-2] + fmt.Sprintf(" WHERE id = $%d AND company_id = $%d AND branch_id = $%d "+
+		"RETURNING id, name, image_url, created_by, company_id, branch_id, created_at", argCounter, argCounter+1, argCounter+2)
+	args = append(args, in.Id, in.CompanyId, in.BranchId)
 
 	err := p.db.QueryRowx(query, args...).Scan(
 		&category.Id,
@@ -73,6 +73,7 @@ func (p *productRepo) UpdateProductCategory(in *pb.UpdateCategoryRequest) (*pb.C
 		&category.ImageUrl,
 		&category.CreatedBy,
 		&category.CompanyId,
+		&category.BranchId,
 		&category.CreatedAt,
 	)
 	if err != nil {
@@ -83,9 +84,9 @@ func (p *productRepo) UpdateProductCategory(in *pb.UpdateCategoryRequest) (*pb.C
 }
 
 func (p *productRepo) DeleteProductCategory(in *pb.GetCategoryRequest) (*pb.Message, error) {
-	query := `DELETE FROM product_categories WHERE id = $1 AND company_id = $2`
+	query := `DELETE FROM product_categories WHERE id = $1 AND company_id = $2 AND branch_id = $3`
 
-	res, err := p.db.Exec(query, in.Id, in.CompanyId)
+	res, err := p.db.Exec(query, in.Id, in.CompanyId, in.BranchId)
 	if err != nil {
 		return nil, fmt.Errorf("failed to delete product category: %w", err)
 	}
@@ -102,15 +103,18 @@ func (p *productRepo) GetProductCategory(in *pb.GetCategoryRequest) (*pb.Categor
 		return nil, fmt.Errorf("input parameter is nil")
 	}
 
-	query := `SELECT id, name, image_url, created_by, created_at FROM product_categories WHERE id = $1 AND company_id = $2`
+	query := `SELECT id, name, image_url, created_by, company_id, branch_id, created_at 
+			  FROM product_categories WHERE id = $1 AND company_id = $2 AND branch_id = $3`
 
 	var res pb.Category
 
-	err := p.db.QueryRowx(query, in.Id, in.CompanyId).Scan(
+	err := p.db.QueryRowx(query, in.Id, in.CompanyId, in.BranchId).Scan(
 		&res.Id,
 		&res.Name,
 		&res.ImageUrl,
 		&res.CreatedBy,
+		&res.CompanyId,
+		&res.BranchId,
 		&res.CreatedAt,
 	)
 	if err != nil {
@@ -125,12 +129,12 @@ func (p *productRepo) GetListProductCategory(in *pb.CategoryName) (*pb.CategoryL
 	var args []interface{}
 
 	var queryBuilder strings.Builder
-	queryBuilder.WriteString("SELECT id, name, image_url, created_by, created_at FROM product_categories WHERE company_id = $1")
+	queryBuilder.WriteString("SELECT id, name, image_url, created_by, company_id, branch_id, created_at FROM product_categories WHERE company_id = $1 AND branch_id = $2")
 
-	args = append(args, in.CompanyId)
+	args = append(args, in.CompanyId, in.BranchId)
 
 	if in.Name != "" {
-		queryBuilder.WriteString(" AND name ILIKE $2") // Use ILIKE for case-insensitive matching
+		queryBuilder.WriteString(" AND name ILIKE $3") // Use ILIKE for case-insensitive matching
 		args = append(args, "%"+in.Name+"%")
 	}
 
@@ -145,7 +149,7 @@ func (p *productRepo) GetListProductCategory(in *pb.CategoryName) (*pb.CategoryL
 
 	for rows.Next() {
 		var category pb.Category
-		if err := rows.Scan(&category.Id, &category.Name, &category.ImageUrl, &category.CreatedBy, &category.CreatedAt); err != nil {
+		if err := rows.Scan(&category.Id, &category.Name, &category.ImageUrl, &category.CreatedBy, &category.CompanyId, &category.BranchId, &category.CreatedAt); err != nil {
 			return nil, fmt.Errorf("failed to scan row: %w", err)
 		}
 		categories = append(categories, &category)
@@ -160,19 +164,19 @@ func (p *productRepo) GetListProductCategory(in *pb.CategoryName) (*pb.CategoryL
 
 // ---------------- End Product Category CRUD ------------------------------------------------------------------------
 
-// ------------------- Product CRUD ------------------------------------------------------------------------
+// ------------------- Product CRUD ----------------------------------------------------------------------------------
 
 func (p *productRepo) CreateProduct(in *pb.CreateProductRequest) (*pb.Product, error) {
 	var product pb.Product
 
 	query := `
-		INSERT INTO products (category_id, name, image_url, bill_format, incoming_price, standard_price, company_id, created_by, total_count)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, COALESCE($9, 0))
-		RETURNING id, category_id, name, image_url, bill_format, incoming_price, standard_price, total_count, created_by, created_at
+		INSERT INTO products (category_id, name, image_url, bill_format, incoming_price, standard_price, company_id, branch_id, created_by, total_count)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, COALESCE($10, 0))
+		RETURNING id, category_id, name, image_url, bill_format, incoming_price, standard_price, total_count, company_id, branch_id, created_by, created_at
 	`
-	err := p.db.QueryRowx(query, in.CategoryId, in.Name, in.ImageUrl, in.BillFormat, in.IncomingPrice, in.StandardPrice, in.CompanyId, in.CreatedBy, 0).
+	err := p.db.QueryRowx(query, in.CategoryId, in.Name, in.ImageUrl, in.BillFormat, in.IncomingPrice, in.StandardPrice, in.CompanyId, in.BranchId, in.CreatedBy, 0).
 		Scan(&product.Id, &product.CategoryId, &product.Name, &product.ImageUrl, &product.BillFormat, &product.IncomingPrice,
-			&product.StandardPrice, &product.TotalCount, &product.CreatedBy, &product.CreatedAt)
+			&product.StandardPrice, &product.TotalCount, &product.CompanyId, &product.BranchId, &product.CreatedBy, &product.CreatedAt)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to create product: %w", err)
@@ -190,8 +194,8 @@ func (p *productRepo) CreateBulkProducts(in *pb.CreateBulkProductsRequest) (*pb.
 
 	// Prepare the query for inserting products
 	query := `
-        INSERT INTO products (category_id, name, image_url, bill_format, incoming_price, standard_price, company_id, created_by, total_count)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, COALESCE($9, 0))
+        INSERT INTO products (category_id, name, image_url, bill_format, incoming_price, standard_price, company_id, branch_id, created_by, total_count)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, COALESCE($10, 0))
         RETURNING id, category_id, name, image_url, bill_format, incoming_price, standard_price, total_count, created_by, created_at
     `
 
@@ -201,7 +205,7 @@ func (p *productRepo) CreateBulkProducts(in *pb.CreateBulkProductsRequest) (*pb.
 	for _, productReq := range in.Products {
 		var product pb.Product
 		err := tx.QueryRowx(query, in.CategoryId, productReq.Name, "https://smartadmin.uz/static/media/gif2.aff05f0cb04b5d100ae4.png", productReq.BillFormat, productReq.IncomingPrice,
-			productReq.StandardPrice, in.CompanyId, in.CreatedBy, productReq.TotalCount).
+			productReq.StandardPrice, in.CompanyId, in.BranchId, in.CreatedBy, productReq.TotalCount).
 			Scan(&product.Id, &product.CategoryId, &product.Name, &product.ImageUrl, &product.BillFormat, &product.IncomingPrice,
 				&product.StandardPrice, &product.TotalCount, &product.CreatedBy, &product.CreatedAt)
 
@@ -273,10 +277,11 @@ func (p *productRepo) UpdateProduct(in *pb.UpdateProductRequest) (*pb.Product, e
 		return nil, fmt.Errorf("no fields to update")
 	}
 
-	query = query[:len(query)-2] + fmt.Sprintf(" WHERE id = $%d AND company_id = $%d "+
+	// Updated query with branch_id check
+	query = query[:len(query)-2] + fmt.Sprintf(" WHERE id = $%d AND company_id = $%d AND branch_id = $%d "+
 		"RETURNING id, category_id, name, bill_format, incoming_price, standard_price, total_count, created_by, created_at, image_url",
-		argCounter, argCounter+1)
-	args = append(args, in.Id, in.CompanyId)
+		argCounter, argCounter+1, argCounter+2)
+	args = append(args, in.Id, in.CompanyId, in.BranchId)
 
 	err := p.db.QueryRowx(query, args...).Scan(
 		&product.Id,
@@ -320,9 +325,9 @@ func (p *productRepo) GetProduct(in *pb.GetProductRequest) (*pb.Product, error) 
 
 	var res pb.Product
 	query := `SELECT id, category_id, name, image_url, bill_format, incoming_price, standard_price,
-          total_count, created_by, created_at FROM products WHERE id = $1 AND company_id = $2`
+          total_count, created_by, created_at, branch_id FROM products WHERE id = $1 AND company_id = $2 AND branch_id = $3`
 
-	err := p.db.QueryRowx(query, in.Id, in.CompanyId).Scan(
+	err := p.db.QueryRowx(query, in.Id, in.CompanyId, in.BranchId).Scan(
 		&res.Id,
 		&res.CategoryId,
 		&res.Name,
@@ -333,6 +338,7 @@ func (p *productRepo) GetProduct(in *pb.GetProductRequest) (*pb.Product, error) 
 		&res.TotalCount,
 		&res.CreatedBy,
 		&res.CreatedAt,
+		&res.BranchId, // Include branch_id in the result scan
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get product: %w", err)
@@ -344,10 +350,10 @@ func (p *productRepo) GetProduct(in *pb.GetProductRequest) (*pb.Product, error) 
 func (p *productRepo) GetProductList(in *pb.ProductFilter) (*pb.ProductList, error) {
 	var products []*pb.Product
 	baseQuery := `
-		SELECT id, category_id, name, image_url, bill_format, incoming_price, standard_price, total_count, created_by, created_at
+		SELECT id, category_id, name, image_url, bill_format, incoming_price, standard_price, total_count, created_by, created_at, branch_id
 		FROM products
-		WHERE company_id = $1`
-	args := []interface{}{in.CompanyId}
+		WHERE company_id = $1 AND branch_id = $2`
+	args := []interface{}{in.CompanyId, in.BranchId}
 	conditions := []string{}
 
 	// Add conditions based on filter
@@ -403,6 +409,7 @@ func (p *productRepo) GetProductList(in *pb.ProductFilter) (*pb.ProductList, err
 			&product.TotalCount,
 			&product.CreatedBy,
 			&product.CreatedAt,
+			&product.BranchId, // Include branch_id in the result scan
 		); err != nil {
 			return nil, fmt.Errorf("failed to scan row: %w", err)
 		}

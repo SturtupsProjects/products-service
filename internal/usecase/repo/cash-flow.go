@@ -22,14 +22,14 @@ func (c *cashFlow) CreateIncome(in *pb.CashFlowRequest) (*pb.CashFlow, error) {
 
 	// SQL-запрос для записи о доходе
 	query := `
-		INSERT INTO cash_flow (id, user_id, amount, transaction_type, description, payment_method, company_id)
-		VALUES ($1, $2, $3, 'income', $4, $5, $6)
-		RETURNING id, user_id, transaction_date, amount, transaction_type, description, payment_method, company_id
+		INSERT INTO cash_flow (id, user_id, amount, transaction_type, description, payment_method, company_id, branch_id)
+		VALUES ($1, $2, $3, 'income', $4, $5, $6, $7)
+		RETURNING id, user_id, transaction_date, amount, transaction_type, description, payment_method, company_id, branch_id
 	`
 
 	var cashFlow pb.CashFlow
-	err := c.db.QueryRowx(query, id, in.UserId, in.Amount, in.Description, in.PaymentMethod, in.CompanyId).
-		Scan(&cashFlow.Id, &cashFlow.UserId, &cashFlow.TransactionDate, &cashFlow.Amount, &cashFlow.TransactionType, &cashFlow.Description, &cashFlow.PaymentMethod, &cashFlow.CompanyId)
+	err := c.db.QueryRowx(query, id, in.UserId, in.Amount, in.Description, in.PaymentMethod, in.CompanyId, in.BranchId).
+		Scan(&cashFlow.Id, &cashFlow.UserId, &cashFlow.TransactionDate, &cashFlow.Amount, &cashFlow.TransactionType, &cashFlow.Description, &cashFlow.PaymentMethod, &cashFlow.CompanyId, &cashFlow.BranchId)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create income: %w", err)
 	}
@@ -43,14 +43,14 @@ func (c *cashFlow) CreateExpense(in *pb.CashFlowRequest) (*pb.CashFlow, error) {
 
 	// SQL-запрос для записи о расходе
 	query := `
-		INSERT INTO cash_flow (id, user_id, amount, transaction_type, description, payment_method, company_id)
-		VALUES ($1, $2, $3, 'expense', $4, $5, $6)
-		RETURNING id, user_id, transaction_date, amount, transaction_type, description, payment_method, company_id
+		INSERT INTO cash_flow (id, user_id, amount, transaction_type, description, payment_method, company_id, branch_id)
+		VALUES ($1, $2, $3, 'expense', $4, $5, $6, $7)
+		RETURNING id, user_id, transaction_date, amount, transaction_type, description, payment_method, company_id, branch_id
 	`
 
 	var cashFlow pb.CashFlow
-	err := c.db.QueryRowx(query, id, in.UserId, in.Amount, in.Description, in.PaymentMethod, in.CompanyId).
-		Scan(&cashFlow.Id, &cashFlow.UserId, &cashFlow.TransactionDate, &cashFlow.Amount, &cashFlow.TransactionType, &cashFlow.Description, &cashFlow.PaymentMethod, &cashFlow.CompanyId)
+	err := c.db.QueryRowx(query, id, in.UserId, in.Amount, in.Description, in.PaymentMethod, in.CompanyId, in.BranchId).
+		Scan(&cashFlow.Id, &cashFlow.UserId, &cashFlow.TransactionDate, &cashFlow.Amount, &cashFlow.TransactionType, &cashFlow.Description, &cashFlow.PaymentMethod, &cashFlow.CompanyId, &cashFlow.BranchId)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create expense: %w", err)
 	}
@@ -61,14 +61,14 @@ func (c *cashFlow) CreateExpense(in *pb.CashFlowRequest) (*pb.CashFlow, error) {
 func (c *cashFlow) Get(in *pb.StatisticReq) (*pb.ListCashFlow, error) {
 
 	query := `
-		SELECT id, user_id, transaction_date, amount, transaction_type, description, payment_method, company_id
+		SELECT id, user_id, transaction_date, amount, transaction_type, description, payment_method, company_id, branch_id
 		FROM cash_flow
-		WHERE company_id = $1
-		AND transaction_date BETWEEN $2 AND $3 ORDER BY transaction_date DESC 
+		WHERE company_id = $1 AND branch_id = $2
+		AND transaction_date BETWEEN $3 AND $4 ORDER BY transaction_date DESC
 	`
 
 	var cashFlows []*pb.CashFlow
-	rows, err := c.db.Queryx(query, in.CompanyId, in.StartDate, in.EndDate)
+	rows, err := c.db.Queryx(query, in.CompanyId, in.BranchId, in.StartDate, in.EndDate)
 	if err != nil {
 		return nil, err
 	}
@@ -76,7 +76,7 @@ func (c *cashFlow) Get(in *pb.StatisticReq) (*pb.ListCashFlow, error) {
 
 	for rows.Next() {
 		var cashFlow pb.CashFlow
-		if err := rows.Scan(&cashFlow.Id, &cashFlow.UserId, &cashFlow.TransactionDate, &cashFlow.Amount, &cashFlow.TransactionType, &cashFlow.Description, &cashFlow.PaymentMethod, &cashFlow.CompanyId); err != nil {
+		if err := rows.Scan(&cashFlow.Id, &cashFlow.UserId, &cashFlow.TransactionDate, &cashFlow.Amount, &cashFlow.TransactionType, &cashFlow.Description, &cashFlow.PaymentMethod, &cashFlow.CompanyId, &cashFlow.BranchId); err != nil {
 			return nil, err
 		}
 		cashFlows = append(cashFlows, &cashFlow)
@@ -101,11 +101,12 @@ func (cf *cashFlow) GetTotalIncome(req *pb.StatisticReq) (*pb.PriceProducts, err
 			transaction_type = 'income'
 			AND transaction_date BETWEEN $1 AND $2
 			AND company_id = $3
+			AND branch_id = $4
 		GROUP BY 
 			payment_method;
 	`
 
-	rows, err := cf.db.Query(query, req.StartDate, req.EndDate, req.CompanyId)
+	rows, err := cf.db.Query(query, req.StartDate, req.EndDate, req.CompanyId, req.BranchId)
 	if err != nil {
 		return nil, err
 	}
@@ -122,6 +123,7 @@ func (cf *cashFlow) GetTotalIncome(req *pb.StatisticReq) (*pb.PriceProducts, err
 
 	return &pb.PriceProducts{
 		CompanyId: req.CompanyId,
+		BranchId:  req.BranchId,
 		Sum:       prices,
 	}, nil
 }
@@ -138,11 +140,12 @@ func (cf *cashFlow) GetTotalExpense(req *pb.StatisticReq) (*pb.PriceProducts, er
 			transaction_type = 'expense'
 			AND transaction_date BETWEEN $1 AND $2
 			AND company_id = $3
+			AND branch_id = $4
 		GROUP BY 
 			payment_method;
 	`
 
-	rows, err := cf.db.Query(query, req.StartDate, req.EndDate, req.CompanyId)
+	rows, err := cf.db.Query(query, req.StartDate, req.EndDate, req.CompanyId, req.BranchId)
 	if err != nil {
 		return nil, err
 	}
@@ -159,6 +162,7 @@ func (cf *cashFlow) GetTotalExpense(req *pb.StatisticReq) (*pb.PriceProducts, er
 
 	return &pb.PriceProducts{
 		CompanyId: req.CompanyId,
+		BranchId:  req.BranchId,
 		Sum:       prices,
 	}, nil
 }
@@ -175,11 +179,12 @@ func (cf *cashFlow) GetNetProfit(req *pb.StatisticReq) (*pb.PriceProducts, error
 		WHERE 
 			transaction_date BETWEEN $1 AND $2
 			AND company_id = $3
+			AND branch_id = $4
 		GROUP BY 
 			payment_method;
 	`
 
-	rows, err := cf.db.Query(query, req.StartDate, req.EndDate, req.CompanyId)
+	rows, err := cf.db.Query(query, req.StartDate, req.EndDate, req.CompanyId, req.BranchId)
 	if err != nil {
 		return nil, err
 	}
@@ -196,6 +201,7 @@ func (cf *cashFlow) GetNetProfit(req *pb.StatisticReq) (*pb.PriceProducts, error
 
 	return &pb.PriceProducts{
 		CompanyId: req.CompanyId,
+		BranchId:  req.BranchId,
 		Sum:       prices,
 	}, nil
 }

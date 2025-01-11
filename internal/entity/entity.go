@@ -21,6 +21,7 @@ type PurchaseRequest struct {
 	CompanyID     string            `json:"company_id" db:"company_id"`
 	Description   string            `json:"description" db:"description"`
 	PaymentMethod string            `json:"payment_method" db:"payment_method"`
+	BranchID      string            `json:"branch_id" db:"branch_id"`
 	PurchaseItems []PurchaseItemReq `json:"purchase_items" db:"purchase_items"`
 }
 
@@ -37,6 +38,7 @@ type Purchase struct {
 	Description   string         `json:"description" db:"description"`
 	PaymentMethod string         `json:"payment_method" db:"payment_method"`
 	CompanyID     string         `json:"company_id" db:"company_id"`
+	BranchID      string         `json:"branch_id" db:"branch_id"`
 	PurchaseItems []PurchaseItem `json:"purchase_items" db:"purchase_items"`
 }
 
@@ -51,6 +53,7 @@ type SaleRequest struct {
 	SoldBy        string      `json:"sold_by" db:"sold_by"`
 	PaymentMethod string      `json:"payment_method" db:"payment_method"`
 	CompanyID     string      `json:"company_id" db:"company_id"`
+	BranchID      string      `json:"branch_id" db:"branch_id"`
 	SoldProducts  []SalesItem `json:"products" db:"products"`
 }
 
@@ -60,6 +63,7 @@ type SalesTotal struct {
 	SoldBy         string      `json:"sold_by" db:"sold_by"`
 	TotalSalePrice float64     `json:"total_sale_price" db:"total_sale_price"`
 	PaymentMethod  string      `json:"payment_method" db:"payment_method"`
+	BranchID       string      `json:"branch_id" db:"branch_id"`
 	SoldProducts   []SalesItem `json:"products" db:"products"`
 }
 

@@ -33,21 +33,21 @@ func (r *purchasesRepoImpl) CreatePurchase(in *entity.PurchaseRequest) (*pb.Purc
 
 	purchase := &pb.PurchaseResponse{}
 	query := `
-		INSERT INTO purchases (supplier_id, purchased_by, total_cost, payment_method, description, company_id)
-		VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, created_at
+		INSERT INTO purchases (supplier_id, purchased_by, total_cost, payment_method, description, company_id, branch_id)
+		VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, created_at
 	`
-	err = tx.QueryRowx(query, in.SupplierID, in.PurchasedBy, in.TotalCost, in.PaymentMethod, in.Description, in.CompanyID).
+	err = tx.QueryRowx(query, in.SupplierID, in.PurchasedBy, in.TotalCost, in.PaymentMethod, in.Description, in.CompanyID, in.BranchID).
 		Scan(&purchase.Id, &purchase.CreatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create purchase: %w", err)
 	}
 
 	itemQuery := `
-		INSERT INTO purchase_items (purchase_id, product_id, quantity, purchase_price, total_price, company_id)
-		VALUES ($1, $2, $3, $4, $5, $6)
+		INSERT INTO purchase_items (purchase_id, product_id, quantity, purchase_price, total_price, company_id, branch_id)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
 	`
 	for _, item := range in.PurchaseItems {
-		if _, err := tx.Exec(itemQuery, purchase.Id, item.ProductID, item.Quantity, item.PurchasePrice, item.TotalPrice, in.CompanyID); err != nil {
+		if _, err := tx.Exec(itemQuery, purchase.Id, item.ProductID, item.Quantity, item.PurchasePrice, item.TotalPrice, in.CompanyID, in.BranchID); err != nil {
 			return nil, fmt.Errorf("failed to add purchase item: %w", err)
 		}
 	}
@@ -68,13 +68,14 @@ func (r *purchasesRepoImpl) CreatePurchase(in *entity.PurchaseRequest) (*pb.Purc
 
 // UpdatePurchase обновляет информацию о закупке
 func (r *purchasesRepoImpl) UpdatePurchase(in *pb.PurchaseUpdate) (*pb.PurchaseResponse, error) {
-	if in.Id == "" || in.CompanyId == "" {
+	if in.Id == "" || in.CompanyId == "" || in.BranchId == "" {
 		return nil, errors.New("missing required fields")
 	}
 
 	params := make(map[string]interface{})
 	params["id"] = in.Id
 	params["company_id"] = in.CompanyId
+	params["branch_id"] = in.BranchId
 
 	var updates []string
 	if in.SupplierId != "" {
@@ -96,7 +97,7 @@ func (r *purchasesRepoImpl) UpdatePurchase(in *pb.PurchaseUpdate) (*pb.PurchaseR
 
 	query := `
 		UPDATE purchases SET ` + strings.Join(updates, ", ") + `
-		WHERE id = :id AND company_id = :company_id
+		WHERE id = :id AND company_id = :company_id AND branch_id = :branch_id
 		RETURNING id, supplier_id, purchased_by, total_cost, description, payment_method, created_at
 	`
 	stmt, err := r.db.PrepareNamed(query)
@@ -116,7 +117,7 @@ func (r *purchasesRepoImpl) UpdatePurchase(in *pb.PurchaseUpdate) (*pb.PurchaseR
 
 // GetPurchase возвращает информацию о закупке с деталями
 func (r *purchasesRepoImpl) GetPurchase(in *pb.PurchaseID) (*pb.PurchaseResponse, error) {
-	if in.Id == "" || in.CompanyId == "" {
+	if in.Id == "" || in.CompanyId == "" || in.BranchId == "" {
 		return nil, errors.New("missing required fields")
 	}
 
@@ -125,13 +126,13 @@ func (r *purchasesRepoImpl) GetPurchase(in *pb.PurchaseID) (*pb.PurchaseResponse
                i.id AS item_id, i.product_id, i.quantity, i.purchase_price, i.total_price
         FROM purchases p
         LEFT JOIN purchase_items i ON p.id = i.purchase_id
-        WHERE p.id = $1 AND p.company_id = $2
+        WHERE p.id = $1 AND p.company_id = $2 AND p.branch_id = $3
     `
 
 	purchase := &pb.PurchaseResponse{}
 	var items []*pb.PurchaseItemResponse
 
-	rows, err := r.db.Queryx(query, in.Id, in.CompanyId)
+	rows, err := r.db.Queryx(query, in.Id, in.CompanyId, in.BranchId)
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve purchase: %w", err)
 	}
@@ -193,16 +194,16 @@ func (r *purchasesRepoImpl) GetPurchaseList(in *pb.FilterPurchase) (*pb.Purchase
 	var purchases []*pb.PurchaseResponse
 	var queryBuilder strings.Builder
 	var args []interface{}
-	argIndex := 2
+	argIndex := 3
 
 	queryBuilder.WriteString(`
         SELECT p.id, p.supplier_id, p.purchased_by, p.total_cost, p.payment_method, p.description, p.created_at,
                i.id AS item_id, i.product_id, i.quantity, i.purchase_price, i.total_price
         FROM purchases p
         LEFT JOIN purchase_items i ON p.id = i.purchase_id
-        WHERE p.company_id = $1
+        WHERE p.company_id = $1 AND p.branch_id = $2
     `)
-	args = append(args, in.CompanyId)
+	args = append(args, in.CompanyId, in.BranchId)
 
 	if in.SupplierId != "" {
 		queryBuilder.WriteString(" AND p.supplier_id ILIKE '%' || $" + fmt.Sprint(argIndex) + " || '%'")
@@ -282,7 +283,7 @@ func (r *purchasesRepoImpl) GetPurchaseList(in *pb.FilterPurchase) (*pb.Purchase
 
 // DeletePurchase удаляет закупку и связанные товары
 func (r *purchasesRepoImpl) DeletePurchase(in *pb.PurchaseID) (*pb.Message, error) {
-	if in.Id == "" || in.CompanyId == "" {
+	if in.Id == "" || in.CompanyId == "" || in.BranchId == "" {
 		return nil, errors.New("missing required fields")
 	}
 
@@ -296,12 +297,12 @@ func (r *purchasesRepoImpl) DeletePurchase(in *pb.PurchaseID) (*pb.Message, erro
 		}
 	}()
 
-	_, err = tx.Exec(`DELETE FROM purchase_items WHERE purchase_id = $1 AND company_id = $2`, in.Id, in.CompanyId)
+	_, err = tx.Exec(`DELETE FROM purchase_items WHERE purchase_id = $1 AND company_id = $2 AND branch_id = $3`, in.Id, in.CompanyId, in.BranchId)
 	if err != nil {
 		return nil, fmt.Errorf("failed to delete purchase items: %w", err)
 	}
 
-	result, err := tx.Exec(`DELETE FROM purchases WHERE id = $1 AND company_id = $2`, in.Id, in.CompanyId)
+	result, err := tx.Exec(`DELETE FROM purchases WHERE id = $1 AND company_id = $2 AND branch_id = $3`, in.Id, in.CompanyId, in.BranchId)
 	if err != nil {
 		return nil, fmt.Errorf("failed to delete purchase: %w", err)
 	}
