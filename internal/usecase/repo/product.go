@@ -139,6 +139,12 @@ func (p *productRepo) GetListProductCategory(in *pb.CategoryName) (*pb.CategoryL
 	}
 
 	queryBuilder.WriteString(" ORDER BY created_at DESC")
+
+	if in.Limit > 0 && in.Page > 0 {
+		queryBuilder.WriteString(fmt.Sprintf(" LIMIT $%d OFFSET $%d", len(args)+1, len(args)+2))
+		args = append(args, in.Limit, (in.Page-1)*in.Limit)
+	}
+
 	query := queryBuilder.String()
 
 	rows, err := p.db.Queryx(query, args...)

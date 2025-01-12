@@ -206,6 +206,10 @@ func (r *salesRepoImpl) GetSaleList(in *pb.SaleFilter) (*pb.SaleList, error) {
 		argIndex++
 	}
 
+	if in.Limit > 0 {
+		queryBuilder.WriteString(fmt.Sprintf(" LIMIT %d OFFSET %d", in.Limit, (in.Page-1)*in.Limit))
+	}
+
 	queryBuilder.WriteString(" ORDER BY s.created_at DESC")
 	query := queryBuilder.String()
 

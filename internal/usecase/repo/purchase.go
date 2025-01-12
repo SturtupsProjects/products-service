@@ -211,6 +211,10 @@ func (r *purchasesRepoImpl) GetPurchaseList(in *pb.FilterPurchase) (*pb.Purchase
 		argIndex++
 	}
 
+	if in.Limit > 0 {
+		queryBuilder.WriteString(fmt.Sprintf(" LIMIT %d OFFSET %d", in.Limit, (in.Page-1)*in.Limit))
+	}
+
 	queryBuilder.WriteString(" ORDER BY p.created_at DESC")
 	query := queryBuilder.String()
 
