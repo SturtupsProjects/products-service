@@ -129,7 +129,7 @@ func (p *productRepo) GetListProductCategory(in *pb.CategoryName) (*pb.CategoryL
 	var args []interface{}
 
 	var queryBuilder strings.Builder
-	queryBuilder.WriteString("SELECT id, name, image_url, created_by, company_id, branch_id, created_at FROM product_categories WHERE company_id = $1 AND branch_id = $2")
+	queryBuilder.WriteString("SELECT id, name, image_url, created_by, company_id, branch_id, created_at, COUNT(*) OVER() AS total_count FROM product_categories WHERE company_id = $1 AND branch_id = $2")
 
 	args = append(args, in.CompanyId, in.BranchId)
 
@@ -153,11 +153,23 @@ func (p *productRepo) GetListProductCategory(in *pb.CategoryName) (*pb.CategoryL
 	}
 	defer rows.Close()
 
+	var totalCount int64
 	for rows.Next() {
 		var category pb.Category
-		if err := rows.Scan(&category.Id, &category.Name, &category.ImageUrl, &category.CreatedBy, &category.CompanyId, &category.BranchId, &category.CreatedAt); err != nil {
+		var total int64
+		if err := rows.Scan(
+			&category.Id,
+			&category.Name,
+			&category.ImageUrl,
+			&category.CreatedBy,
+			&category.CompanyId,
+			&category.BranchId,
+			&category.CreatedAt,
+			&total, // Scanning total_count from the query
+		); err != nil {
 			return nil, fmt.Errorf("failed to scan row: %w", err)
 		}
+		totalCount = total // Set the total count (will be the same for all rows)
 		categories = append(categories, &category)
 	}
 
@@ -165,7 +177,10 @@ func (p *productRepo) GetListProductCategory(in *pb.CategoryName) (*pb.CategoryL
 		return nil, fmt.Errorf("error while iterating rows: %w", err)
 	}
 
-	return &pb.CategoryList{Categories: categories}, nil
+	return &pb.CategoryList{
+		Categories: categories,
+		TotalCount: totalCount,
+	}, nil
 }
 
 // ---------------- End Product Category CRUD ------------------------------------------------------------------------
@@ -368,6 +383,7 @@ func (p *productRepo) GetProductList(in *pb.ProductFilter) (*pb.ProductList, err
 	conditions := []string{}
 
 	// Добавление условий фильтрации
+
 	if in.CategoryId != "" {
 		conditions = append(conditions, fmt.Sprintf("category_id = $%d", len(args)+1))
 		args = append(args, in.CategoryId)
