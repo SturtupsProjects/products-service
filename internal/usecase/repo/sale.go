@@ -4,6 +4,7 @@ import (
 	"crm-admin/internal/entity"
 	pb "crm-admin/internal/generated/products"
 	"crm-admin/internal/usecase"
+	"database/sql"
 	"errors"
 	"fmt"
 	"github.com/jmoiron/sqlx"
@@ -166,7 +167,6 @@ func (r *salesRepoImpl) GetSale(in *pb.SaleID) (*pb.SaleResponse, error) {
 	return sale, nil
 }
 
-// GetSaleList получает список продаж с возможными фильтрами
 func (r *salesRepoImpl) GetSaleList(in *pb.SaleFilter) (*pb.SaleList, error) {
 	var sales []*pb.SaleResponse
 	var queryBuilder strings.Builder
@@ -174,43 +174,53 @@ func (r *salesRepoImpl) GetSaleList(in *pb.SaleFilter) (*pb.SaleList, error) {
 	argIndex := 3 // Первый аргумент уже используется для CompanyId и BranchId
 
 	queryBuilder.WriteString(`
-		SELECT s.id, s.client_id, s.sold_by, s.total_sale_price, s.payment_method, s.created_at,
-			   i.id AS item_id, i.product_id, i.quantity, i.sale_price, i.total_price 
+		SELECT 
+			s.id, s.client_id, s.sold_by, s.total_sale_price, s.payment_method, s.created_at,
+			i.id AS item_id, i.product_id, i.quantity, i.sale_price, i.total_price,
+			COUNT(*) OVER() AS total_count
 		FROM sales s 
 		LEFT JOIN sales_items i ON s.id = i.sale_id
 		WHERE s.company_id = $1 AND s.branch_id = $2
 	`)
 	args = append(args, in.CompanyId, in.BranchId)
 
+	// Фильтрация по ClientId
 	if in.ClientId != "" {
 		queryBuilder.WriteString(fmt.Sprintf(" AND s.client_id ILIKE '%%' || $%d || '%%'", argIndex))
 		args = append(args, in.ClientId)
 		argIndex++
 	}
 
+	// Фильтрация по SoldBy
 	if in.SoldBy != "" {
 		queryBuilder.WriteString(fmt.Sprintf(" AND s.sold_by ILIKE '%%' || $%d || '%%'", argIndex))
 		args = append(args, in.SoldBy)
 		argIndex++
 	}
 
+	// Фильтрация по StartDate
 	if in.StartDate != "" {
 		queryBuilder.WriteString(fmt.Sprintf(" AND DATE(s.created_at) >= DATE($%d)", argIndex))
 		args = append(args, in.StartDate)
 		argIndex++
 	}
 
+	// Фильтрация по EndDate
 	if in.EndDate != "" {
 		queryBuilder.WriteString(fmt.Sprintf(" AND DATE(s.created_at) <= DATE($%d)", argIndex))
 		args = append(args, in.EndDate)
 		argIndex++
 	}
 
-	if in.Limit > 0 {
-		queryBuilder.WriteString(fmt.Sprintf(" LIMIT %d OFFSET %d", in.Limit, (in.Page-1)*in.Limit))
+	// Сортировка
+	queryBuilder.WriteString(" ORDER BY s.created_at DESC")
+
+	// Пагинация
+	if in.Limit > 0 && in.Page > 0 {
+		queryBuilder.WriteString(fmt.Sprintf(" LIMIT $%d OFFSET $%d", argIndex, argIndex+1))
+		args = append(args, in.Limit, (in.Page-1)*in.Limit)
 	}
 
-	queryBuilder.WriteString(" ORDER BY s.created_at DESC")
 	query := queryBuilder.String()
 
 	rows, err := r.db.Queryx(query, args...)
@@ -220,10 +230,13 @@ func (r *salesRepoImpl) GetSaleList(in *pb.SaleFilter) (*pb.SaleList, error) {
 	defer rows.Close()
 
 	salesMap := make(map[string]*pb.SaleResponse)
+	var totalCount int64
 
 	for rows.Next() {
 		var sale pb.SaleResponse
 		var item pb.SalesItem
+		var count sql.NullInt64
+
 		err = rows.Scan(
 			&sale.Id,
 			&sale.ClientId,
@@ -236,15 +249,23 @@ func (r *salesRepoImpl) GetSaleList(in *pb.SaleFilter) (*pb.SaleList, error) {
 			&item.Quantity,
 			&item.SalePrice,
 			&item.TotalPrice,
+			&count,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan sale row: %w", err)
 		}
 
+		// Устанавливаем `totalCount` (одно значение для всех строк)
+		if count.Valid {
+			totalCount = count.Int64
+		}
+
+		// Если продажа ещё не добавлена, добавляем её
 		if _, exists := salesMap[sale.Id]; !exists {
 			salesMap[sale.Id] = &sale
 		}
 
+		// Добавляем товар к соответствующей продаже
 		if item.Id != "" {
 			salesMap[sale.Id].SoldProducts = append(salesMap[sale.Id].SoldProducts, &item)
 		}
@@ -254,11 +275,16 @@ func (r *salesRepoImpl) GetSaleList(in *pb.SaleFilter) (*pb.SaleList, error) {
 		return nil, fmt.Errorf("error iterating over sale rows: %w", err)
 	}
 
+	// Преобразуем карту в список
 	for _, sale := range salesMap {
 		sales = append(sales, sale)
 	}
 
-	return &pb.SaleList{Sales: sales}, nil
+	// Возвращаем список продаж с totalCount
+	return &pb.SaleList{
+		Sales:      sales,
+		TotalCount: totalCount,
+	}, nil
 }
 
 // DeleteSale удаляет продажу и связанные с ней элементы
