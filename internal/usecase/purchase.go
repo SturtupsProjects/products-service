@@ -105,6 +105,7 @@ func (p *PurchaseUseCase) CreatePurchase(in *entity.Purchase) (*pb.PurchaseRespo
 		Description:   fmt.Sprintf("Purchase from supplier %v", in.SupplierID),
 		PaymentMethod: in.PaymentMethod,
 		CompanyId:     in.CompanyID,
+		BranchId:      in.BranchID,
 	}
 
 	_, err = p.cash.CreateExpense(cashFlowRequest) // предполагаем наличие метода Create в CashFlowRepo

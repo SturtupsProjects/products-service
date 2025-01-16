@@ -103,6 +103,7 @@ func (s *SalesUseCase) CreateSales(in *entity.SaleRequest) (*pb.SaleResponse, er
 		Description:   fmt.Sprintf("Sale for client %s", in.ClientID),
 		PaymentMethod: in.PaymentMethod,
 		CompanyId:     in.CompanyID,
+		BranchId:      in.BranchID,
 	}
 
 	// Add to cash flow
