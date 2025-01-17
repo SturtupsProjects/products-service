@@ -212,6 +212,11 @@ func (r *purchasesRepoImpl) GetPurchaseList(in *pb.FilterPurchase) (*pb.Purchase
 		args = append(args, in.SupplierId)
 		argIndex++
 	}
+	if in.Description != "" {
+		queryBuilder.WriteString(" AND p.description ILIKE '%' || $" + fmt.Sprint(argIndex) + " || '%'")
+		args = append(args, in.Description)
+		argIndex++
+	}
 
 	// Сортировка
 	queryBuilder.WriteString(" ORDER BY p.created_at DESC")
