@@ -371,47 +371,58 @@ func (p *productRepo) GetProduct(in *pb.GetProductRequest) (*pb.Product, error) 
 func (p *productRepo) GetProductList(in *pb.ProductFilter) (*pb.ProductList, error) {
 	var products []*pb.Product
 
-	// Основной запрос с оконной функцией для totalCount
+	// Основной запрос с подзапросом для подсчёта total_count
 	baseQuery := `
 		SELECT 
 			id, category_id, name, image_url, bill_format, incoming_price, 
 			standard_price, total_count, created_by, created_at, branch_id,
-			COUNT(*) OVER() AS total_count
+			(SELECT COUNT(*) 
+			 FROM products
+			 WHERE company_id = $1 AND branch_id = $2
+			 -- Фильтры для total_count
+			 %s
+			) AS total_count
 		FROM products
 		WHERE company_id = $1 AND branch_id = $2`
 	args := []interface{}{in.CompanyId, in.BranchId}
 	conditions := []string{}
 
-	// Добавление условий фильтрации
-
+	// Добавление фильтров
 	if in.CategoryId != "" {
-		conditions = append(conditions, fmt.Sprintf("category_id = $%d", len(args)+1))
+		condition := fmt.Sprintf("category_id = $%d", len(args)+1)
+		conditions = append(conditions, condition)
 		args = append(args, in.CategoryId)
 	}
 	if in.Name != "" {
-		conditions = append(conditions, fmt.Sprintf("name ILIKE $%d", len(args)+1)) // Поиск без учёта регистра
-		args = append(args, "%"+in.Name+"%")
+		condition := fmt.Sprintf("name ILIKE $%d", len(args)+1)
+		conditions = append(conditions, condition)
+		args = append(args, in.Name)
 	}
 	if in.CreatedBy != "" {
-		conditions = append(conditions, fmt.Sprintf("created_by = $%d", len(args)+1))
+		condition := fmt.Sprintf("created_by = $%d", len(args)+1)
+		conditions = append(conditions, condition)
 		args = append(args, in.CreatedBy)
 	}
 	if in.CreatedAt != "" {
-		conditions = append(conditions, fmt.Sprintf("created_at = $%d", len(args)+1)) // Фильтр по дате
+		condition := fmt.Sprintf("created_at = $%d", len(args)+1)
+		conditions = append(conditions, condition)
 		args = append(args, in.CreatedAt)
 	}
-
 	if in.TotalCount > 0 {
-		conditions = append(conditions, fmt.Sprintf("total_count >= $%d", len(args)+1)) // Фильтр по дате
+		condition := fmt.Sprintf("total_count >= $%d", len(args)+1)
+		conditions = append(conditions, condition)
 		args = append(args, in.TotalCount)
 	}
 
-	// Добавляем условия к запросу
+	// Формируем условия для основного запроса и подзапроса
+	filterConditions := ""
 	if len(conditions) > 0 {
+		filterConditions = " AND " + strings.Join(conditions, " AND ")
 		baseQuery += " AND " + strings.Join(conditions, " AND ")
 	}
+	baseQuery = fmt.Sprintf(baseQuery, filterConditions)
 
-	// Сортировка
+	// Добавляем сортировку
 	baseQuery += " ORDER BY created_at DESC"
 
 	// Пагинация
@@ -427,10 +438,10 @@ func (p *productRepo) GetProductList(in *pb.ProductFilter) (*pb.ProductList, err
 	}
 	defer rows.Close()
 
+	// Чтение результатов
 	var totalCount int64
 	for rows.Next() {
 		var product pb.Product
-		var total int64
 		if err := rows.Scan(
 			&product.Id,
 			&product.CategoryId,
@@ -443,11 +454,10 @@ func (p *productRepo) GetProductList(in *pb.ProductFilter) (*pb.ProductList, err
 			&product.CreatedBy,
 			&product.CreatedAt,
 			&product.BranchId,
-			&total, // Получение общего количества из оконной функции
+			&totalCount, // Получение total_count из подзапроса
 		); err != nil {
 			return nil, fmt.Errorf("failed to scan row: %w", err)
 		}
-		totalCount = total // Устанавливаем значение totalCount (оно будет одинаковым для всех строк)
 		products = append(products, &product)
 	}
 
@@ -456,7 +466,7 @@ func (p *productRepo) GetProductList(in *pb.ProductFilter) (*pb.ProductList, err
 		return nil, fmt.Errorf("error while iterating rows: %w", err)
 	}
 
-	// Возврат данных с totalCount
+	// Возврат данных
 	return &pb.ProductList{
 		Products:   products,
 		TotalCount: totalCount,

@@ -178,16 +178,27 @@ func (r *salesRepoImpl) GetSaleList(in *pb.SaleFilter) (*pb.SaleList, error) {
 			s.id, s.client_id, s.sold_by, s.total_sale_price, s.payment_method, s.created_at,
 			i.id AS item_id, i.product_id, i.quantity, i.sale_price, i.total_price,
 			pr.name AS product_name, pr.image_url, -- Получаем имя продукта
-			COUNT(*) OVER() AS total_count
+			(SELECT COUNT(*) 
+			 FROM sales s2
+			 LEFT JOIN sales_items i2 ON s2.id = i2.sale_id
+			 LEFT JOIN products pr2 ON i2.product_id = pr2.id
+			 WHERE s2.company_id = $1 AND s2.branch_id = $2
+			 %s
+			) AS total_count
 		FROM sales s 
 		LEFT JOIN sales_items i ON s.id = i.sale_id
-		LEFT JOIN products pr ON i.product_id = pr.id -- Соединение с таблицей продуктов
+		LEFT JOIN products pr ON i.product_id = pr.id
 		WHERE s.company_id = $1 AND s.branch_id = $2
 	`)
 	args = append(args, in.CompanyId, in.BranchId)
 
+	// Условия фильтрации
+	conditions := []string{}
+
 	// Фильтрация по ClientId
 	if in.ClientId != "" {
+		condition := fmt.Sprintf("s2.client_id ILIKE '%%' || $%d || '%%'", argIndex)
+		conditions = append(conditions, condition)
 		queryBuilder.WriteString(fmt.Sprintf(" AND s.client_id ILIKE '%%' || $%d || '%%'", argIndex))
 		args = append(args, in.ClientId)
 		argIndex++
@@ -195,6 +206,8 @@ func (r *salesRepoImpl) GetSaleList(in *pb.SaleFilter) (*pb.SaleList, error) {
 
 	// Фильтрация по SoldBy
 	if in.SoldBy != "" {
+		condition := fmt.Sprintf("s2.sold_by ILIKE '%%' || $%d || '%%'", argIndex)
+		conditions = append(conditions, condition)
 		queryBuilder.WriteString(fmt.Sprintf(" AND s.sold_by ILIKE '%%' || $%d || '%%'", argIndex))
 		args = append(args, in.SoldBy)
 		argIndex++
@@ -202,6 +215,8 @@ func (r *salesRepoImpl) GetSaleList(in *pb.SaleFilter) (*pb.SaleList, error) {
 
 	// Фильтрация по StartDate
 	if in.StartDate != "" {
+		condition := fmt.Sprintf("DATE(s2.created_at) >= DATE($%d)", argIndex)
+		conditions = append(conditions, condition)
 		queryBuilder.WriteString(fmt.Sprintf(" AND DATE(s.created_at) >= DATE($%d)", argIndex))
 		args = append(args, in.StartDate)
 		argIndex++
@@ -209,6 +224,8 @@ func (r *salesRepoImpl) GetSaleList(in *pb.SaleFilter) (*pb.SaleList, error) {
 
 	// Фильтрация по EndDate
 	if in.EndDate != "" {
+		condition := fmt.Sprintf("DATE(s2.created_at) <= DATE($%d)", argIndex)
+		conditions = append(conditions, condition)
 		queryBuilder.WriteString(fmt.Sprintf(" AND DATE(s.created_at) <= DATE($%d)", argIndex))
 		args = append(args, in.EndDate)
 		argIndex++
@@ -216,22 +233,30 @@ func (r *salesRepoImpl) GetSaleList(in *pb.SaleFilter) (*pb.SaleList, error) {
 
 	// Фильтрация по имени продукта
 	if in.ProductName != "" {
+		condition := fmt.Sprintf("pr2.name ILIKE '%%' || $%d || '%%'", argIndex)
+		conditions = append(conditions, condition)
 		queryBuilder.WriteString(fmt.Sprintf(" AND pr.name ILIKE '%%' || $%d || '%%'", argIndex))
 		args = append(args, in.ProductName)
 		argIndex++
 	}
 
+	// Добавляем фильтры в подзапрос
+	filterConditions := ""
+	if len(conditions) > 0 {
+		filterConditions = " AND " + strings.Join(conditions, " AND ")
+	}
+	query := fmt.Sprintf(queryBuilder.String(), filterConditions)
+
 	// Сортировка
-	queryBuilder.WriteString(" ORDER BY s.created_at DESC")
+	query += " ORDER BY s.created_at DESC"
 
 	// Пагинация
 	if in.Limit > 0 && in.Page > 0 {
-		queryBuilder.WriteString(fmt.Sprintf(" LIMIT $%d OFFSET $%d", argIndex, argIndex+1))
+		query += fmt.Sprintf(" LIMIT $%d OFFSET $%d", argIndex, argIndex+1)
 		args = append(args, in.Limit, (in.Page-1)*in.Limit)
 	}
 
-	query := queryBuilder.String()
-
+	// Выполнение запроса
 	rows, err := r.db.Queryx(query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list sales: %w", err)
@@ -246,7 +271,6 @@ func (r *salesRepoImpl) GetSaleList(in *pb.SaleFilter) (*pb.SaleList, error) {
 		var item pb.SalesItem
 		var productName sql.NullString
 		var productImage sql.NullString
-		var count sql.NullInt64
 
 		err = rows.Scan(
 			&sale.Id,
@@ -260,20 +284,15 @@ func (r *salesRepoImpl) GetSaleList(in *pb.SaleFilter) (*pb.SaleList, error) {
 			&item.Quantity,
 			&item.SalePrice,
 			&item.TotalPrice,
-			&productName, // Сканируем имя продукта
+			&productName,
 			&productImage,
-			&count,
+			&totalCount, // Получение общего количества записей
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan sale row: %w", err)
 		}
 
-		// Устанавливаем `totalCount` (одно значение для всех строк)
-		if count.Valid {
-			totalCount = count.Int64
-		}
-
-		// Добавляем имя продукта
+		// Добавляем имя и изображение продукта
 		if productName.Valid {
 			item.ProductName = productName.String
 		}
@@ -281,12 +300,12 @@ func (r *salesRepoImpl) GetSaleList(in *pb.SaleFilter) (*pb.SaleList, error) {
 			item.ProductImage = productImage.String
 		}
 
-		// Если продажа ещё не добавлена, добавляем её
+		// Добавляем продажу в карту
 		if _, exists := salesMap[sale.Id]; !exists {
 			salesMap[sale.Id] = &sale
 		}
 
-		// Добавляем товар к соответствующей продаже
+		// Добавляем товар к продаже
 		if item.Id != "" {
 			salesMap[sale.Id].SoldProducts = append(salesMap[sale.Id].SoldProducts, &item)
 		}

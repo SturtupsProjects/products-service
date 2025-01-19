@@ -195,21 +195,33 @@ func (r *purchasesRepoImpl) GetPurchaseList(in *pb.FilterPurchase) (*pb.Purchase
 	var args []interface{}
 	argIndex := 3
 
+	// Основной запрос
 	queryBuilder.WriteString(`
         SELECT 
             p.id, p.supplier_id, p.purchased_by, p.total_cost, p.payment_method, p.description, p.created_at,
             i.id AS item_id, i.product_id, i.quantity, i.purchase_price, i.total_price,
             pr.name AS product_name, pr.image_url, -- Получаем имя продукта
-            COUNT(*) OVER() AS total_count
+            (SELECT COUNT(*) 
+             FROM purchases p2
+             LEFT JOIN purchase_items i2 ON p2.id = i2.purchase_id
+             LEFT JOIN products pr2 ON i2.product_id = pr2.id
+             WHERE p2.company_id = $1 AND p2.branch_id = $2
+             %s
+            ) AS total_count
         FROM purchases p
         LEFT JOIN purchase_items i ON p.id = i.purchase_id
-        LEFT JOIN products pr ON i.product_id = pr.id -- Соединение с таблицей продуктов
+        LEFT JOIN products pr ON i.product_id = pr.id
         WHERE p.company_id = $1 AND p.branch_id = $2
     `)
 	args = append(args, in.CompanyId, in.BranchId)
 
+	// Условия фильтрации
+	conditions := []string{}
+
 	// Фильтр по supplier_id
 	if in.SupplierId != "" {
+		condition := fmt.Sprintf("p2.supplier_id ILIKE '%%' || $%d || '%%'", argIndex)
+		conditions = append(conditions, condition)
 		queryBuilder.WriteString(" AND p.supplier_id ILIKE '%' || $" + fmt.Sprint(argIndex) + " || '%'")
 		args = append(args, in.SupplierId)
 		argIndex++
@@ -217,6 +229,8 @@ func (r *purchasesRepoImpl) GetPurchaseList(in *pb.FilterPurchase) (*pb.Purchase
 
 	// Фильтр по description
 	if in.Description != "" {
+		condition := fmt.Sprintf("p2.description ILIKE '%%' || $%d || '%%'", argIndex)
+		conditions = append(conditions, condition)
 		queryBuilder.WriteString(" AND p.description ILIKE '%' || $" + fmt.Sprint(argIndex) + " || '%'")
 		args = append(args, in.Description)
 		argIndex++
@@ -224,22 +238,30 @@ func (r *purchasesRepoImpl) GetPurchaseList(in *pb.FilterPurchase) (*pb.Purchase
 
 	// Фильтр по product_name
 	if in.ProductName != "" {
+		condition := fmt.Sprintf("pr2.name ILIKE '%%' || $%d || '%%'", argIndex)
+		conditions = append(conditions, condition)
 		queryBuilder.WriteString(" AND pr.name ILIKE '%' || $" + fmt.Sprint(argIndex) + " || '%'")
 		args = append(args, in.ProductName)
 		argIndex++
 	}
 
+	// Добавляем условия в подзапрос
+	filterConditions := ""
+	if len(conditions) > 0 {
+		filterConditions = " AND " + strings.Join(conditions, " AND ")
+	}
+	query := fmt.Sprintf(queryBuilder.String(), filterConditions)
+
 	// Сортировка
-	queryBuilder.WriteString(" ORDER BY p.created_at DESC")
+	query += " ORDER BY p.created_at DESC"
 
 	// Пагинация
 	if in.Limit > 0 && in.Page > 0 {
-		queryBuilder.WriteString(fmt.Sprintf(" LIMIT $%d OFFSET $%d", argIndex, argIndex+1))
+		query += fmt.Sprintf(" LIMIT $%d OFFSET $%d", argIndex, argIndex+1)
 		args = append(args, in.Limit, (in.Page-1)*in.Limit)
 	}
 
-	query := queryBuilder.String()
-
+	// Выполнение запроса
 	rows, err := r.db.Queryx(query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list purchases: %w", err)
@@ -259,8 +281,8 @@ func (r *purchasesRepoImpl) GetPurchaseList(in *pb.FilterPurchase) (*pb.Purchase
 		var quantity sql.NullInt32
 		var purchasePrice sql.NullFloat64
 		var totalPrice sql.NullFloat64
-		var count sql.NullInt64
 
+		// Сканируем результат
 		err = rows.Scan(
 			&purchase.Id,
 			&purchase.SupplierId,
@@ -274,19 +296,15 @@ func (r *purchasesRepoImpl) GetPurchaseList(in *pb.FilterPurchase) (*pb.Purchase
 			&quantity,
 			&purchasePrice,
 			&totalPrice,
-			&productName, // Сканируем имя продукта
+			&productName,
 			&productImage,
-			&count,
+			&totalCount, // Сканируем общее количество записей
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan purchase list: %w", err)
 		}
 
-		// Устанавливаем totalCount (оно одинаково для всех строк)
-		if count.Valid {
-			totalCount = count.Int64
-		}
-
+		// Обработка данных
 		if itemID.Valid {
 			item.Id = itemID.String
 		}
