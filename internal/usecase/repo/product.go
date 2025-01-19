@@ -401,6 +401,11 @@ func (p *productRepo) GetProductList(in *pb.ProductFilter) (*pb.ProductList, err
 		args = append(args, in.CreatedAt)
 	}
 
+	if in.TotalCount > 0 {
+		conditions = append(conditions, fmt.Sprintf("total_count >= $%d", len(args)+1)) // Фильтр по дате
+		args = append(args, in.TotalCount)
+	}
+
 	// Добавляем условия к запросу
 	if len(conditions) > 0 {
 		baseQuery += " AND " + strings.Join(conditions, " AND ")
