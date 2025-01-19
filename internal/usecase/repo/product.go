@@ -408,22 +408,26 @@ func (p *productRepo) GetProductList(in *pb.ProductFilter) (*pb.ProductList, err
 		argIndex++
 	}
 
-	// Формирование подзапроса для total_count
+	// Подсчёт общего количества записей
 	countQuery := fmt.Sprintf(`
-		(SELECT COUNT(*)
-		 FROM products
-		 WHERE %s
-		) AS total_count`, strings.Join(conditions, " AND "))
+		SELECT COUNT(*)
+		FROM products
+		WHERE %s`, strings.Join(conditions, " AND "))
 
-	// Формирование основного запроса
+	var totalCount int64
+	err := p.db.Get(&totalCount, countQuery, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get total count: %w", err)
+	}
+
+	// Основной запрос для данных
 	baseQuery := fmt.Sprintf(`
 		SELECT 
 			id, category_id, name, image_url, bill_format, incoming_price, 
-			standard_price, total_count, created_by, created_at, branch_id,
-			%s
+			standard_price, total_count, created_by, created_at, branch_id
 		FROM products
 		WHERE %s
-		ORDER BY created_at DESC`, countQuery, strings.Join(conditions, " AND "))
+		ORDER BY created_at DESC`, strings.Join(conditions, " AND "))
 
 	// Добавление пагинации
 	if in.Limit > 0 && in.Page > 0 {
@@ -431,14 +435,13 @@ func (p *productRepo) GetProductList(in *pb.ProductFilter) (*pb.ProductList, err
 		args = append(args, in.Limit, (in.Page-1)*in.Limit)
 	}
 
-	// Выполнение запроса
+	// Выполнение основного запроса
 	rows, err := p.db.Queryx(baseQuery, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute query: %w", err)
 	}
 	defer rows.Close()
 
-	var totalCount int64
 	for rows.Next() {
 		var product pb.Product
 		if err := rows.Scan(
@@ -453,7 +456,6 @@ func (p *productRepo) GetProductList(in *pb.ProductFilter) (*pb.ProductList, err
 			&product.CreatedBy,
 			&product.CreatedAt,
 			&product.BranchId,
-			&totalCount, // Сканируем результат подзапроса
 		); err != nil {
 			return nil, fmt.Errorf("failed to scan row: %w", err)
 		}
