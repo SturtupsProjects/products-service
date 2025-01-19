@@ -199,9 +199,11 @@ func (r *purchasesRepoImpl) GetPurchaseList(in *pb.FilterPurchase) (*pb.Purchase
         SELECT 
             p.id, p.supplier_id, p.purchased_by, p.total_cost, p.payment_method, p.description, p.created_at,
             i.id AS item_id, i.product_id, i.quantity, i.purchase_price, i.total_price,
+            pr.name AS product_name, pr.image_url, -- Получаем имя продукта
             COUNT(*) OVER() AS total_count
         FROM purchases p
         LEFT JOIN purchase_items i ON p.id = i.purchase_id
+        LEFT JOIN products pr ON i.product_id = pr.id -- Соединение с таблицей продуктов
         WHERE p.company_id = $1 AND p.branch_id = $2
     `)
 	args = append(args, in.CompanyId, in.BranchId)
@@ -212,9 +214,18 @@ func (r *purchasesRepoImpl) GetPurchaseList(in *pb.FilterPurchase) (*pb.Purchase
 		args = append(args, in.SupplierId)
 		argIndex++
 	}
+
+	// Фильтр по description
 	if in.Description != "" {
 		queryBuilder.WriteString(" AND p.description ILIKE '%' || $" + fmt.Sprint(argIndex) + " || '%'")
 		args = append(args, in.Description)
+		argIndex++
+	}
+
+	// Фильтр по product_name
+	if in.ProductName != "" {
+		queryBuilder.WriteString(" AND pr.name ILIKE '%' || $" + fmt.Sprint(argIndex) + " || '%'")
+		args = append(args, in.ProductName)
 		argIndex++
 	}
 
@@ -243,6 +254,8 @@ func (r *purchasesRepoImpl) GetPurchaseList(in *pb.FilterPurchase) (*pb.Purchase
 		var item pb.PurchaseItemResponse
 		var itemID sql.NullString
 		var productID sql.NullString
+		var productName sql.NullString
+		var productImage sql.NullString
 		var quantity sql.NullInt32
 		var purchasePrice sql.NullFloat64
 		var totalPrice sql.NullFloat64
@@ -261,6 +274,8 @@ func (r *purchasesRepoImpl) GetPurchaseList(in *pb.FilterPurchase) (*pb.Purchase
 			&quantity,
 			&purchasePrice,
 			&totalPrice,
+			&productName, // Сканируем имя продукта
+			&productImage,
 			&count,
 		)
 		if err != nil {
@@ -277,6 +292,12 @@ func (r *purchasesRepoImpl) GetPurchaseList(in *pb.FilterPurchase) (*pb.Purchase
 		}
 		if productID.Valid {
 			item.ProductId = productID.String
+		}
+		if productName.Valid {
+			item.ProductName = productName.String
+		}
+		if productImage.Valid {
+			item.ProductImage = productImage.String
 		}
 		if quantity.Valid {
 			item.Quantity = quantity.Int32

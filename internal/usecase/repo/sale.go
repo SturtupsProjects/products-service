@@ -177,9 +177,11 @@ func (r *salesRepoImpl) GetSaleList(in *pb.SaleFilter) (*pb.SaleList, error) {
 		SELECT 
 			s.id, s.client_id, s.sold_by, s.total_sale_price, s.payment_method, s.created_at,
 			i.id AS item_id, i.product_id, i.quantity, i.sale_price, i.total_price,
+			pr.name AS product_name, pr.image_url, -- Получаем имя продукта
 			COUNT(*) OVER() AS total_count
 		FROM sales s 
 		LEFT JOIN sales_items i ON s.id = i.sale_id
+		LEFT JOIN products pr ON i.product_id = pr.id -- Соединение с таблицей продуктов
 		WHERE s.company_id = $1 AND s.branch_id = $2
 	`)
 	args = append(args, in.CompanyId, in.BranchId)
@@ -212,6 +214,13 @@ func (r *salesRepoImpl) GetSaleList(in *pb.SaleFilter) (*pb.SaleList, error) {
 		argIndex++
 	}
 
+	// Фильтрация по имени продукта
+	if in.ProductName != "" {
+		queryBuilder.WriteString(fmt.Sprintf(" AND pr.name ILIKE '%%' || $%d || '%%'", argIndex))
+		args = append(args, in.ProductName)
+		argIndex++
+	}
+
 	// Сортировка
 	queryBuilder.WriteString(" ORDER BY s.created_at DESC")
 
@@ -235,6 +244,8 @@ func (r *salesRepoImpl) GetSaleList(in *pb.SaleFilter) (*pb.SaleList, error) {
 	for rows.Next() {
 		var sale pb.SaleResponse
 		var item pb.SalesItem
+		var productName sql.NullString
+		var productImage sql.NullString
 		var count sql.NullInt64
 
 		err = rows.Scan(
@@ -249,6 +260,8 @@ func (r *salesRepoImpl) GetSaleList(in *pb.SaleFilter) (*pb.SaleList, error) {
 			&item.Quantity,
 			&item.SalePrice,
 			&item.TotalPrice,
+			&productName, // Сканируем имя продукта
+			&productImage,
 			&count,
 		)
 		if err != nil {
@@ -258,6 +271,14 @@ func (r *salesRepoImpl) GetSaleList(in *pb.SaleFilter) (*pb.SaleList, error) {
 		// Устанавливаем `totalCount` (одно значение для всех строк)
 		if count.Valid {
 			totalCount = count.Int64
+		}
+
+		// Добавляем имя продукта
+		if productName.Valid {
+			item.ProductName = productName.String
+		}
+		if productImage.Valid {
+			item.ProductImage = productImage.String
 		}
 
 		// Если продажа ещё не добавлена, добавляем её
