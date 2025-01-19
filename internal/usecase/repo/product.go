@@ -403,31 +403,27 @@ func (p *productRepo) GetProductList(in *pb.ProductFilter) (*pb.ProductList, err
 	}
 	// Фильтр по минимальному количеству
 	if in.TotalCount > 0 {
-		conditions = append(conditions, fmt.Sprintf("total_count >= $%d", argIndex))
+		conditions = append(conditions, fmt.Sprintf("total_count <= $%d", argIndex))
 		args = append(args, in.TotalCount)
 		argIndex++
 	}
 
-	// Подсчёт общего количества записей
+	// Формирование подзапроса для total_count
 	countQuery := fmt.Sprintf(`
-		SELECT COUNT(*)
-		FROM products
-		WHERE %s`, strings.Join(conditions, " AND "))
+		(SELECT COUNT(*)
+		 FROM products
+		 WHERE %s
+		) AS total_count`, strings.Join(conditions, " AND "))
 
-	var totalCount int64
-	err := p.db.Get(&totalCount, countQuery, args...)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get total count: %w", err)
-	}
-
-	// Основной запрос для данных
+	// Формирование основного запроса
 	baseQuery := fmt.Sprintf(`
 		SELECT 
 			id, category_id, name, image_url, bill_format, incoming_price, 
-			standard_price, total_count, created_by, created_at, branch_id
+			standard_price, total_count, created_by, created_at, branch_id,
+			%s
 		FROM products
 		WHERE %s
-		ORDER BY created_at DESC`, strings.Join(conditions, " AND "))
+		ORDER BY created_at DESC`, countQuery, strings.Join(conditions, " AND "))
 
 	// Добавление пагинации
 	if in.Limit > 0 && in.Page > 0 {
@@ -435,13 +431,14 @@ func (p *productRepo) GetProductList(in *pb.ProductFilter) (*pb.ProductList, err
 		args = append(args, in.Limit, (in.Page-1)*in.Limit)
 	}
 
-	// Выполнение основного запроса
+	// Выполнение запроса
 	rows, err := p.db.Queryx(baseQuery, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute query: %w", err)
 	}
 	defer rows.Close()
 
+	var totalCount int64
 	for rows.Next() {
 		var product pb.Product
 		if err := rows.Scan(
@@ -456,6 +453,7 @@ func (p *productRepo) GetProductList(in *pb.ProductFilter) (*pb.ProductList, err
 			&product.CreatedBy,
 			&product.CreatedAt,
 			&product.BranchId,
+			&totalCount, // Сканируем результат подзапроса
 		); err != nil {
 			return nil, fmt.Errorf("failed to scan row: %w", err)
 		}
