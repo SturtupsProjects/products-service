@@ -65,10 +65,11 @@ func (c *cashFlow) Get(in *pb.StatisticReq) (*pb.ListCashFlow, error) {
 		FROM cash_flow
 		WHERE company_id = $1 AND branch_id = $2
 		AND transaction_date BETWEEN $3 AND $4 ORDER BY transaction_date DESC
+		LIMIT $5 OFFSET $6
 	`
 
 	var cashFlows []*pb.CashFlow
-	rows, err := c.db.Queryx(query, in.CompanyId, in.BranchId, in.StartDate, in.EndDate)
+	rows, err := c.db.Queryx(query, in.CompanyId, in.BranchId, in.StartDate, in.EndDate, in.Limit, (in.Page-1)*in.Limit)
 	if err != nil {
 		return nil, err
 	}
