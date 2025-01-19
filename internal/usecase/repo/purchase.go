@@ -249,6 +249,8 @@ func (r *purchasesRepoImpl) GetPurchaseList(in *pb.FilterPurchase) (*pb.Purchase
 	filterConditions := ""
 	if len(conditions) > 0 {
 		filterConditions = " AND " + strings.Join(conditions, " AND ")
+	} else {
+		filterConditions = ""
 	}
 	query := fmt.Sprintf(queryBuilder.String(), filterConditions)
 

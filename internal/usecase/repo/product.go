@@ -396,7 +396,7 @@ func (p *productRepo) GetProductList(in *pb.ProductFilter) (*pb.ProductList, err
 	if in.Name != "" {
 		condition := fmt.Sprintf("name ILIKE $%d", len(args)+1)
 		conditions = append(conditions, condition)
-		args = append(args, in.Name)
+		args = append(args, "%"+in.Name+"%")
 	}
 	if in.CreatedBy != "" {
 		condition := fmt.Sprintf("created_by = $%d", len(args)+1)
