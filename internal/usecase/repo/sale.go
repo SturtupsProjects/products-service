@@ -170,54 +170,54 @@ func (r *salesRepoImpl) GetSale(in *pb.SaleID) (*pb.SaleResponse, error) {
 func (r *salesRepoImpl) GetSaleList(in *pb.SaleFilter) (*pb.SaleList, error) {
 	var sales []*pb.SaleResponse
 	var args []interface{}
-	argIndex := 1
+	argIndex := 3
 
-	// Условия фильтрации
+	// Общие условия фильтрации
 	filters := []string{"s.company_id = $1", "s.branch_id = $2"}
 	args = append(args, in.CompanyId, in.BranchId)
 
 	// Фильтр по ClientId
 	if in.ClientId != "" {
-		filters = append(filters, fmt.Sprintf("s.client_id ILIKE '%%' || $%d || '%%'", argIndex+2))
+		filters = append(filters, fmt.Sprintf("s.client_id ILIKE '%%' || $%d || '%%'", argIndex))
 		args = append(args, in.ClientId)
 		argIndex++
 	}
 
 	// Фильтр по SoldBy
 	if in.SoldBy != "" {
-		filters = append(filters, fmt.Sprintf("s.sold_by ILIKE '%%' || $%d || '%%'", argIndex+2))
+		filters = append(filters, fmt.Sprintf("s.sold_by ILIKE '%%' || $%d || '%%'", argIndex))
 		args = append(args, in.SoldBy)
 		argIndex++
 	}
 
 	// Фильтр по StartDate
 	if in.StartDate != "" {
-		filters = append(filters, fmt.Sprintf("DATE(s.created_at) >= DATE($%d)", argIndex+2))
+		filters = append(filters, fmt.Sprintf("DATE(s.created_at) >= DATE($%d)", argIndex))
 		args = append(args, in.StartDate)
 		argIndex++
 	}
 
 	// Фильтр по EndDate
 	if in.EndDate != "" {
-		filters = append(filters, fmt.Sprintf("DATE(s.created_at) <= DATE($%d)", argIndex+2))
+		filters = append(filters, fmt.Sprintf("DATE(s.created_at) <= DATE($%d)", argIndex))
 		args = append(args, in.EndDate)
 		argIndex++
 	}
 
 	// Фильтр по ProductName
 	if in.ProductName != "" {
-		filters = append(filters, fmt.Sprintf("COALESCE(pr.name, '') ILIKE '%%' || $%d || '%%'", argIndex+2))
+		filters = append(filters, fmt.Sprintf("COALESCE(pr.name, '') ILIKE '%%' || $%d || '%%'", argIndex))
 		args = append(args, in.ProductName)
 		argIndex++
 	}
 
 	// Подсчёт общего количества записей
 	countQuery := fmt.Sprintf(`
-		SELECT COUNT(*)
-		FROM sales s
-		LEFT JOIN sales_items i ON s.id = i.sale_id
-		LEFT JOIN products pr ON i.product_id = pr.id
-		WHERE %s`, strings.Join(filters, " AND "))
+        SELECT COUNT(DISTINCT s.id)
+        FROM sales s
+        LEFT JOIN sales_items i ON s.id = i.sale_id
+        LEFT JOIN products pr ON i.product_id = pr.id
+        WHERE %s`, strings.Join(filters, " AND "))
 
 	var totalCount int64
 	err := r.db.Get(&totalCount, countQuery, args...)
@@ -227,19 +227,19 @@ func (r *salesRepoImpl) GetSaleList(in *pb.SaleFilter) (*pb.SaleList, error) {
 
 	// Основной запрос
 	baseQuery := fmt.Sprintf(`
-		SELECT 
-			s.id, s.branch_id, s.client_id, s.sold_by, s.total_sale_price, s.payment_method, s.created_at,
-			i.id AS item_id, i.product_id, i.quantity, i.sale_price, i.total_price,
-			pr.name AS product_name, pr.image_url
-		FROM sales s
-		LEFT JOIN sales_items i ON s.id = i.sale_id
-		LEFT JOIN products pr ON i.product_id = pr.id
-		WHERE %s
-		ORDER BY s.created_at DESC`, strings.Join(filters, " AND "))
+        SELECT 
+            s.id, s.branch_id, s.client_id, s.sold_by, s.total_sale_price, s.payment_method, s.created_at,
+            i.id AS item_id, i.product_id, i.quantity, i.sale_price, i.total_price,
+            pr.name AS product_name, pr.image_url
+        FROM sales s
+        LEFT JOIN sales_items i ON s.id = i.sale_id
+        LEFT JOIN products pr ON i.product_id = pr.id
+        WHERE %s
+        ORDER BY s.created_at DESC`, strings.Join(filters, " AND "))
 
 	// Пагинация
 	if in.Limit > 0 && in.Page > 0 {
-		baseQuery += fmt.Sprintf(" LIMIT $%d OFFSET $%d", argIndex+1, argIndex+2)
+		baseQuery += fmt.Sprintf(" LIMIT $%d OFFSET $%d", argIndex, argIndex+1)
 		args = append(args, in.Limit, (in.Page-1)*in.Limit)
 	}
 
