@@ -194,7 +194,7 @@ func (r *purchasesRepoImpl) GetPurchaseList(in *pb.FilterPurchase) (*pb.Purchase
 	var args []interface{}
 	argIndex := 3
 
-	// Основные фильтры
+	// Основные фильтры для закупок
 	filters := []string{"p.company_id = $1", "p.branch_id = $2"}
 	args = append(args, in.CompanyId, in.BranchId)
 
@@ -209,18 +209,11 @@ func (r *purchasesRepoImpl) GetPurchaseList(in *pb.FilterPurchase) (*pb.Purchase
 		args = append(args, in.Description)
 		argIndex++
 	}
-	if in.ProductName != "" {
-		filters = append(filters, fmt.Sprintf("COALESCE(pr.name, '') ILIKE '%%' || $%d || '%%'", argIndex))
-		args = append(args, in.ProductName)
-		argIndex++
-	}
 
-	// Запрос для подсчёта записей
+	// Подсчёт общего количества записей закупок
 	countQuery := fmt.Sprintf(`
-		SELECT COUNT(DISTINCT p.id)
+		SELECT COUNT(*)
 		FROM purchases p
-		LEFT JOIN purchase_items i ON p.id = i.purchase_id
-		LEFT JOIN products pr ON i.product_id = pr.id
 		WHERE %s`, strings.Join(filters, " AND "))
 
 	var totalCount int64
@@ -228,40 +221,32 @@ func (r *purchasesRepoImpl) GetPurchaseList(in *pb.FilterPurchase) (*pb.Purchase
 		return nil, fmt.Errorf("failed to get total count: %w", err)
 	}
 
-	// Основной запрос
+	// Запрос для получения списка закупок
 	mainQuery := fmt.Sprintf(`
 		SELECT 
-			p.id, p.supplier_id, p.purchased_by, p.total_cost, p.payment_method, p.description, p.created_at,
-			i.id AS item_id, i.product_id, i.quantity, i.purchase_price, i.total_price,
-			pr.name AS product_name, pr.image_url
+			p.id, p.supplier_id, p.purchased_by, p.total_cost, p.payment_method, p.description, p.branch_id, p.company_id, p.created_at
 		FROM purchases p
-		LEFT JOIN purchase_items i ON p.id = i.purchase_id
-		LEFT JOIN products pr ON i.product_id = pr.id
 		WHERE %s
 		ORDER BY p.created_at DESC`, strings.Join(filters, " AND "))
 
-	// Добавляем пагинацию
+	// Пагинация
 	if in.Limit > 0 && in.Page > 0 {
 		mainQuery += fmt.Sprintf(" LIMIT $%d OFFSET $%d", argIndex, argIndex+1)
 		args = append(args, in.Limit, (in.Page-1)*in.Limit)
 	}
 
-	// Выполняем запрос
+	// Выполнение основного запроса
 	rows, err := r.db.Queryx(mainQuery, args...)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list purchases: %w", err)
+		return nil, fmt.Errorf("failed to fetch purchases: %w", err)
 	}
 	defer rows.Close()
 
-	// Обработка данных
+	// Карта для хранения закупок
 	purchaseMap := make(map[string]*pb.PurchaseResponse)
 
 	for rows.Next() {
 		var purchase pb.PurchaseResponse
-		var item pb.PurchaseItemResponse
-		var productName sql.NullString
-		var productImage sql.NullString
-
 		err = rows.Scan(
 			&purchase.Id,
 			&purchase.SupplierId,
@@ -269,40 +254,67 @@ func (r *purchasesRepoImpl) GetPurchaseList(in *pb.FilterPurchase) (*pb.Purchase
 			&purchase.TotalCost,
 			&purchase.PaymentMethod,
 			&purchase.Description,
+			&purchase.BranchId,
+			&purchase.CompanyId,
 			&purchase.CreatedAt,
-			&item.Id,
-			&item.ProductId,
-			&item.Quantity,
-			&item.PurchasePrice,
-			&item.TotalPrice,
-			&productName,
-			&productImage,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan purchase row: %w", err)
 		}
 
-		// Обогащаем данные
-		if productName.Valid {
-			item.ProductName = productName.String
-		}
-		if productImage.Valid {
-			item.ProductImage = productImage.String
-		}
-
-		if _, exists := purchaseMap[purchase.Id]; !exists {
-			purchaseMap[purchase.Id] = &purchase
-		}
-		if item.Id != "" {
-			purchaseMap[purchase.Id].Items = append(purchaseMap[purchase.Id].Items, &item)
-		}
+		purchaseMap[purchase.Id] = &purchase
 	}
 
-	if err = rows.Err(); err != nil {
-		return nil, fmt.Errorf("error iterating over purchase rows: %w", err)
+	// Получение связанных товаров для каждой закупки
+	for purchaseID, purchase := range purchaseMap {
+		itemsQuery := `
+			SELECT 
+				i.id, i.product_id, i.quantity, i.purchase_price, i.total_price,
+				pr.name AS product_name, pr.image_url
+			FROM purchase_items i
+			LEFT JOIN products pr ON i.product_id = pr.id
+			WHERE i.purchase_id = $1`
+
+		itemRows, err := r.db.Queryx(itemsQuery, purchaseID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch purchase items for purchase_id %s: %w", purchaseID, err)
+		}
+
+		var items []*pb.PurchaseItemResponse
+		for itemRows.Next() {
+			var item pb.PurchaseItemResponse
+			var productName sql.NullString
+			var productImage sql.NullString
+
+			err = itemRows.Scan(
+				&item.Id,
+				&item.ProductId,
+				&item.Quantity,
+				&item.PurchasePrice,
+				&item.TotalPrice,
+				&productName,
+				&productImage,
+			)
+			if err != nil {
+				return nil, fmt.Errorf("failed to scan purchase item: %w", err)
+			}
+
+			if productName.Valid {
+				item.ProductName = productName.String
+			}
+			if productImage.Valid {
+				item.ProductImage = productImage.String
+			}
+
+			items = append(items, &item)
+		}
+		itemRows.Close()
+
+		// Добавляем товары к закупке
+		purchase.Items = items
 	}
 
-	// Формируем список
+	// Формируем список закупок
 	for _, purchase := range purchaseMap {
 		purchases = append(purchases, purchase)
 	}
