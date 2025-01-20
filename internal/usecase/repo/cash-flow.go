@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
+	"strings"
 )
 
 type cashFlow struct {
@@ -90,38 +91,73 @@ func (c *cashFlow) Get(in *pb.StatisticReq) (*pb.ListCashFlow, error) {
 	return &pb.ListCashFlow{Cash: cashFlows}, nil
 }
 
-// GetTotalIncome возвращает общую сумму доходов за указанный период, сгруппированную по типу денег
 func (cf *cashFlow) GetTotalIncome(req *pb.StatisticReq) (*pb.PriceProducts, error) {
-	query := `
+	var args []interface{}
+	argIndex := 1
+
+	// Основной запрос
+	queryBuilder := strings.Builder{}
+	queryBuilder.WriteString(`
 		SELECT 
-			payment_method AS many_type, 
+			COALESCE(payment_method, 'uzs') AS many_type, 
 			SUM(amount) AS total_price
 		FROM 
 			cash_flow
 		WHERE 
 			transaction_type = 'income'
-			AND transaction_date BETWEEN $1 AND $2
-			AND company_id = $3
-			AND branch_id = $4
-		GROUP BY 
-			payment_method;
-	`
+			AND company_id = $1
+			AND branch_id = $2
+	`)
 
-	rows, err := cf.db.Query(query, req.StartDate, req.EndDate, req.CompanyId, req.BranchId)
+	args = append(args, req.CompanyId, req.BranchId)
+	argIndex += 2
+
+	// Фильтр по датам
+	if req.StartDate != "" {
+		queryBuilder.WriteString(fmt.Sprintf(" AND transaction_date >= $%d", argIndex))
+		args = append(args, req.StartDate)
+		argIndex++
+	}
+	if req.EndDate != "" {
+		queryBuilder.WriteString(fmt.Sprintf(" AND transaction_date <= $%d", argIndex))
+		args = append(args, req.EndDate)
+		argIndex++
+	}
+
+	// Группировка
+	queryBuilder.WriteString(`
+		GROUP BY 
+			payment_method
+		ORDER BY 
+			total_price DESC
+	`)
+
+	// Пагинация
+	if req.Limit > 0 && req.Page > 0 {
+		queryBuilder.WriteString(fmt.Sprintf(" LIMIT $%d OFFSET $%d", argIndex, argIndex+1))
+		args = append(args, req.Limit, (req.Page-1)*req.Limit)
+	}
+
+	query := queryBuilder.String()
+
+	// Выполнение запроса
+	rows, err := cf.db.Query(query, args...)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to execute query: %w", err)
 	}
 	defer rows.Close()
 
+	// Обработка результатов
 	var prices []*pb.Price
 	for rows.Next() {
 		var price pb.Price
 		if err := rows.Scan(&price.ManyType, &price.TotalPrice); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to scan row: %w", err)
 		}
 		prices = append(prices, &price)
 	}
 
+	// Возврат результата
 	return &pb.PriceProducts{
 		CompanyId: req.CompanyId,
 		BranchId:  req.BranchId,
