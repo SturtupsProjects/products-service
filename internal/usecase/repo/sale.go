@@ -117,6 +117,56 @@ func (r *salesRepoImpl) UpdateSale(in *pb.SaleUpdate) (*pb.SaleResponse, error) 
 }
 
 // GetSale получает детали продажи по ID
+func (r *salesRepoImpl) GetSale(in *pb.SaleID) (*pb.SaleResponse, error) {
+	query := `
+		SELECT 
+			s.id, s.client_id, s.sold_by, s.total_sale_price, s.payment_method, s.created_at,
+			i.id AS item_id, i.product_id, i.quantity, i.sale_price, i.total_price
+		FROM sales s
+		LEFT JOIN sales_items i ON s.id = i.sale_id
+		WHERE s.id = $1 AND s.company_id = $2 AND s.branch_id = $3
+	`
+
+	sale := &pb.SaleResponse{}
+	var soldProducts []*pb.SalesItem
+
+	rows, err := r.db.Queryx(query, in.Id, in.CompanyId, in.BranchId)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query sale: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var item pb.SalesItem
+		err = rows.Scan(
+			&sale.Id,
+			&sale.ClientId,
+			&sale.SoldBy,
+			&sale.TotalSalePrice,
+			&sale.PaymentMethod,
+			&sale.CreatedAt,
+			&item.Id,
+			&item.ProductId,
+			&item.Quantity,
+			&item.SalePrice,
+			&item.TotalPrice,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan sale row: %w", err)
+		}
+		if item.Id != "" {
+			soldProducts = append(soldProducts, &item)
+		}
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating over sale rows: %w", err)
+	}
+
+	sale.SoldProducts = soldProducts
+	return sale, nil
+}
+
 func (r *salesRepoImpl) GetSaleList(in *pb.SaleFilter) (*pb.SaleList, error) {
 	var sales []*pb.SaleResponse
 	var args []interface{}
