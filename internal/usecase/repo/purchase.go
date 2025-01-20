@@ -194,12 +194,12 @@ func (r *purchasesRepoImpl) GetPurchaseList(in *pb.FilterPurchase) (*pb.Purchase
 	var args []interface{}
 	argIndex := 3
 
-	// Общие условия фильтрации
+	// Common filters for both count and main queries
 	filters := []string{"p2.company_id = $1", "p2.branch_id = $2"}
 	mainFilters := []string{"p.company_id = $1", "p.branch_id = $2"}
 	args = append(args, in.CompanyId, in.BranchId)
 
-	// Фильтр по supplier_id
+	// Filter by SupplierId
 	if in.SupplierId != "" {
 		filters = append(filters, fmt.Sprintf("p2.supplier_id ILIKE '%%' || $%d || '%%'", argIndex))
 		mainFilters = append(mainFilters, fmt.Sprintf("p.supplier_id ILIKE '%%' || $%d || '%%'", argIndex))
@@ -207,7 +207,7 @@ func (r *purchasesRepoImpl) GetPurchaseList(in *pb.FilterPurchase) (*pb.Purchase
 		argIndex++
 	}
 
-	// Фильтр по description
+	// Filter by Description
 	if in.Description != "" {
 		filters = append(filters, fmt.Sprintf("p2.description ILIKE '%%' || $%d || '%%'", argIndex))
 		mainFilters = append(mainFilters, fmt.Sprintf("p.description ILIKE '%%' || $%d || '%%'", argIndex))
@@ -215,7 +215,7 @@ func (r *purchasesRepoImpl) GetPurchaseList(in *pb.FilterPurchase) (*pb.Purchase
 		argIndex++
 	}
 
-	// Фильтр по product_name
+	// Filter by ProductName
 	if in.ProductName != "" {
 		filters = append(filters, fmt.Sprintf("COALESCE(pr2.name, '') ILIKE '%%' || $%d || '%%'", argIndex))
 		mainFilters = append(mainFilters, fmt.Sprintf("COALESCE(pr.name, '') ILIKE '%%' || $%d || '%%'", argIndex))
@@ -223,9 +223,9 @@ func (r *purchasesRepoImpl) GetPurchaseList(in *pb.FilterPurchase) (*pb.Purchase
 		argIndex++
 	}
 
-	// Подсчёт общего количества записей
+	// Query to count total records
 	countQuery := fmt.Sprintf(`
-		SELECT COUNT(*)
+		SELECT COUNT(DISTINCT p2.id)
 		FROM purchases p2
 		LEFT JOIN purchase_items i2 ON p2.id = i2.purchase_id
 		LEFT JOIN products pr2 ON i2.product_id = pr2.id
@@ -237,7 +237,7 @@ func (r *purchasesRepoImpl) GetPurchaseList(in *pb.FilterPurchase) (*pb.Purchase
 		return nil, fmt.Errorf("failed to get total count: %w", err)
 	}
 
-	// Основной запрос
+	// Main query for fetching data
 	baseQuery := fmt.Sprintf(`
         SELECT 
             p.id, p.supplier_id, p.purchased_by, p.total_cost, p.payment_method, p.description, p.created_at,
@@ -249,20 +249,20 @@ func (r *purchasesRepoImpl) GetPurchaseList(in *pb.FilterPurchase) (*pb.Purchase
         WHERE %s
         ORDER BY p.created_at DESC`, strings.Join(mainFilters, " AND "))
 
-	// Добавление пагинации
+	// Apply pagination only if Limit and Page are valid
 	if in.Limit > 0 && in.Page > 0 {
 		baseQuery += fmt.Sprintf(" LIMIT $%d OFFSET $%d", argIndex, argIndex+1)
 		args = append(args, in.Limit, (in.Page-1)*in.Limit)
 	}
 
-	// Выполнение основного запроса
+	// Execute the main query
 	rows, err := r.db.Queryx(baseQuery, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list purchases: %w", err)
 	}
 	defer rows.Close()
 
-	// Обработка данных
+	// Map to group purchases
 	purchaseMap := make(map[string]*pb.PurchaseResponse)
 
 	for rows.Next() {
@@ -276,7 +276,7 @@ func (r *purchasesRepoImpl) GetPurchaseList(in *pb.FilterPurchase) (*pb.Purchase
 		var purchasePrice sql.NullFloat64
 		var totalPrice sql.NullFloat64
 
-		// Сканируем данные
+		// Scan the row
 		err = rows.Scan(
 			&purchase.Id,
 			&purchase.SupplierId,
@@ -294,10 +294,10 @@ func (r *purchasesRepoImpl) GetPurchaseList(in *pb.FilterPurchase) (*pb.Purchase
 			&productImage,
 		)
 		if err != nil {
-			return nil, fmt.Errorf("failed to scan purchase list: %w", err)
+			return nil, fmt.Errorf("failed to scan purchase row: %w", err)
 		}
 
-		// Обработка items
+		// Populate item data
 		if itemID.Valid {
 			item.Id = itemID.String
 		}
@@ -320,10 +320,12 @@ func (r *purchasesRepoImpl) GetPurchaseList(in *pb.FilterPurchase) (*pb.Purchase
 			item.TotalPrice = totalPrice.Float64
 		}
 
+		// Add purchase to map
 		if _, exists := purchaseMap[purchase.Id]; !exists {
 			purchaseMap[purchase.Id] = &purchase
 		}
 
+		// Append items to purchase
 		if itemID.Valid {
 			purchaseMap[purchase.Id].Items = append(purchaseMap[purchase.Id].Items, &item)
 		}
@@ -333,11 +335,12 @@ func (r *purchasesRepoImpl) GetPurchaseList(in *pb.FilterPurchase) (*pb.Purchase
 		return nil, fmt.Errorf("error iterating over purchase rows: %w", err)
 	}
 
-	// Преобразуем карту в список
+	// Convert map to list
 	for _, purchase := range purchaseMap {
 		purchases = append(purchases, purchase)
 	}
 
+	// Return result
 	return &pb.PurchaseList{
 		Purchases:  purchases,
 		TotalCount: totalCount,
