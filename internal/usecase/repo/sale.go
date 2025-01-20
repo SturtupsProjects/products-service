@@ -117,101 +117,46 @@ func (r *salesRepoImpl) UpdateSale(in *pb.SaleUpdate) (*pb.SaleResponse, error) 
 }
 
 // GetSale получает детали продажи по ID
-func (r *salesRepoImpl) GetSale(in *pb.SaleID) (*pb.SaleResponse, error) {
-	query := `
-		SELECT 
-			s.id, s.client_id, s.sold_by, s.total_sale_price, s.payment_method, s.created_at,
-			i.id AS item_id, i.product_id, i.quantity, i.sale_price, i.total_price
-		FROM sales s
-		LEFT JOIN sales_items i ON s.id = i.sale_id
-		WHERE s.id = $1 AND s.company_id = $2 AND s.branch_id = $3
-	`
-
-	sale := &pb.SaleResponse{}
-	var soldProducts []*pb.SalesItem
-
-	rows, err := r.db.Queryx(query, in.Id, in.CompanyId, in.BranchId)
-	if err != nil {
-		return nil, fmt.Errorf("failed to query sale: %w", err)
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var item pb.SalesItem
-		err = rows.Scan(
-			&sale.Id,
-			&sale.ClientId,
-			&sale.SoldBy,
-			&sale.TotalSalePrice,
-			&sale.PaymentMethod,
-			&sale.CreatedAt,
-			&item.Id,
-			&item.ProductId,
-			&item.Quantity,
-			&item.SalePrice,
-			&item.TotalPrice,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("failed to scan sale row: %w", err)
-		}
-		if item.Id != "" {
-			soldProducts = append(soldProducts, &item)
-		}
-	}
-
-	if err = rows.Err(); err != nil {
-		return nil, fmt.Errorf("error iterating over sale rows: %w", err)
-	}
-
-	sale.SoldProducts = soldProducts
-	return sale, nil
-}
 func (r *salesRepoImpl) GetSaleList(in *pb.SaleFilter) (*pb.SaleList, error) {
 	var sales []*pb.SaleResponse
 	var args []interface{}
-	argIndex := 3
+	argIndex := 1
 
-	// Общие условия фильтрации
-	filters := []string{"s2.company_id = $1", "s2.branch_id = $2"}
-	mainFilters := []string{"s.company_id = $1", "s.branch_id = $2"}
+	// Условия фильтрации
+	filters := []string{"s.company_id = $1", "s.branch_id = $2"}
 	args = append(args, in.CompanyId, in.BranchId)
 
 	// Фильтр по ClientId
 	if in.ClientId != "" {
-		filters = append(filters, fmt.Sprintf("s2.client_id ILIKE '%%' || $%d || '%%'", argIndex))
-		mainFilters = append(mainFilters, fmt.Sprintf("s.client_id ILIKE '%%' || $%d || '%%'", argIndex))
+		filters = append(filters, fmt.Sprintf("s.client_id ILIKE '%%' || $%d || '%%'", argIndex+2))
 		args = append(args, in.ClientId)
 		argIndex++
 	}
 
 	// Фильтр по SoldBy
 	if in.SoldBy != "" {
-		filters = append(filters, fmt.Sprintf("s2.sold_by ILIKE '%%' || $%d || '%%'", argIndex))
-		mainFilters = append(mainFilters, fmt.Sprintf("s.sold_by ILIKE '%%' || $%d || '%%'", argIndex))
+		filters = append(filters, fmt.Sprintf("s.sold_by ILIKE '%%' || $%d || '%%'", argIndex+2))
 		args = append(args, in.SoldBy)
 		argIndex++
 	}
 
 	// Фильтр по StartDate
 	if in.StartDate != "" {
-		filters = append(filters, fmt.Sprintf("DATE(s2.created_at) >= DATE($%d)", argIndex))
-		mainFilters = append(mainFilters, fmt.Sprintf("DATE(s.created_at) >= DATE($%d)", argIndex))
+		filters = append(filters, fmt.Sprintf("DATE(s.created_at) >= DATE($%d)", argIndex+2))
 		args = append(args, in.StartDate)
 		argIndex++
 	}
 
 	// Фильтр по EndDate
 	if in.EndDate != "" {
-		filters = append(filters, fmt.Sprintf("DATE(s2.created_at) <= DATE($%d)", argIndex))
-		mainFilters = append(mainFilters, fmt.Sprintf("DATE(s.created_at) <= DATE($%d)", argIndex))
+		filters = append(filters, fmt.Sprintf("DATE(s.created_at) <= DATE($%d)", argIndex+2))
 		args = append(args, in.EndDate)
 		argIndex++
 	}
 
-	// Фильтр по имени продукта
+	// Фильтр по ProductName
 	if in.ProductName != "" {
-		filters = append(filters, fmt.Sprintf("COALESCE(pr2.name, '') ILIKE '%%' || $%d || '%%'", argIndex))
-		mainFilters = append(mainFilters, fmt.Sprintf("COALESCE(pr.name, '') ILIKE '%%' || $%d || '%%'", argIndex))
+		filters = append(filters, fmt.Sprintf("COALESCE(pr.name, '') ILIKE '%%' || $%d || '%%'", argIndex+2))
 		args = append(args, in.ProductName)
 		argIndex++
 	}
@@ -219,9 +164,9 @@ func (r *salesRepoImpl) GetSaleList(in *pb.SaleFilter) (*pb.SaleList, error) {
 	// Подсчёт общего количества записей
 	countQuery := fmt.Sprintf(`
 		SELECT COUNT(*)
-		FROM sales s2
-		LEFT JOIN sales_items i2 ON s2.id = i2.sale_id
-		LEFT JOIN products pr2 ON i2.product_id = pr2.id
+		FROM sales s
+		LEFT JOIN sales_items i ON s.id = i.sale_id
+		LEFT JOIN products pr ON i.product_id = pr.id
 		WHERE %s`, strings.Join(filters, " AND "))
 
 	var totalCount int64
@@ -240,11 +185,11 @@ func (r *salesRepoImpl) GetSaleList(in *pb.SaleFilter) (*pb.SaleList, error) {
 		LEFT JOIN sales_items i ON s.id = i.sale_id
 		LEFT JOIN products pr ON i.product_id = pr.id
 		WHERE %s
-		ORDER BY s.created_at DESC`, strings.Join(mainFilters, " AND "))
+		ORDER BY s.created_at DESC`, strings.Join(filters, " AND "))
 
 	// Пагинация
 	if in.Limit > 0 && in.Page > 0 {
-		baseQuery += fmt.Sprintf(" LIMIT $%d OFFSET $%d", argIndex, argIndex+1)
+		baseQuery += fmt.Sprintf(" LIMIT $%d OFFSET $%d", argIndex+1, argIndex+2)
 		args = append(args, in.Limit, (in.Page-1)*in.Limit)
 	}
 
