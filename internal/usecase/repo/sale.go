@@ -5,6 +5,7 @@ import (
 	pb "crm-admin/internal/generated/products"
 	"crm-admin/internal/usecase"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/jmoiron/sqlx"
@@ -172,92 +173,87 @@ func (r *salesRepoImpl) GetSaleList(in *pb.SaleFilter) (*pb.SaleList, error) {
 	var args []interface{}
 	argIndex := 3
 
-	// Общие условия фильтрации
+	// Основные фильтры для продаж
 	filters := []string{"s.company_id = $1", "s.branch_id = $2"}
 	args = append(args, in.CompanyId, in.BranchId)
 
-	// Фильтр по ClientId
+	// Фильтры
 	if in.ClientId != "" {
 		filters = append(filters, fmt.Sprintf("s.client_id ILIKE '%%' || $%d || '%%'", argIndex))
 		args = append(args, in.ClientId)
 		argIndex++
 	}
-
-	// Фильтр по SoldBy
 	if in.SoldBy != "" {
 		filters = append(filters, fmt.Sprintf("s.sold_by ILIKE '%%' || $%d || '%%'", argIndex))
 		args = append(args, in.SoldBy)
 		argIndex++
 	}
-
-	// Фильтр по StartDate
 	if in.StartDate != "" {
 		filters = append(filters, fmt.Sprintf("DATE(s.created_at) >= DATE($%d)", argIndex))
 		args = append(args, in.StartDate)
 		argIndex++
 	}
-
-	// Фильтр по EndDate
 	if in.EndDate != "" {
 		filters = append(filters, fmt.Sprintf("DATE(s.created_at) <= DATE($%d)", argIndex))
 		args = append(args, in.EndDate)
 		argIndex++
 	}
-
-	// Фильтр по ProductName
 	if in.ProductName != "" {
 		filters = append(filters, fmt.Sprintf("COALESCE(pr.name, '') ILIKE '%%' || $%d || '%%'", argIndex))
 		args = append(args, in.ProductName)
 		argIndex++
 	}
 
-	// Подсчёт общего количества записей
+	// Подсчёт общего количества записей продаж
 	countQuery := fmt.Sprintf(`
-        SELECT COUNT(DISTINCT s.id)
-        FROM sales s
-        LEFT JOIN sales_items i ON s.id = i.sale_id
-        LEFT JOIN products pr ON i.product_id = pr.id
-        WHERE %s`, strings.Join(filters, " AND "))
+		SELECT COUNT(*)
+		FROM sales s
+		WHERE %s`, strings.Join(filters, " AND "))
 
 	var totalCount int64
-	err := r.db.Get(&totalCount, countQuery, args...)
-	if err != nil {
+	if err := r.db.Get(&totalCount, countQuery, args...); err != nil {
 		return nil, fmt.Errorf("failed to get total count: %w", err)
 	}
 
-	// Основной запрос
-	baseQuery := fmt.Sprintf(`
-        SELECT 
-            s.id, s.branch_id, s.client_id, s.sold_by, s.total_sale_price, s.payment_method, s.created_at,
-            i.id AS item_id, i.product_id, i.quantity, i.sale_price, i.total_price,
-            pr.name AS product_name, pr.image_url
-        FROM sales s
-        LEFT JOIN sales_items i ON s.id = i.sale_id
-        LEFT JOIN products pr ON i.product_id = pr.id
-        WHERE %s
-        ORDER BY s.created_at DESC`, strings.Join(filters, " AND "))
+	// Основной запрос с агрегированием данных
+	mainQuery := fmt.Sprintf(`
+		SELECT 
+			s.id AS sale_id, s.branch_id, s.client_id, s.sold_by, s.total_sale_price, s.payment_method, s.created_at,
+			COALESCE(JSON_AGG(
+				JSON_BUILD_OBJECT(
+					'id', i.id,
+					'product_id', i.product_id,
+					'quantity', i.quantity,
+					'sale_price', i.sale_price,
+					'total_price', i.total_price,
+					'product_name', pr.name,
+					'product_image', pr.image_url
+				)
+			) FILTER (WHERE i.id IS NOT NULL), '[]') AS sold_products
+		FROM sales s
+		LEFT JOIN sales_items i ON s.id = i.sale_id
+		LEFT JOIN products pr ON i.product_id = pr.id
+		WHERE %s
+		GROUP BY s.id
+		ORDER BY s.created_at DESC`, strings.Join(filters, " AND "))
 
-	// Пагинация
+	// Добавляем пагинацию
 	if in.Limit > 0 && in.Page > 0 {
-		baseQuery += fmt.Sprintf(" LIMIT $%d OFFSET $%d", argIndex, argIndex+1)
+		mainQuery += fmt.Sprintf(" LIMIT $%d OFFSET $%d", argIndex, argIndex+1)
 		args = append(args, in.Limit, (in.Page-1)*in.Limit)
 	}
 
-	// Выполнение основного запроса
-	rows, err := r.db.Queryx(baseQuery, args...)
+	// Выполнение запроса
+	rows, err := r.db.Queryx(mainQuery, args...)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list sales: %w", err)
+		return nil, fmt.Errorf("failed to fetch sales: %w", err)
 	}
 	defer rows.Close()
 
 	// Чтение данных
-	salesMap := make(map[string]*pb.SaleResponse)
-
 	for rows.Next() {
 		var sale pb.SaleResponse
-		var item pb.SalesItem
-		var productName sql.NullString
-		var productImage sql.NullString
+		var soldProductsJSON string
 
 		err = rows.Scan(
 			&sale.Id,
@@ -267,44 +263,23 @@ func (r *salesRepoImpl) GetSaleList(in *pb.SaleFilter) (*pb.SaleList, error) {
 			&sale.TotalSalePrice,
 			&sale.PaymentMethod,
 			&sale.CreatedAt,
-			&item.Id,
-			&item.ProductId,
-			&item.Quantity,
-			&item.SalePrice,
-			&item.TotalPrice,
-			&productName,
-			&productImage,
+			&soldProductsJSON,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan sale row: %w", err)
 		}
 
-		// Обработка данных
-		if productName.Valid {
-			item.ProductName = productName.String
+		// Парсим JSON данных о товарах
+		var soldProducts []*pb.SalesItem
+		if err := json.Unmarshal([]byte(soldProductsJSON), &soldProducts); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal sold products JSON: %w", err)
 		}
-		if productImage.Valid {
-			item.ProductImage = productImage.String
-		}
+		sale.SoldProducts = soldProducts
 
-		if _, exists := salesMap[sale.Id]; !exists {
-			salesMap[sale.Id] = &sale
-		}
-
-		if item.Id != "" {
-			salesMap[sale.Id].SoldProducts = append(salesMap[sale.Id].SoldProducts, &item)
-		}
+		sales = append(sales, &sale)
 	}
 
-	if err = rows.Err(); err != nil {
-		return nil, fmt.Errorf("error iterating over sale rows: %w", err)
-	}
-
-	// Формируем результат
-	for _, sale := range salesMap {
-		sales = append(sales, sale)
-	}
-
+	// Возвращаем результат
 	return &pb.SaleList{
 		Sales:      sales,
 		TotalCount: totalCount,
