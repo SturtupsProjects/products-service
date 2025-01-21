@@ -4,7 +4,6 @@ import (
 	"crm-admin/internal/entity"
 	pb "crm-admin/internal/generated/products"
 	"crm-admin/internal/usecase"
-	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
