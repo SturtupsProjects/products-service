@@ -443,7 +443,7 @@ func (r purchasesRepoImpl) GetTransfers(in *pb.TransferID) (*pb.Transfer, error)
 	err := r.db.Get(&transfer, `
 		SELECT id, transferred_by, from_branch_id, to_branch_id, description, created_at, company_id
 		FROM transfers
-		WHERE id = $1`, in.Id,
+		WHERE company_id = $1 and id = $2`, in.CompanyId, in.Id,
 	)
 	if err != nil {
 		return nil, errors.New("transfer not found")
@@ -476,8 +476,8 @@ func (r purchasesRepoImpl) GetTransfers(in *pb.TransferID) (*pb.Transfer, error)
 }
 
 func (r purchasesRepoImpl) GetTransferList(in *pb.TransferFilter) (*pb.TransferList, error) {
-	filters := []string{}
-	args := []interface{}{}
+	filters := []string{"t.company_id = $1"}
+	args := []interface{}{in.CompanyId}
 
 	if in.BranchId != "" {
 		filters = append(filters, `(from_branch_id = $1 OR to_branch_id = $1)`)
