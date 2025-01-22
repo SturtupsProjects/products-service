@@ -541,7 +541,7 @@ func (p *productQuantity) ProductCountChecker(in *entity.CountProductReq) (bool,
 func (p *productQuantity) TransferProducts(in *pb.TransferReq) error {
 	tx, err := p.db.Beginx()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
 
 	defer func() {
@@ -555,7 +555,7 @@ func (p *productQuantity) TransferProducts(in *pb.TransferReq) error {
 		}
 	}()
 
-	// Проверка существующей категории
+	// Проверить или создать категорию "transferred_from_branch" для целевого филиала
 	var categoryID string
 	err = tx.Get(&categoryID, `
 		SELECT id
@@ -564,51 +564,69 @@ func (p *productQuantity) TransferProducts(in *pb.TransferReq) error {
 		"transferred_from_branch", in.ToBranchId)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			// Если категории нет, создаём новую
 			categoryID = uuid.New().String()
 			_, err = tx.Exec(`
 				INSERT INTO product_categories (id, name, branch_id, company_id, created_by, created_at)
 				VALUES ($1, $2, $3, $4, $5, NOW())`,
 				categoryID, "transferred_from_branch", in.ToBranchId, in.CompanyId, in.TransferredBy)
 			if err != nil {
-				return fmt.Errorf("failed to create product category: %w", err)
+				return fmt.Errorf("failed to create category: %w", err)
 			}
 		} else {
-			return err
+			return fmt.Errorf("failed to fetch category: %w", err)
 		}
 	}
 
-	// Перенос продуктов
+	// Создать запись о трансфере
+	transferID := uuid.New().String()
+	_, err = tx.Exec(`
+		INSERT INTO transfers (id, transferred_by, from_branch_id, to_branch_id, description, company_id, created_at)
+		VALUES ($1, $2, $3, $4, $5, $6, NOW())`,
+		transferID, in.TransferredBy, in.FromBranchId, in.ToBranchId, in.Description, in.CompanyId)
+	if err != nil {
+		return fmt.Errorf("failed to create transfer: %w", err)
+	}
+
+	// Обработать товары в трансфере
 	for _, productReq := range in.Products {
-		// Уменьшение количества на исходном филиале
-		queryReduce := `
+		// Уменьшить количество на исходном филиале
+		res, err := tx.Exec(`
 			UPDATE products
 			SET total_count = total_count - $1
-			WHERE id = $2 AND branch_id = $3 AND total_count >= $1`
-		res, err := tx.Exec(queryReduce, productReq.ProductQuantity, productReq.ProductId, in.FromBranchId)
+			WHERE id = $2 AND branch_id = $3 AND total_count >= $1`,
+			productReq.ProductQuantity, productReq.ProductId, in.FromBranchId)
 		if err != nil {
 			return fmt.Errorf("failed to reduce product quantity: %w", err)
 		}
 
 		rowsAffected, err := res.RowsAffected()
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to get affected rows: %w", err)
 		}
 		if rowsAffected == 0 {
-			return errors.New("insufficient quantity or product not found in source branch")
+			return fmt.Errorf("insufficient quantity or product not found in source branch")
 		}
 
-		// Добавление или обновление продукта в целевом филиале
-		queryIncrease := `
+		// Добавить или обновить продукт в целевом филиале
+		_, err = tx.Exec(`
 			INSERT INTO products (id, category_id, name, image_url, bill_format, incoming_price, standard_price, total_count, branch_id, company_id, created_by, created_at)
-			SELECT id, $5, name, image_url, bill_format, incoming_price, standard_price, $1, $2, company_id, created_by, NOW()
+			SELECT id, $5, name, image_url, bill_format, incoming_price, standard_price, $1, $2, company_id, $6, NOW()
 			FROM products
 			WHERE id = $3 AND branch_id = $4
 			ON CONFLICT (id, branch_id) DO UPDATE
-			SET total_count = products.total_count + EXCLUDED.total_count`
-		_, err = tx.Exec(queryIncrease, productReq.ProductQuantity, in.ToBranchId, productReq.ProductId, in.FromBranchId, categoryID)
+			SET total_count = products.total_count + EXCLUDED.total_count`,
+			productReq.ProductQuantity, in.ToBranchId, productReq.ProductId, in.FromBranchId, categoryID, in.TransferredBy)
 		if err != nil {
 			return fmt.Errorf("failed to increase product quantity: %w", err)
+		}
+
+		// Создать запись в таблице transfer_products
+		_, err = tx.Exec(`
+			INSERT INTO transfer_products (id, product_transfers_id, product_id, quantity)
+			VALUES ($1, $2, $3, $4)`,
+			uuid.New().String(), transferID, productReq.ProductId, productReq.ProductQuantity)
+		if err != nil {
+			return fmt.Errorf("failed to create transfer product record: %w", err)
 		}
 	}
 
