@@ -555,6 +555,7 @@ func (p *productQuantity) TransferProducts(in *pb.TransferReq) error {
 		}
 	}()
 
+	// Проверка существующей категории
 	var categoryID string
 	err = tx.Get(&categoryID, `
 		SELECT id
@@ -563,28 +564,30 @@ func (p *productQuantity) TransferProducts(in *pb.TransferReq) error {
 		"transferred_from_branch", in.ToBranchId)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
+			// Если категории нет, создаём новую
 			categoryID = uuid.New().String()
 			_, err = tx.Exec(`
-				INSERT INTO product_categories (id, name, branch_id, company_id)
-				VALUES ($1, $2, $3, $4)`,
-				categoryID, "transferred_from_branch", in.ToBranchId, in.CompanyId)
+				INSERT INTO product_categories (id, name, branch_id, company_id, created_by, created_at)
+				VALUES ($1, $2, $3, $4, $5, NOW())`,
+				categoryID, "transferred_from_branch", in.ToBranchId, in.CompanyId, in.TransferredBy)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to create product category: %w", err)
 			}
 		} else {
 			return err
 		}
 	}
 
+	// Перенос продуктов
 	for _, productReq := range in.Products {
-
+		// Уменьшение количества на исходном филиале
 		queryReduce := `
 			UPDATE products
 			SET total_count = total_count - $1
 			WHERE id = $2 AND branch_id = $3 AND total_count >= $1`
 		res, err := tx.Exec(queryReduce, productReq.ProductQuantity, productReq.ProductId, in.FromBranchId)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to reduce product quantity: %w", err)
 		}
 
 		rowsAffected, err := res.RowsAffected()
@@ -595,6 +598,7 @@ func (p *productQuantity) TransferProducts(in *pb.TransferReq) error {
 			return errors.New("insufficient quantity or product not found in source branch")
 		}
 
+		// Добавление или обновление продукта в целевом филиале
 		queryIncrease := `
 			INSERT INTO products (id, category_id, name, image_url, bill_format, incoming_price, standard_price, total_count, branch_id, company_id, created_by, created_at)
 			SELECT id, $5, name, image_url, bill_format, incoming_price, standard_price, $1, $2, company_id, created_by, NOW()
@@ -604,7 +608,7 @@ func (p *productQuantity) TransferProducts(in *pb.TransferReq) error {
 			SET total_count = products.total_count + EXCLUDED.total_count`
 		_, err = tx.Exec(queryIncrease, productReq.ProductQuantity, in.ToBranchId, productReq.ProductId, in.FromBranchId, categoryID)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to increase product quantity: %w", err)
 		}
 	}
 
