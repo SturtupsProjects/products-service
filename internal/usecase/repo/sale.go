@@ -121,9 +121,10 @@ func (r *salesRepoImpl) GetSale(in *pb.SaleID) (*pb.SaleResponse, error) {
 	query := `
 		SELECT 
 			s.id, s.client_id, s.sold_by, s.total_sale_price, s.payment_method, s.created_at,
-			i.id AS item_id, i.product_id, i.quantity, i.sale_price, i.total_price
+			i.id AS item_id, i.product_id, i.quantity, i.sale_price, i.total_price, pd.name, pd.image_url
 		FROM sales s
 		LEFT JOIN sales_items i ON s.id = i.sale_id
+		LEFT JOIN products pd ON i.product_id = pd.id
 		WHERE s.id = $1 AND s.company_id = $2 AND s.branch_id = $3
 	`
 
@@ -150,6 +151,8 @@ func (r *salesRepoImpl) GetSale(in *pb.SaleID) (*pb.SaleResponse, error) {
 			&item.Quantity,
 			&item.SalePrice,
 			&item.TotalPrice,
+			&item.ProductName,
+			&item.ProductImage,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan sale row: %w", err)

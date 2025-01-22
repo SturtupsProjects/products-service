@@ -123,9 +123,10 @@ func (r *purchasesRepoImpl) GetPurchase(in *pb.PurchaseID) (*pb.PurchaseResponse
 
 	query := `
         SELECT p.id, p.supplier_id, p.purchased_by, p.total_cost, p.payment_method, p.description, p.created_at,
-               i.id AS item_id, i.product_id, i.quantity, i.purchase_price, i.total_price
+               i.id AS item_id, i.product_id, i.quantity, i.purchase_price, i.total_price, pd.name, pd.image_url
         FROM purchases p
         LEFT JOIN purchase_items i ON p.id = i.purchase_id
+        LEFT JOIN products pd ON i.product_id = pd.id
         WHERE p.id = $1 AND p.company_id = $2 AND p.branch_id = $3
     `
 
@@ -142,6 +143,8 @@ func (r *purchasesRepoImpl) GetPurchase(in *pb.PurchaseID) (*pb.PurchaseResponse
 		var item pb.PurchaseItemResponse
 		var itemID sql.NullString
 		var productID sql.NullString
+		var productName sql.NullString
+		var productImage sql.NullString
 		var quantity sql.NullInt32
 		var purchasePrice sql.NullFloat64
 		var totalPrice sql.NullFloat64
@@ -159,6 +162,8 @@ func (r *purchasesRepoImpl) GetPurchase(in *pb.PurchaseID) (*pb.PurchaseResponse
 			&quantity,
 			&purchasePrice,
 			&totalPrice,
+			&productName,
+			&productImage,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan purchase data: %w", err)
@@ -169,6 +174,14 @@ func (r *purchasesRepoImpl) GetPurchase(in *pb.PurchaseID) (*pb.PurchaseResponse
 		if productID.Valid {
 			item.ProductId = productID.String
 		}
+
+		if productName.Valid {
+			item.ProductName = productName.String
+		}
+		if productImage.Valid {
+			item.ProductImage = productImage.String
+		}
+
 		if quantity.Valid {
 			item.Quantity = quantity.Int32
 		}
