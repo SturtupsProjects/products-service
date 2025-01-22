@@ -269,3 +269,44 @@ func (p *PurchaseUseCase) validatePurchaseItems(purchase *pb.PurchaseResponse) e
 	}
 	return nil
 }
+
+// --------------------------------------------------- Transfers Func --------------------------------------------------------------
+
+func (p *PurchaseUseCase) CreateTransfers(in *pb.TransferReq) (*pb.Transfer, error) {
+
+	err := p.product.TransferProducts(in)
+	if err != nil {
+		p.log.Error("Failed to create transfers", "error", err)
+		return nil, fmt.Errorf("error creating transfers: %w", err)
+	}
+
+	res, err := p.repo.CreateTransfers(in)
+	if err != nil {
+		p.log.Error("Failed to create transfers", "error", err)
+		return nil, fmt.Errorf("error creating transfers: %w", err)
+	}
+
+	return res, nil
+}
+
+func (p *PurchaseUseCase) GetTransfers(in *pb.TransferID) (*pb.Transfer, error) {
+
+	res, err := p.GetTransfers(in)
+	if err != nil {
+		p.log.Error("Failed to fetch transfers", "error", err)
+		return nil, fmt.Errorf("error fetching transfers: %w", err)
+	}
+
+	return res, nil
+}
+
+func (p *PurchaseUseCase) GetTransferList(in *pb.TransferFilter) (*pb.TransferList, error) {
+
+	res, err := p.GetTransferList(in)
+	if err != nil {
+		p.log.Error("Failed to fetch transfer list", "error", err)
+		return nil, fmt.Errorf("error fetching transfer list: %w", err)
+	}
+
+	return res, nil
+}

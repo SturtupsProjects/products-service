@@ -25,6 +25,8 @@ type ProductQuantity interface {
 	RemoveProduct(in *entity.CountProductReq) (*entity.ProductNumber, error)
 	GetProductCount(in *entity.ProductID) (*entity.ProductNumber, error)
 	ProductCountChecker(in *entity.CountProductReq) (bool, error)
+
+	TransferProducts(in *pb.TransferReq) error
 }
 
 type PurchasesRepo interface {
@@ -33,6 +35,10 @@ type PurchasesRepo interface {
 	GetPurchase(in *pb.PurchaseID) (*pb.PurchaseResponse, error)
 	GetPurchaseList(in *pb.FilterPurchase) (*pb.PurchaseList, error)
 	DeletePurchase(in *pb.PurchaseID) (*pb.Message, error)
+
+	CreateTransfers(in *pb.TransferReq) (*pb.Transfer, error)
+	GetTransfers(in *pb.TransferID) (*pb.Transfer, error)
+	GetTransferList(in *pb.TransferFilter) (*pb.TransferList, error)
 }
 
 type SalesRepo interface {

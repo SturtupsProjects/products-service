@@ -7,8 +7,10 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"strings"
+	"time"
 )
 
 type purchasesRepoImpl struct {
@@ -374,4 +376,174 @@ func (r *purchasesRepoImpl) DeletePurchase(in *pb.PurchaseID) (*pb.Message, erro
 	}
 
 	return &pb.Message{Message: "Purchase deleted successfully"}, nil
+}
+
+// --------------------------------------------- Transfer Structs ----------------------------------------------------
+
+func (r purchasesRepoImpl) CreateTransfers(in *pb.TransferReq) (*pb.Transfer, error) {
+	transferID := uuid.New().String()
+
+	tx, err := r.db.Beginx()
+	if err != nil {
+		return nil, err
+	}
+
+	defer func() {
+		if p := recover(); p != nil {
+			tx.Rollback()
+			panic(p)
+		} else if err != nil {
+			tx.Rollback()
+		} else {
+			tx.Commit()
+		}
+	}()
+
+	_, err = tx.Exec(`
+		INSERT INTO transfers (id, transferred_by, from_branch_id, to_branch_id, description, company_id, created_at)
+		VALUES ($1, $2, $3, $4, $5, $6, NOW())`,
+		transferID, in.TransferredBy, in.FromBranchId, in.ToBranchId, in.Description, in.CompanyId,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, product := range in.Products {
+		_, err = tx.Exec(`
+			INSERT INTO transfer_products (id, product_transfers_id, product_id, quantity)
+			VALUES ($1, $2, $3, $4)`,
+			uuid.New().String(), transferID, product.ProductId, product.ProductQuantity,
+		)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return &pb.Transfer{
+		Id:            transferID,
+		TransferredBy: in.TransferredBy,
+		FromBranchId:  in.FromBranchId,
+		ToBranchId:    in.ToBranchId,
+		Description:   in.Description,
+		CompanyId:     in.CompanyId,
+		CreatedAt:     time.Now().String(),
+	}, nil
+}
+
+func (r purchasesRepoImpl) GetTransfers(in *pb.TransferID) (*pb.Transfer, error) {
+	var transfer pb.Transfer
+	var products []struct {
+		ID              string `db:"id"`
+		ProductID       string `db:"product_id"`
+		ProductQuantity int64  `db:"product_quantity"`
+		ProductName     string `db:"product_name"`
+		ProductImage    string `db:"product_image"`
+	}
+
+	err := r.db.Get(&transfer, `
+		SELECT id, transferred_by, from_branch_id, to_branch_id, description, created_at, company_id
+		FROM transfers
+		WHERE id = $1`, in.Id,
+	)
+	if err != nil {
+		return nil, errors.New("transfer not found")
+	}
+
+	err = r.db.Select(&products, `
+		SELECT tp.id, tp.product_id, tp.quantity AS product_quantity, p.name AS product_name, p.image_url AS product_image
+		FROM transfer_products tp
+		JOIN products p ON tp.product_id = p.id
+		WHERE tp.product_transfers_id = $1`,
+		in.Id,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	transferProducts := make([]*pb.TransfersProducts, len(products))
+	for i, product := range products {
+		transferProducts[i] = &pb.TransfersProducts{
+			Id:              product.ID,
+			ProductId:       product.ProductID,
+			ProductQuantity: product.ProductQuantity,
+			ProductName:     product.ProductName,
+			ProductImage:    product.ProductImage,
+		}
+	}
+
+	transfer.Products = transferProducts
+	return &transfer, nil
+}
+
+func (r purchasesRepoImpl) GetTransferList(in *pb.TransferFilter) (*pb.TransferList, error) {
+	filters := []string{}
+	args := []interface{}{}
+
+	if in.BranchId != "" {
+		filters = append(filters, `(from_branch_id = $1 OR to_branch_id = $1)`)
+		args = append(args, in.BranchId)
+	}
+
+	productFilter := strings.TrimSpace(in.ProductName)
+	if productFilter != "" {
+		filters = append(filters, `p.name ILIKE '%' || $2 || '%'`)
+		args = append(args, productFilter)
+	}
+
+	whereClause := ""
+	if len(filters) > 0 {
+		whereClause = "WHERE " + strings.Join(filters, " AND ")
+	}
+
+	var totalCount int
+	err := r.db.Get(&totalCount, fmt.Sprintf(`
+		SELECT COUNT(*)
+		FROM transfers t
+		JOIN transfer_products tp ON t.id = tp.product_transfers_id
+		JOIN products p ON tp.product_id = p.id
+		%s`, whereClause), args...)
+	if err != nil {
+		return nil, err
+	}
+
+	if totalCount == 0 {
+		return &pb.TransferList{TotalCount: 0, Transfers: []*pb.Transfer{}}, nil
+	}
+
+	query := fmt.Sprintf(`
+		SELECT t.id, t.transferred_by, t.from_branch_id, t.to_branch_id, t.description, t.created_at, t.company_id
+		FROM transfers t
+		LEFT JOIN transfer_products tp ON t.id = tp.product_transfers_id
+		LEFT JOIN products p ON tp.product_id = p.id
+		%s
+		ORDER BY t.created_at DESC`, whereClause)
+
+	if in.Limit > 0 && in.Page > 0 {
+		query += " LIMIT $3 OFFSET $4"
+		args = append(args, in.Limit, (in.Page-1)*in.Limit)
+	}
+
+	rows, err := r.db.Queryx(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	transfers := []*pb.Transfer{}
+	for rows.Next() {
+		var transfer pb.Transfer
+		if err := rows.StructScan(&transfer); err != nil {
+			return nil, err
+		}
+		transfers = append(transfers, &transfer)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return &pb.TransferList{
+		Transfers:  transfers,
+		TotalCount: int64(totalCount),
+	}, nil
 }

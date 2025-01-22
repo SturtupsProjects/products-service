@@ -7,7 +7,6 @@ import (
 	"crm-admin/internal/usecase"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"log/slog"
 )
 
 type ProductsGrpc struct {
@@ -16,19 +15,17 @@ type ProductsGrpc struct {
 	product    *usecase.ProductsUseCase
 	purchase   *usecase.PurchaseUseCase
 	sales      *usecase.SalesUseCase
-	log        *slog.Logger
 
 	pb.UnimplementedProductsServer
 }
 
-func NewProductGrpc(ctrl *controller.Controller, log *slog.Logger, statistics usecase.StatisticsRepo, cash usecase.CashFlowRepo) *ProductsGrpc {
+func NewProductGrpc(ctrl *controller.Controller, statistics usecase.StatisticsRepo, cash usecase.CashFlowRepo) *ProductsGrpc {
 	return &ProductsGrpc{
 		product:    ctrl.Product,
 		statistics: statistics,
 		purchase:   ctrl.Purchase,
 		sales:      ctrl.Sales,
 		cashFlow:   cash,
-		log:        log,
 	}
 }
 
@@ -39,7 +36,6 @@ func (p *ProductsGrpc) CreateCategory(ctx context.Context, in *pb.CreateCategory
 	category, err := p.product.CreateCategory(in)
 
 	if err != nil {
-		p.log.Error("Failed to create category", "error", err.Error())
 		return nil, status.Errorf(codes.Internal, "Failed to create category: %v", err)
 	}
 
@@ -51,7 +47,6 @@ func (p *ProductsGrpc) UpdateCategory(ctx context.Context, in *pb.UpdateCategory
 	category, err := p.product.UpdateCategory(in)
 
 	if err != nil {
-		p.log.Error("Failed to update category", "error", err.Error())
 		return nil, status.Errorf(codes.Internal, "Failed to update category: %v", err)
 	}
 
@@ -63,7 +58,6 @@ func (p *ProductsGrpc) DeleteCategory(ctx context.Context, in *pb.GetCategoryReq
 	message, err := p.product.DeleteCategory(in)
 
 	if err != nil {
-		p.log.Error("Failed to delete category", "error", err.Error())
 		return nil, status.Errorf(codes.Internal, "Failed to delete category: %v", err)
 	}
 
@@ -75,7 +69,6 @@ func (p *ProductsGrpc) GetCategory(ctx context.Context, in *pb.GetCategoryReques
 	category, err := p.product.GetCategory(in)
 
 	if err != nil {
-		p.log.Error("Failed to retrieve category", "error", err.Error())
 		return nil, status.Errorf(codes.NotFound, "Category not found: %v", err)
 	}
 
@@ -87,7 +80,6 @@ func (p *ProductsGrpc) GetListCategory(ctx context.Context, in *pb.CategoryName)
 	categoryList, err := p.product.GetListCategory(in)
 
 	if err != nil {
-		p.log.Error("Failed to retrieve category list", "error", err.Error())
 		return nil, status.Errorf(codes.Internal, "Failed to retrieve category list: %v", err)
 	}
 
@@ -101,7 +93,6 @@ func (p *ProductsGrpc) CreateProduct(ctx context.Context, in *pb.CreateProductRe
 	product, err := p.product.CreateProduct(in)
 
 	if err != nil {
-		p.log.Error("Failed to create product", "error", err.Error())
 		return nil, status.Errorf(codes.Internal, "Failed to create product: %v", err)
 	}
 
@@ -120,7 +111,6 @@ func (p *ProductsGrpc) UpdateProduct(ctx context.Context, in *pb.UpdateProductRe
 	product, err := p.product.UpdateProduct(in)
 
 	if err != nil {
-		p.log.Error("Failed to update product", "error", err.Error())
 		return nil, status.Errorf(codes.Internal, "Failed to update product: %v", err)
 	}
 
@@ -132,7 +122,6 @@ func (p *ProductsGrpc) DeleteProduct(ctx context.Context, in *pb.GetProductReque
 	message, err := p.product.DeleteProduct(in)
 
 	if err != nil {
-		p.log.Error("Failed to delete product", "error", err.Error())
 		return nil, status.Errorf(codes.Internal, "Failed to delete product: %v", err)
 	}
 
@@ -144,7 +133,6 @@ func (p *ProductsGrpc) GetProduct(ctx context.Context, in *pb.GetProductRequest)
 	product, err := p.product.GetProduct(in)
 
 	if err != nil {
-		p.log.Error("Failed to retrieve product", "error", err.Error())
 		return nil, status.Errorf(codes.NotFound, "Product not found: %v", err)
 	}
 
@@ -156,7 +144,6 @@ func (p *ProductsGrpc) GetProductList(ctx context.Context, in *pb.ProductFilter)
 	productList, err := p.product.GetProductList(in)
 
 	if err != nil {
-		p.log.Error("Failed to retrieve product list", "error", err.Error())
 		return nil, status.Errorf(codes.Internal, "Failed to retrieve product list: %v", err)
 	}
 

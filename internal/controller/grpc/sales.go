@@ -33,7 +33,6 @@ func (p *ProductsGrpc) CalculateTotalSales(ctx context.Context, in *pb.SaleReque
 	// Calculate the total sale price
 	salesTotal, err := p.sales.CalculateTotalSales(saleReq)
 	if err != nil {
-		p.log.Error("Failed to calculate total sale price", "error", err.Error())
 		return nil, status.Errorf(codes.Internal, "Failed to calculate total sale price: %v", err)
 	}
 
@@ -66,7 +65,6 @@ func (p *ProductsGrpc) CreateSales(ctx context.Context, in *pb.SaleRequest) (*pb
 	// Create sale
 	saleResp, err := p.sales.CreateSales(saleReq)
 	if err != nil {
-		p.log.Error("Failed to create sale", "error", err.Error())
 		return nil, status.Errorf(codes.Internal, "Failed to create sale: %v", err)
 	}
 
@@ -78,7 +76,6 @@ func (p *ProductsGrpc) UpdateSales(ctx context.Context, in *pb.SaleUpdate) (*pb.
 
 	saleResp, err := p.sales.UpdateSales(in)
 	if err != nil {
-		p.log.Error("Failed to update sale", "error", err.Error())
 		return nil, status.Errorf(codes.Internal, "Failed to update sale: %v", err)
 	}
 
@@ -90,7 +87,6 @@ func (p *ProductsGrpc) GetSales(ctx context.Context, in *pb.SaleID) (*pb.SaleRes
 
 	saleResp, err := p.sales.GetSales(in)
 	if err != nil {
-		p.log.Error("Failed to retrieve sale", "error", err.Error())
 		return nil, status.Errorf(codes.NotFound, "Sale not found: %v", err)
 	}
 
@@ -102,7 +98,6 @@ func (p *ProductsGrpc) GetListSales(ctx context.Context, in *pb.SaleFilter) (*pb
 
 	salesList, err := p.sales.GetListSales(in)
 	if err != nil {
-		p.log.Error("Failed to retrieve sales list", "error", err.Error())
 		return nil, status.Errorf(codes.Internal, "Failed to retrieve sales list: %v", err)
 	}
 
@@ -114,7 +109,6 @@ func (p *ProductsGrpc) DeleteSales(ctx context.Context, in *pb.SaleID) (*pb.Mess
 
 	message, err := p.sales.DeleteSales(in)
 	if err != nil {
-		p.log.Error("Failed to delete sale", "error", err.Error())
 		return nil, status.Errorf(codes.Internal, "Failed to delete sale: %v", err)
 	}
 
@@ -129,7 +123,6 @@ func (p *ProductsGrpc) GetMostSoldProductsByDay(ctx context.Context, in *pb.Most
 
 	res, err := p.sales.GetMostSoldProductsByDay(in)
 	if err != nil {
-		p.log.Error("Failed to get most sold products by day", "error", err.Error())
 		return nil, status.Errorf(codes.Internal, "Failed to get most sold products by day: %v", err)
 	}
 	return res, err
@@ -139,7 +132,6 @@ func (p *ProductsGrpc) GetTopClients(ctx context.Context, in *pb.GetTopEntitiesR
 
 	res, err := p.sales.GetTopClients(in)
 	if err != nil {
-		p.log.Error("Failed to get top clients", "error", err.Error())
 		return nil, status.Errorf(codes.Internal, "Failed to get top clients: %v", err)
 	}
 
@@ -149,7 +141,6 @@ func (p *ProductsGrpc) GetTopSuppliers(ctx context.Context, in *pb.GetTopEntitie
 
 	res, err := p.sales.GetTopSuppliers(in)
 	if err != nil {
-		p.log.Error("Failed to get top suppliers", "error", err.Error())
 		return nil, status.Errorf(codes.Internal, "Failed to get top suppliers: %v", err)
 	}
 

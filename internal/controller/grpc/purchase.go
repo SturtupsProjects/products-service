@@ -24,7 +24,6 @@ func (p *ProductsGrpc) CreatePurchase(ctx context.Context, in *pb.PurchaseReques
 	// Create purchase via usecase
 	purchase, err := p.purchase.CreatePurchase(purchaseReq)
 	if err != nil {
-		p.log.Error("Failed to create purchase", "error", err.Error())
 		return nil, status.Errorf(codes.Internal, "Failed to create purchase: %v", err)
 	}
 
@@ -36,7 +35,6 @@ func (p *ProductsGrpc) GetPurchase(ctx context.Context, in *pb.PurchaseID) (*pb.
 
 	purchase, err := p.purchase.GetPurchase(in)
 	if err != nil {
-		p.log.Error("Failed to retrieve purchase", "error", err.Error())
 		return nil, status.Errorf(codes.NotFound, "Purchase not found: %v", err)
 	}
 
@@ -48,7 +46,6 @@ func (p *ProductsGrpc) GetListPurchase(ctx context.Context, in *pb.FilterPurchas
 
 	purchaseList, err := p.purchase.GetListPurchase(in)
 	if err != nil {
-		p.log.Error("Failed to retrieve purchase list", "error", err.Error())
 		return nil, status.Errorf(codes.Internal, "Failed to retrieve purchase list: %v", err)
 	}
 
@@ -60,7 +57,6 @@ func (p *ProductsGrpc) UpdatePurchase(ctx context.Context, in *pb.PurchaseUpdate
 
 	purchase, err := p.purchase.UpdatePurchase(in)
 	if err != nil {
-		p.log.Error("Failed to update purchase", "error", err.Error())
 		return nil, status.Errorf(codes.Internal, "Failed to update purchase: %v", err)
 	}
 
@@ -72,7 +68,6 @@ func (p *ProductsGrpc) DeletePurchase(ctx context.Context, in *pb.PurchaseID) (*
 
 	message, err := p.purchase.DeletePurchase(in)
 	if err != nil {
-		p.log.Error("Failed to delete purchase", "error", err.Error())
 		return nil, status.Errorf(codes.Internal, "Failed to delete purchase: %v", err)
 	}
 
@@ -90,4 +85,36 @@ func mapPbPurchaseItemToEntity(items []*pb.PurchaseItem) *[]entity.PurchaseItem 
 		})
 	}
 	return &purchaseItems // Return a pointer to the slice
+}
+
+// ------------------------------------------------------- Transfers Func ------------------------------------------------
+
+func (p *ProductsGrpc) CreateTransfers(ctx context.Context, in *pb.TransferReq) (*pb.Transfer, error) {
+
+	res, err := p.purchase.CreateTransfers(in)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "Failed to create transfers: %v", err)
+	}
+
+	return res, nil
+}
+
+func (p *ProductsGrpc) GetTransfers(ctx context.Context, in *pb.TransferID) (*pb.Transfer, error) {
+
+	res, err := p.purchase.GetTransfers(in)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "Failed to retrieve transfers: %v", err)
+	}
+
+	return res, nil
+}
+
+func (p *ProductsGrpc) GetTransferList(ctx context.Context, in *pb.TransferFilter) (*pb.TransferList, error) {
+
+	res, err := p.purchase.GetTransferList(in)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "Failed to retrieve transfer list: %v", err)
+	}
+
+	return res, nil
 }
