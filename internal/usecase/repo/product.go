@@ -565,9 +565,9 @@ func (p *productQuantity) TransferProducts(in *pb.TransferReq) error {
 		if errors.Is(err, sql.ErrNoRows) {
 			categoryID = uuid.New().String()
 			_, err = tx.Exec(`
-				INSERT INTO product_categories (id, name, branch_id, created_at)
-				VALUES ($1, $2, $3, NOW())`,
-				categoryID, "transferred_from_branch", in.ToBranchId)
+				INSERT INTO product_categories (id, name, branch_id, created_at, company_id)
+				VALUES ($1, $2, $3, NOW(), $4)`,
+				categoryID, "transferred_from_branch", in.ToBranchId, in.CompanyId)
 			if err != nil {
 				return err
 			}
