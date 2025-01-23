@@ -609,8 +609,8 @@ func (p *productQuantity) TransferProducts(in *pb.TransferReq) error {
 
 		// Добавить или обновить продукт в целевом филиале
 		_, err = tx.Exec(`
-			INSERT INTO products (id, category_id, name, image_url, bill_format, incoming_price, standard_price, total_count, branch_id, company_id, created_by, created_at)
-			SELECT id, $5, name, image_url, bill_format, incoming_price, standard_price, $1, $2, company_id, $6, NOW()
+			INSERT INTO products (category_id, name, image_url, bill_format, incoming_price, standard_price, total_count, branch_id, company_id, created_by)
+			SELECT $5, name, image_url, bill_format, incoming_price, standard_price, $1, $2, company_id, $6
 			FROM products
 			WHERE id = $3 AND branch_id = $4
 			ON CONFLICT (id, branch_id) DO UPDATE
