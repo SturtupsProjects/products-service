@@ -100,7 +100,7 @@ func (s *SalesUseCase) CreateSales(in *entity.SaleRequest) (*pb.SaleResponse, er
 	cashFlowRequest := &pb.CashFlowRequest{
 		UserId:        in.SoldBy,
 		Amount:        total.TotalSalePrice,
-		Description:   fmt.Sprintf("Sale for client %s", in.ClientID),
+		Description:   fmt.Sprintf("Mahsulot Sotildi"),
 		PaymentMethod: in.PaymentMethod,
 		CompanyId:     in.CompanyID,
 		BranchId:      in.BranchID,

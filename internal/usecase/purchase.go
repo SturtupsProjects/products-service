@@ -102,7 +102,7 @@ func (p *PurchaseUseCase) CreatePurchase(in *entity.Purchase) (*pb.PurchaseRespo
 	cashFlowRequest := &pb.CashFlowRequest{
 		UserId:        in.PurchasedBy,
 		Amount:        req.TotalCost,
-		Description:   fmt.Sprintf("Purchase from supplier %v", in.SupplierID),
+		Description:   fmt.Sprintf("Mahsulot Sotib olindi"),
 		PaymentMethod: in.PaymentMethod,
 		CompanyId:     in.CompanyID,
 		BranchId:      in.BranchID,
