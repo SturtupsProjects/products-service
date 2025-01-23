@@ -61,34 +61,79 @@ func (c *cashFlow) CreateExpense(in *pb.CashFlowRequest) (*pb.CashFlow, error) {
 
 func (c *cashFlow) Get(in *pb.StatisticReq) (*pb.ListCashFlow, error) {
 
-	query := `
+	baseQuery := `
 		SELECT id, user_id, transaction_date, amount, transaction_type, description, payment_method, company_id, branch_id
 		FROM cash_flow
 		WHERE company_id = $1 AND branch_id = $2
-		AND transaction_date BETWEEN $3 AND $4 ORDER BY transaction_date DESC
-		LIMIT $5 OFFSET $6
+		AND transaction_date BETWEEN $3 AND $4
 	`
+	args := []interface{}{in.CompanyId, in.BranchId, in.StartDate, in.EndDate}
+	index := 5
 
-	var cashFlows []*pb.CashFlow
-	rows, err := c.db.Queryx(query, in.CompanyId, in.BranchId, in.StartDate, in.EndDate, in.Limit, (in.Page-1)*in.Limit)
+	if in.Description != "" {
+		baseQuery += fmt.Sprintf(" AND description ILIKE $%d", index)
+		args = append(args, "%"+in.Description+"%")
+		index++
+	}
+
+	baseQuery += " ORDER BY transaction_date DESC"
+
+	if in.Limit > 0 && in.Page > 0 {
+		baseQuery += fmt.Sprintf(" LIMIT $%d OFFSET $%d", index, index+1)
+		args = append(args, in.Limit, (in.Page-1)*in.Limit)
+	}
+
+	rows, err := c.db.Queryx(baseQuery, args...)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to execute query: %w", err)
 	}
 	defer rows.Close()
 
+	var cashFlows []*pb.CashFlow
 	for rows.Next() {
 		var cashFlow pb.CashFlow
-		if err := rows.Scan(&cashFlow.Id, &cashFlow.UserId, &cashFlow.TransactionDate, &cashFlow.Amount, &cashFlow.TransactionType, &cashFlow.Description, &cashFlow.PaymentMethod, &cashFlow.CompanyId, &cashFlow.BranchId); err != nil {
-			return nil, err
+		if err := rows.Scan(
+			&cashFlow.Id,
+			&cashFlow.UserId,
+			&cashFlow.TransactionDate,
+			&cashFlow.Amount,
+			&cashFlow.TransactionType,
+			&cashFlow.Description,
+			&cashFlow.PaymentMethod,
+			&cashFlow.CompanyId,
+			&cashFlow.BranchId,
+		); err != nil {
+			return nil, fmt.Errorf("failed to scan row: %w", err)
 		}
 		cashFlows = append(cashFlows, &cashFlow)
 	}
 
 	if len(cashFlows) == 0 {
-		return nil, fmt.Errorf("no cash flows found for the given parameters")
+		return &pb.ListCashFlow{Cash: nil, TotalCount: 0}, nil
 	}
 
-	return &pb.ListCashFlow{Cash: cashFlows}, nil
+	countQuery := `
+		SELECT COUNT(*)
+		FROM cash_flow
+		WHERE company_id = $1 AND branch_id = $2
+		AND transaction_date BETWEEN $3 AND $4
+	`
+	countArgs := []interface{}{in.CompanyId, in.BranchId, in.StartDate, in.EndDate}
+
+	if in.Description != "" {
+		countQuery += " AND description ILIKE $5"
+		countArgs = append(countArgs, "%"+in.Description+"%")
+	}
+
+	var totalCount int64
+	if err := c.db.QueryRow(countQuery, countArgs...).Scan(&totalCount); err != nil {
+		return nil, fmt.Errorf("failed to count total cash flows: %w", err)
+	}
+
+	return &pb.ListCashFlow{
+		Cash:       cashFlows,
+		TotalCount: totalCount,
+	}, nil
 }
 
 func (cf *cashFlow) GetTotalIncome(req *pb.StatisticReq) (*pb.PriceProducts, error) {
