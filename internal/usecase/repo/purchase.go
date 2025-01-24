@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
-	"log"
 	"strings"
 	"time"
 )
