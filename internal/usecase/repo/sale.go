@@ -10,6 +10,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"log"
 	"strings"
+	"time"
 )
 
 type salesRepoImpl struct {
@@ -439,4 +440,75 @@ func (r *salesRepoImpl) GetTopSuppliers(in *pb.GetTopEntitiesRequest) ([]*pb.Top
 	}
 
 	return entities, nil
+}
+
+func (r *salesRepoImpl) GetSaleStatistics(in *pb.SaleStatisticsReq) (*pb.SaleStatistics, error) {
+	// Подготовка результата
+	result := &pb.SaleStatistics{
+		TimePeriod: in.Period,
+		BranchId:   in.BranchId,
+		CompanyId:  in.CompanyId,
+	}
+
+	// SQL-запрос с группировкой по датам и валютам
+	query := `
+        SELECT 
+            DATE_TRUNC($1, created_at) AS period,
+            payment_method,
+            SUM(total_sale_price) AS total_sales
+        FROM sales
+        WHERE 
+            created_at BETWEEN $2 AND $3
+            AND company_id = $4
+            AND branch_id = $5
+        GROUP BY period, payment_method
+        ORDER BY period;
+    `
+
+	rows, err := r.db.Query(query, in.Period, in.StartDate, in.EndDate, in.CompanyId, in.BranchId)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	// Хранилище для данных
+	dataMap := make(map[string]map[string]float64) // date -> payment_method -> total_sales
+	totalSum := 0.0
+
+	for rows.Next() {
+		var period time.Time
+		var paymentMethod string
+		var totalSales float64
+
+		if err := rows.Scan(&period, &paymentMethod, &totalSales); err != nil {
+			return nil, err
+		}
+
+		date := period.Format("2006-01-02")
+		if _, exists := dataMap[date]; !exists {
+			dataMap[date] = make(map[string]float64)
+		}
+
+		dataMap[date][paymentMethod] += totalSales
+		totalSum += totalSales
+	}
+
+	// Формирование ответа
+	for date, paymentMethods := range dataMap {
+		saleStatisticsDate := &pb.SaleStatisticsDate{
+			Date: date,
+		}
+
+		for method, total := range paymentMethods {
+			saleStatisticsDate.Values = append(saleStatisticsDate.Values, &pb.Price{
+				ManyType:   method,
+				TotalPrice: total,
+			})
+		}
+
+		result.Data = append(result.Data, saleStatisticsDate)
+	}
+
+	result.Total = totalSum
+	return result, nil
 }

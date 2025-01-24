@@ -287,3 +287,71 @@ func (cf *cashFlow) GetNetProfit(req *pb.StatisticReq) (*pb.PriceProducts, error
 		Sum:       prices,
 	}, nil
 }
+
+func (r *cashFlow) GetBranchIncome(in *pb.BranchIncomeReq) (*pb.BranchIncomeRes, error) {
+	query := `
+        SELECT 
+            branch_id,
+            payment_method,
+            SUM(amount) AS total_income
+        FROM 
+            cash_flow
+        WHERE 
+            transaction_date BETWEEN $1 AND $2
+            AND company_id = $3
+            AND transaction_type = 'income'
+        GROUP BY 
+            branch_id, payment_method
+        ORDER BY 
+            branch_id;
+    `
+
+	rows, err := r.db.Query(query, in.StartDate, in.EndDate, in.CompanyId)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	// Для хранения данных по филиалам
+	branchMap := make(map[string]map[string]float64) // branch_id -> payment_method -> total_income
+	totalIncome := 0.0
+
+	for rows.Next() {
+		var branchID string
+		var paymentMethod string
+		var totalIncomeForMethod float64
+
+		if err := rows.Scan(&branchID, &paymentMethod, &totalIncomeForMethod); err != nil {
+			return nil, err
+		}
+
+		if _, exists := branchMap[branchID]; !exists {
+			branchMap[branchID] = make(map[string]float64)
+		}
+
+		branchMap[branchID][paymentMethod] += totalIncomeForMethod
+		totalIncome += totalIncomeForMethod
+	}
+
+	// Формирование результата
+	result := &pb.BranchIncomeRes{
+		Total: totalIncome,
+	}
+
+	for branchID, paymentMethods := range branchMap {
+		branchIncomeData := &pb.BranchIncomeData{
+			BranchId: branchID,
+		}
+
+		for method, amount := range paymentMethods {
+			branchIncomeData.Values = append(branchIncomeData.Values, &pb.Price{
+				ManyType:   method,
+				TotalPrice: amount,
+			})
+		}
+
+		result.Data = append(result.Data, branchIncomeData)
+	}
+
+	return result, nil
+}

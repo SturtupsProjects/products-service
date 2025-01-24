@@ -539,98 +539,161 @@ func (p *productQuantity) ProductCountChecker(in *entity.CountProductReq) (bool,
 }
 
 func (p *productQuantity) TransferProducts(in *pb.TransferReq) error {
+	// Начало транзакции
 	tx, err := p.db.Beginx()
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
 
 	defer func() {
-		if p := recover(); p != nil {
+		if r := recover(); r != nil {
 			tx.Rollback()
-			panic(p)
+			panic(r)
 		} else if err != nil {
 			tx.Rollback()
 		} else {
-			tx.Commit()
+			err = tx.Commit()
 		}
 	}()
 
-	// Проверить или создать категорию "transferred_from_branch" для целевого филиала
-	var categoryID string
-	err = tx.Get(&categoryID, `
-		SELECT id
-		FROM product_categories
-		WHERE name = $1 AND branch_id = $2`,
-		"transferred_from_branch", in.ToBranchId)
+	// Шаг 1: Проверить или создать категорию "transferred_from_branch" в целевом филиале
+	categoryID, err := p.ensureCategory(tx, "transferred_from_branch", in.ToBranchId, in.CompanyId, in.TransferredBy)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			categoryID = uuid.New().String()
+		return fmt.Errorf("failed to ensure category: %w", err)
+	}
+
+	// Шаг 2: Сначала получить информацию о всех продуктах, чтобы минимизировать запросы
+	productIDs := make([]string, len(in.Products))
+	for i, product := range in.Products {
+		productIDs[i] = product.ProductId
+	}
+
+	// Проверить наличие и количество всех продуктов в исходном филиале за один запрос
+	sourceProducts := make(map[string]int) // ProductID -> TotalCount
+	query, args, err := sqlx.In(`
+        SELECT id, total_count
+        FROM products
+        WHERE id IN (?) AND branch_id = ?`, productIDs, in.FromBranchId)
+	if err != nil {
+		return fmt.Errorf("failed to prepare query for source products: %w", err)
+	}
+	query = tx.Rebind(query)
+
+	rows, err := tx.Queryx(query, args...)
+	if err != nil {
+		return fmt.Errorf("failed to fetch source products: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var id string
+		var totalCount int
+		if err := rows.Scan(&id, &totalCount); err != nil {
+			return fmt.Errorf("failed to scan source product: %w", err)
+		}
+		sourceProducts[id] = totalCount
+	}
+
+	// Проверить, что у всех продуктов достаточно количества
+	for _, product := range in.Products {
+		if available, exists := sourceProducts[product.ProductId]; !exists {
+			return fmt.Errorf("product not found in source branch: ProductId=%s, BranchId=%s",
+				product.ProductId, in.FromBranchId)
+		} else if available < int(product.ProductQuantity) {
+			return fmt.Errorf("insufficient quantity for product: ProductId=%s, BranchId=%s, Requested=%d, Available=%d",
+				product.ProductId, in.FromBranchId, product.ProductQuantity, available)
+		}
+	}
+
+	// Шаг 3: Уменьшить количество всех продуктов в исходном филиале за один запрос
+	for _, product := range in.Products {
+		_, err = tx.Exec(`
+            UPDATE products
+            SET total_count = total_count - $1
+            WHERE id = $2 AND branch_id = $3`,
+			product.ProductQuantity, product.ProductId, in.FromBranchId)
+		if err != nil {
+			return fmt.Errorf("failed to reduce product quantity for ProductId=%s: %w", product.ProductId, err)
+		}
+	}
+
+	// Шаг 4: Проверить наличие продуктов в целевом филиале и обновить или вставить их
+	targetProducts := make(map[string]bool) // ProductID -> ExistsInTargetBranch
+	query, args, err = sqlx.In(`
+        SELECT id
+        FROM products
+        WHERE id IN (?) AND branch_id = ?`, productIDs, in.ToBranchId)
+	if err != nil {
+		return fmt.Errorf("failed to prepare query for target products: %w", err)
+	}
+	query = tx.Rebind(query)
+
+	rows, err = tx.Queryx(query, args...)
+	if err != nil {
+		return fmt.Errorf("failed to fetch target products: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return fmt.Errorf("failed to scan target product: %w", err)
+		}
+		targetProducts[id] = true
+	}
+
+	// Обновить или вставить продукты в целевом филиале
+	for _, product := range in.Products {
+		if targetProducts[product.ProductId] {
+			// Продукт существует, обновить количество
 			_, err = tx.Exec(`
-				INSERT INTO product_categories (id, name, branch_id, company_id, created_by, created_at)
-				VALUES ($1, $2, $3, $4, $5, NOW())`,
-				categoryID, "transferred_from_branch", in.ToBranchId, in.CompanyId, in.TransferredBy)
+                UPDATE products
+                SET total_count = total_count + $1
+                WHERE id = $2 AND branch_id = $3`,
+				product.ProductQuantity, product.ProductId, in.ToBranchId)
 			if err != nil {
-				return fmt.Errorf("failed to create category: %w", err)
+				return fmt.Errorf("failed to update product quantity in target branch for ProductId=%s: %w", product.ProductId, err)
 			}
 		} else {
-			return fmt.Errorf("failed to fetch category: %w", err)
-		}
-	}
-
-	// Создать запись о трансфере
-	transferID := uuid.New().String()
-	_, err = tx.Exec(`
-		INSERT INTO transfers (id, transferred_by, from_branch_id, to_branch_id, description, company_id, created_at)
-		VALUES ($1, $2, $3, $4, $5, $6, NOW())`,
-		transferID, in.TransferredBy, in.FromBranchId, in.ToBranchId, in.Description, in.CompanyId)
-	if err != nil {
-		return fmt.Errorf("failed to create transfer: %w", err)
-	}
-
-	// Обработать товары в трансфере
-	for _, productReq := range in.Products {
-		// Уменьшить количество на исходном филиале
-		res, err := tx.Exec(`
-			UPDATE products
-			SET total_count = total_count - $1
-			WHERE id = $2 AND branch_id = $3 AND total_count >= $1`,
-			productReq.ProductQuantity, productReq.ProductId, in.FromBranchId)
-		if err != nil {
-			return fmt.Errorf("failed to reduce product quantity: %w", err)
-		}
-
-		rowsAffected, err := res.RowsAffected()
-		if err != nil {
-			return fmt.Errorf("failed to get affected rows: %w", err)
-		}
-		if rowsAffected == 0 {
-			return fmt.Errorf("insufficient quantity or product not found in source branch")
-		}
-
-		// Добавить или обновить продукт в целевом филиале
-		_, err = tx.Exec(`
-			INSERT INTO products (category_id, name, image_url, bill_format, incoming_price, standard_price, total_count, branch_id, company_id, created_by)
-			SELECT $5, name, image_url, bill_format, incoming_price, standard_price, $1, $2, company_id, $6
-			FROM products
-			WHERE id = $3 AND branch_id = $4
-			ON CONFLICT (id, branch_id) DO UPDATE
-			SET total_count = products.total_count + EXCLUDED.total_count`,
-			productReq.ProductQuantity, in.ToBranchId, productReq.ProductId, in.FromBranchId, categoryID, in.TransferredBy)
-		if err != nil {
-			return fmt.Errorf("failed to increase product quantity: %w", err)
-		}
-
-		// Создать запись в таблице transfer_products
-		_, err = tx.Exec(`
-			INSERT INTO transfer_products (id, product_transfers_id, product_id, quantity)
-			VALUES ($1, $2, $3, $4)`,
-			uuid.New().String(), transferID, productReq.ProductId, productReq.ProductQuantity)
-		if err != nil {
-			return fmt.Errorf("failed to create transfer product record: %w", err)
+			// Продукт не существует, вставить новый
+			_, err = tx.Exec(`
+                INSERT INTO products (category_id, name, image_url, bill_format, incoming_price, standard_price, total_count, branch_id, company_id, created_by, created_at)
+                SELECT $1, name, image_url, bill_format, incoming_price, standard_price, $2, $3, company_id, $4, NOW()
+                FROM products
+                WHERE id = $5 AND branch_id = $6`,
+				categoryID, product.ProductQuantity, in.ToBranchId, in.TransferredBy, product.ProductId, in.FromBranchId)
+			if err != nil {
+				return fmt.Errorf("failed to insert product in target branch for ProductId=%s: %w", product.ProductId, err)
+			}
 		}
 	}
 
 	return nil
+}
+
+// ensureCategory проверяет существование категории, создаёт её при отсутствии.
+func (p *productQuantity) ensureCategory(tx *sqlx.Tx, name string, branchID, companyID, createdBy string) (string, error) {
+	var categoryID string
+	err := tx.Get(&categoryID, `
+        SELECT id
+        FROM product_categories
+        WHERE name = $1 AND branch_id = $2`,
+		name, branchID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			categoryID = uuid.New().String()
+			_, err = tx.Exec(`
+                INSERT INTO product_categories (id, name, branch_id, company_id, created_by, created_at)
+                VALUES ($1, $2, $3, $4, $5, NOW())`,
+				categoryID, name, branchID, companyID, createdBy)
+			if err != nil {
+				return "", fmt.Errorf("failed to create category: %w", err)
+			}
+		} else {
+			return "", fmt.Errorf("failed to fetch category: %w", err)
+		}
+	}
+	return categoryID, nil
 }
 
 //------------------- End Product Quantity CRUD ------------------------------------------------------------------

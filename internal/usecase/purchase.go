@@ -277,13 +277,13 @@ func (p *PurchaseUseCase) CreateTransfers(in *pb.TransferReq) (*pb.Transfer, err
 	err := p.product.TransferProducts(in)
 	if err != nil {
 		p.log.Error("Failed to create transfers - 1", "error", err)
-		return nil, fmt.Errorf("error creating transfers: %w", err)
+		return nil, fmt.Errorf("error creating transfers - 1: %w", err)
 	}
 
 	res, err := p.repo.CreateTransfers(in)
 	if err != nil {
 		p.log.Error("Failed to create transfers - 2", "error", err)
-		return nil, fmt.Errorf("error creating transfers: %w", err)
+		return nil, fmt.Errorf("error creating transfers - 2: %w", err)
 	}
 
 	return res, nil

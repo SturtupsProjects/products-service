@@ -20,11 +20,11 @@ CREATE TABLE products
 (
     id             UUID      DEFAULT gen_random_uuid() PRIMARY KEY,
     category_id    UUID REFERENCES product_categories (id) NOT NULL,
-    name           VARCHAR(100)                            NOT NULL,
+    name           VARCHAR(150)                            NOT NULL,
     image_url      VARCHAR   DEFAULT 'no image'            NOT NULL,
     bill_format    VARCHAR(5)                              NOT NULL,
-    incoming_price DECIMAL(10, 2)                          NOT NULL,
-    standard_price DECIMAL(10, 2)                          NOT NULL,
+    incoming_price DECIMAL(15, 2)                          NOT NULL,
+    standard_price DECIMAL(15, 2)                          NOT NULL,
     total_count    INT       DEFAULT 0 CHECK (total_count >= 0),
     branch_id      UUID                                    NOT NULL,
     company_id     UUID                                    NOT NULL,
@@ -39,7 +39,7 @@ CREATE TABLE sales
     id               UUID           DEFAULT gen_random_uuid() PRIMARY KEY,
     client_id        UUID           NOT NULL,
     sold_by          UUID           NOT NULL,
-    total_sale_price DECIMAL(10, 2) NOT NULL, -- общая сумма заказа
+    total_sale_price DECIMAL(15, 2) NOT NULL, -- общая сумма заказа
     payment_method   payment_method DEFAULT 'uzs',
     branch_id        UUID           NOT NULL,
     company_id       UUID           NOT NULL,
@@ -53,11 +53,11 @@ CREATE TABLE sales_items
     sale_id     UUID REFERENCES sales (id)    NOT NULL,
     product_id  UUID REFERENCES products (id) NOT NULL,
     quantity    INT       DEFAULT 1           NOT NULL,
-    sale_price  DECIMAL(10, 2)                NOT NULL,
+    sale_price  DECIMAL(15, 2)                NOT NULL,
     created_at  TIMESTAMP DEFAULT NOW(),
     branch_id   UUID                          NOT NULL,
     company_id  UUID                          NOT NULL,
-    total_price DECIMAL(10, 2)                NOT NULL -- общая цена за конкретный товар в заказе
+    total_price DECIMAL(15, 2)                NOT NULL -- общая цена за конкретный товар в заказе
 );
 
 -- Таблица денежных потоков
@@ -66,7 +66,7 @@ CREATE TABLE cash_flow
     id               UUID           DEFAULT gen_random_uuid() PRIMARY KEY,
     user_id          UUID             NOT NULL,
     transaction_date TIMESTAMP      DEFAULT NOW(),
-    amount           DECIMAL(10, 2)   NOT NULL,
+    amount           DECIMAL(15, 2)   NOT NULL,
     transaction_type transaction_type NOT NULL,
     description      VARCHAR(255),
     branch_id        UUID             NOT NULL,
@@ -80,7 +80,7 @@ CREATE TABLE purchases
     id             UUID           DEFAULT gen_random_uuid() PRIMARY KEY,
     supplier_id    UUID                         NOT NULL, -- Название поставщика или имя компании
     purchased_by   UUID                         NOT NULL, -- Кто произвел закупку
-    total_cost     DECIMAL(10, 2)               NOT NULL, -- Общая сумма закупки
+    total_cost     DECIMAL(15, 2)               NOT NULL, -- Общая сумма закупки
     payment_method payment_method DEFAULT 'uzs' NOT NULL, -- Способ оплаты
     description    TEXT           DEFAULT ''    NOT NULL,
     branch_id      UUID                         NOT NULL,
@@ -95,8 +95,8 @@ CREATE TABLE purchase_items
     purchase_id    UUID REFERENCES purchases (id) NOT NULL, -- Ссылка на закупку
     product_id     UUID REFERENCES products (id)  NOT NULL, -- Ссылка на товар
     quantity       INT                            NOT NULL, -- Количество закупленного товара
-    purchase_price DECIMAL(10, 2)                 NOT NULL, -- Цена закупки за единицу товара
-    total_price    DECIMAL(10, 2)                 NOT NULL, -- Общая стоимость конкретного товара в закупке
+    purchase_price DECIMAL(15, 2)                 NOT NULL, -- Цена закупки за единицу товара
+    total_price    DECIMAL(15, 2)                 NOT NULL, -- Общая стоимость конкретного товара в закупке
     branch_id      UUID                           NOT NULL,
     company_id     UUID                           NOT NULL
 );

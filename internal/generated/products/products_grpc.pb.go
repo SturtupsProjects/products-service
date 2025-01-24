@@ -56,6 +56,8 @@ const (
 	Products_GetMostSoldProductsByDay_FullMethodName = "/products.Products/GetMostSoldProductsByDay"
 	Products_GetTopClients_FullMethodName            = "/products.Products/GetTopClients"
 	Products_GetTopSuppliers_FullMethodName          = "/products.Products/GetTopSuppliers"
+	Products_GetSaleStatistics_FullMethodName        = "/products.Products/GetSaleStatistics"
+	Products_GetBranchIncome_FullMethodName          = "/products.Products/GetBranchIncome"
 )
 
 // ProductsClient is the client API for Products service.
@@ -107,6 +109,9 @@ type ProductsClient interface {
 	GetMostSoldProductsByDay(ctx context.Context, in *MostSoldProductsRequest, opts ...grpc.CallOption) (*MostSoldProductsResponse, error)
 	GetTopClients(ctx context.Context, in *GetTopEntitiesRequest, opts ...grpc.CallOption) (*GetTopEntitiesResponse, error)
 	GetTopSuppliers(ctx context.Context, in *GetTopEntitiesRequest, opts ...grpc.CallOption) (*GetTopEntitiesResponse, error)
+	// ------------------------ Graph Statistics -----------------
+	GetSaleStatistics(ctx context.Context, in *SaleStatisticsReq, opts ...grpc.CallOption) (*SaleStatistics, error)
+	GetBranchIncome(ctx context.Context, in *BranchIncomeReq, opts ...grpc.CallOption) (*BranchIncomeRes, error)
 }
 
 type productsClient struct {
@@ -487,6 +492,26 @@ func (c *productsClient) GetTopSuppliers(ctx context.Context, in *GetTopEntities
 	return out, nil
 }
 
+func (c *productsClient) GetSaleStatistics(ctx context.Context, in *SaleStatisticsReq, opts ...grpc.CallOption) (*SaleStatistics, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SaleStatistics)
+	err := c.cc.Invoke(ctx, Products_GetSaleStatistics_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *productsClient) GetBranchIncome(ctx context.Context, in *BranchIncomeReq, opts ...grpc.CallOption) (*BranchIncomeRes, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BranchIncomeRes)
+	err := c.cc.Invoke(ctx, Products_GetBranchIncome_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ProductsServer is the server API for Products service.
 // All implementations must embed UnimplementedProductsServer
 // for forward compatibility
@@ -536,6 +561,9 @@ type ProductsServer interface {
 	GetMostSoldProductsByDay(context.Context, *MostSoldProductsRequest) (*MostSoldProductsResponse, error)
 	GetTopClients(context.Context, *GetTopEntitiesRequest) (*GetTopEntitiesResponse, error)
 	GetTopSuppliers(context.Context, *GetTopEntitiesRequest) (*GetTopEntitiesResponse, error)
+	// ------------------------ Graph Statistics -----------------
+	GetSaleStatistics(context.Context, *SaleStatisticsReq) (*SaleStatistics, error)
+	GetBranchIncome(context.Context, *BranchIncomeReq) (*BranchIncomeRes, error)
 	mustEmbedUnimplementedProductsServer()
 }
 
@@ -653,6 +681,12 @@ func (UnimplementedProductsServer) GetTopClients(context.Context, *GetTopEntitie
 }
 func (UnimplementedProductsServer) GetTopSuppliers(context.Context, *GetTopEntitiesRequest) (*GetTopEntitiesResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetTopSuppliers not implemented")
+}
+func (UnimplementedProductsServer) GetSaleStatistics(context.Context, *SaleStatisticsReq) (*SaleStatistics, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetSaleStatistics not implemented")
+}
+func (UnimplementedProductsServer) GetBranchIncome(context.Context, *BranchIncomeReq) (*BranchIncomeRes, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetBranchIncome not implemented")
 }
 func (UnimplementedProductsServer) mustEmbedUnimplementedProductsServer() {}
 
@@ -1333,6 +1367,42 @@ func _Products_GetTopSuppliers_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Products_GetSaleStatistics_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SaleStatisticsReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProductsServer).GetSaleStatistics(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Products_GetSaleStatistics_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProductsServer).GetSaleStatistics(ctx, req.(*SaleStatisticsReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Products_GetBranchIncome_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BranchIncomeReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProductsServer).GetBranchIncome(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Products_GetBranchIncome_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProductsServer).GetBranchIncome(ctx, req.(*BranchIncomeReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Products_ServiceDesc is the grpc.ServiceDesc for Products service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1487,6 +1557,14 @@ var Products_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetTopSuppliers",
 			Handler:    _Products_GetTopSuppliers_Handler,
+		},
+		{
+			MethodName: "GetSaleStatistics",
+			Handler:    _Products_GetSaleStatistics_Handler,
+		},
+		{
+			MethodName: "GetBranchIncome",
+			Handler:    _Products_GetBranchIncome_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

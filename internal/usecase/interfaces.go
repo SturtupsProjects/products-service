@@ -47,9 +47,12 @@ type SalesRepo interface {
 	GetSale(in *pb.SaleID) (*pb.SaleResponse, error)
 	GetSaleList(filter *pb.SaleFilter) (*pb.SaleList, error)
 	DeleteSale(in *pb.SaleID) (*pb.Message, error)
+
 	GetSalesByDay(request *pb.MostSoldProductsRequest) ([]*pb.DailySales, error)
 	GetTopClients(req *pb.GetTopEntitiesRequest) ([]*pb.TopEntity, error)
 	GetTopSuppliers(req *pb.GetTopEntitiesRequest) ([]*pb.TopEntity, error)
+
+	GetSaleStatistics(in *pb.SaleStatisticsReq) (*pb.SaleStatistics, error)
 }
 
 type StatisticsRepo interface {
@@ -65,6 +68,8 @@ type CashFlowRepo interface {
 	GetTotalIncome(req *pb.StatisticReq) (*pb.PriceProducts, error)
 	GetTotalExpense(req *pb.StatisticReq) (*pb.PriceProducts, error)
 	GetNetProfit(req *pb.StatisticReq) (*pb.PriceProducts, error)
+
+	GetBranchIncome(in *pb.BranchIncomeReq) (*pb.BranchIncomeRes, error)
 }
 
 type ReturnedProductsRepo interface {

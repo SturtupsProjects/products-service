@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
+	"log"
 	"strings"
 	"time"
 )
@@ -395,30 +396,36 @@ func (r purchasesRepoImpl) CreateTransfers(in *pb.TransferReq) (*pb.Transfer, er
 		} else if err != nil {
 			tx.Rollback()
 		} else {
-			tx.Commit()
+			err = tx.Commit()
 		}
 	}()
 
+	// Вставка в таблицу transfers
 	_, err = tx.Exec(`
 		INSERT INTO transfers (id, transferred_by, from_branch_id, to_branch_id, description, company_id, created_at)
 		VALUES ($1, $2, $3, $4, $5, $6, NOW())`,
 		transferID, in.TransferredBy, in.FromBranchId, in.ToBranchId, in.Description, in.CompanyId,
 	)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to insert transfer: %w", err)
 	}
 
-	for _, product := range in.Products {
-		_, err = tx.Exec(`
-			INSERT INTO transfer_products (id, product_transfers_id, product_id, quantity)
-			VALUES ($1, $2, $3, $4)`,
-			uuid.New().String(), transferID, product.ProductId, product.ProductQuantity,
-		)
-		if err != nil {
-			return nil, err
-		}
+	// Подготовка данных для пакетной вставки в transfer_products
+	values := []interface{}{}
+	query := `INSERT INTO transfer_products (id, product_transfers_id, product_id, quantity) VALUES `
+	for i, product := range in.Products {
+		query += fmt.Sprintf("($%d, $%d, $%d, $%d),", 4*i+1, 4*i+2, 4*i+3, 4*i+4)
+		values = append(values, uuid.New().String(), transferID, product.ProductId, product.ProductQuantity)
+	}
+	query = query[:len(query)-1] // Удалить последнюю запятую
+
+	// Выполнить пакетную вставку
+	_, err = tx.Exec(query, values...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to insert transfer products: %w", err)
 	}
 
+	// Возврат данных для подтверждения
 	return &pb.Transfer{
 		Id:            transferID,
 		TransferredBy: in.TransferredBy,
