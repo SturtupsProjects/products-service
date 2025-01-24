@@ -496,7 +496,7 @@ func (r purchasesRepoImpl) GetTransfers(in *pb.TransferID) (*pb.Transfer, error)
 
 func (r purchasesRepoImpl) GetTransferList(in *pb.TransferFilter) (*pb.TransferList, error) {
 	// Начальные фильтры (обязательные)
-	filters := []string{"t.company_id = $1, t.from_branch_id = $2"}
+	filters := []string{"t.company_id = $1", "t.from_branch_id = $2"}
 	args := []interface{}{in.CompanyId, in.BranchId}
 
 	// Счётчик текущего индекса для аргументов
