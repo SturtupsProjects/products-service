@@ -446,26 +446,38 @@ func (r purchasesRepoImpl) GetTransfers(in *pb.TransferID) (*pb.Transfer, error)
 		ProductImage    string `db:"product_image"`
 	}
 
+	// Шаг 1: Получить данные о трансфере
 	err := r.db.Get(&transfer, `
 		SELECT id, transferred_by, from_branch_id, to_branch_id, description, created_at, company_id
 		FROM transfers
-		WHERE company_id = $1 and id = $2`, in.CompanyId, in.Id,
+		WHERE company_id = $1 AND id = $2`,
+		in.CompanyId, in.Id,
 	)
 	if err != nil {
-		return nil, errors.New("transfer not found")
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, fmt.Errorf("transfer not found: CompanyID=%s, TransferID=%s", in.CompanyId, in.Id)
+		}
+		return nil, fmt.Errorf("failed to fetch transfer: %w", err)
 	}
 
+	// Шаг 2: Получить список продуктов, связанных с трансфером
 	err = r.db.Select(&products, `
-		SELECT tp.id, tp.product_id, tp.quantity AS product_quantity, p.name AS product_name, p.image_url AS product_image
+		SELECT 
+			tp.id, 
+			tp.product_id, 
+			tp.quantity AS product_quantity, 
+			p.name AS product_name, 
+			p.image_url AS product_image
 		FROM transfer_products tp
 		JOIN products p ON tp.product_id = p.id
 		WHERE tp.product_transfers_id = $1`,
 		in.Id,
 	)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to fetch transfer products: %w", err)
 	}
 
+	// Шаг 3: Сконвертировать продукты в формат `pb.TransfersProducts`
 	transferProducts := make([]*pb.TransfersProducts, len(products))
 	for i, product := range products {
 		transferProducts[i] = &pb.TransfersProducts{
@@ -477,47 +489,53 @@ func (r purchasesRepoImpl) GetTransfers(in *pb.TransferID) (*pb.Transfer, error)
 		}
 	}
 
+	// Шаг 4: Добавить продукты в структуру трансфера
 	transfer.Products = transferProducts
 	return &transfer, nil
 }
 
 func (r purchasesRepoImpl) GetTransferList(in *pb.TransferFilter) (*pb.TransferList, error) {
-	// Фильтры для WHERE
-	filters := []string{"t.company_id = $1"}
-	args := []interface{}{in.CompanyId}
+	// Начальные фильтры (обязательные)
+	filters := []string{"t.company_id = $1, t.from_branch_id = $2"}
+	args := []interface{}{in.CompanyId, in.BranchId}
 
-	if in.BranchId != "" {
-		filters = append(filters, `(t.from_branch_id = $2 OR t.to_branch_id = $2)`)
-		args = append(args, in.BranchId)
-	}
+	// Счётчик текущего индекса для аргументов
+	argIndex := 3
 
+	// Дополнительный фильтр по имени продукта
 	productFilter := strings.TrimSpace(in.ProductName)
 	if productFilter != "" {
-		filters = append(filters, `p.name ILIKE '%' || $3 || '%'`)
+		filters = append(filters, fmt.Sprintf("p.name ILIKE '%' || $%d || '%'", argIndex))
 		args = append(args, productFilter)
+		argIndex++
 	}
 
-	whereClause := ""
-	if len(filters) > 0 {
-		whereClause = "WHERE " + strings.Join(filters, " AND ")
-	}
+	// Сформировать WHERE-клаузу
+	whereClause := "WHERE " + strings.Join(filters, " AND ")
 
-	// Запрос для подсчёта и выборки данных
+	// Основной запрос для выборки данных
 	query := fmt.Sprintf(`
-		WITH filtered_transfers AS (
-			SELECT t.id, t.transferred_by, t.from_branch_id, t.to_branch_id, t.description, t.created_at, t.company_id
-			FROM transfers t
-			LEFT JOIN transfer_products tp ON t.id = tp.product_transfers_id
-			LEFT JOIN products p ON tp.product_id = p.id
-			%s
-			ORDER BY t.created_at DESC
-		)
-		SELECT COUNT(*) OVER() AS total_count, *
-		FROM filtered_transfers
-	`, whereClause)
+		SELECT 
+			t.id AS transfer_id,
+			t.transferred_by,
+			t.from_branch_id,
+			t.to_branch_id,
+			t.description,
+			t.created_at,
+			t.company_id,
+			tp.id AS product_id,
+			tp.quantity AS product_quantity,
+			p.name AS product_name,
+			p.image_url AS product_image
+		FROM transfers t
+		LEFT JOIN transfer_products tp ON t.id = tp.product_transfers_id
+		LEFT JOIN products p ON tp.product_id = p.id
+		%s
+		ORDER BY t.created_at DESC`, whereClause)
 
+	// Добавить пагинацию, если указаны Limit и Page
 	if in.Limit > 0 && in.Page > 0 {
-		query += " LIMIT $4 OFFSET $5"
+		query += fmt.Sprintf(" LIMIT $%d OFFSET $%d", argIndex, argIndex+1)
 		args = append(args, in.Limit, (in.Page-1)*in.Limit)
 	}
 
@@ -528,40 +546,74 @@ func (r purchasesRepoImpl) GetTransferList(in *pb.TransferFilter) (*pb.TransferL
 	}
 	defer rows.Close()
 
-	// Обработка данных
+	// Подготовить карту для группировки трансферов и продуктов
+	transfersMap := map[string]*pb.Transfer{}
 	var totalCount int64
-	transfers := []*pb.Transfer{}
+
+	// Обработка данных из запроса
 	for rows.Next() {
-		var transfer pb.Transfer
-		var count int64
-
-		// Сканируем данные из строки
-		err := rows.Scan(
-			&count,
-			&transfer.Id,
-			&transfer.TransferredBy,
-			&transfer.FromBranchId,
-			&transfer.ToBranchId,
-			&transfer.Description,
-			&transfer.CreatedAt,
-			&transfer.CompanyId,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("failed to scan transfer data: %w", err)
+		var row struct {
+			TransferID      string  `db:"transfer_id"`
+			TransferredBy   string  `db:"transferred_by"`
+			FromBranchID    string  `db:"from_branch_id"`
+			ToBranchID      string  `db:"to_branch_id"`
+			Description     string  `db:"description"`
+			CreatedAt       string  `db:"created_at"`
+			CompanyID       string  `db:"company_id"`
+			ProductID       *string `db:"product_id"`
+			ProductQuantity *int64  `db:"product_quantity"`
+			ProductName     *string `db:"product_name"`
+			ProductImage    *string `db:"product_image"`
 		}
 
-		// Запоминаем общий счётчик только один раз
+		if err := rows.StructScan(&row); err != nil {
+			return nil, fmt.Errorf("failed to scan transfer row: %w", err)
+		}
+
+		// Записываем общий счётчик только один раз
 		if totalCount == 0 {
-			totalCount = count
+			totalCount = int64(len(transfersMap))
 		}
 
-		transfers = append(transfers, &transfer)
+		// Если трансфер не существует в карте, создаём новую запись
+		transfer, exists := transfersMap[row.TransferID]
+		if !exists {
+			transfer = &pb.Transfer{
+				Id:            row.TransferID,
+				TransferredBy: row.TransferredBy,
+				FromBranchId:  row.FromBranchID,
+				ToBranchId:    row.ToBranchID,
+				Description:   row.Description,
+				CreatedAt:     row.CreatedAt,
+				CompanyId:     row.CompanyID,
+				Products:      []*pb.TransfersProducts{},
+			}
+			transfersMap[row.TransferID] = transfer
+		}
+
+		// Если есть продукт, добавляем его к трансферу
+		if row.ProductID != nil {
+			transfer.Products = append(transfer.Products, &pb.TransfersProducts{
+				Id:              *row.ProductID,
+				ProductId:       *row.ProductID,
+				ProductQuantity: *row.ProductQuantity,
+				ProductName:     *row.ProductName,
+				ProductImage:    *row.ProductImage,
+			})
+		}
 	}
 
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("failed to iterate over rows: %w", err)
 	}
 
+	// Преобразовать карту в массив
+	transfers := make([]*pb.Transfer, 0, len(transfersMap))
+	for _, transfer := range transfersMap {
+		transfers = append(transfers, transfer)
+	}
+
+	// Возврат итогового результата
 	return &pb.TransferList{
 		Transfers:  transfers,
 		TotalCount: totalCount,
