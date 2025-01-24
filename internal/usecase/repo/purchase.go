@@ -482,17 +482,18 @@ func (r purchasesRepoImpl) GetTransfers(in *pb.TransferID) (*pb.Transfer, error)
 }
 
 func (r purchasesRepoImpl) GetTransferList(in *pb.TransferFilter) (*pb.TransferList, error) {
+	// Фильтры для WHERE
 	filters := []string{"t.company_id = $1"}
 	args := []interface{}{in.CompanyId}
 
 	if in.BranchId != "" {
-		filters = append(filters, `(from_branch_id = $1 OR to_branch_id = $1)`)
+		filters = append(filters, `(t.from_branch_id = $2 OR t.to_branch_id = $2)`)
 		args = append(args, in.BranchId)
 	}
 
 	productFilter := strings.TrimSpace(in.ProductName)
 	if productFilter != "" {
-		filters = append(filters, `p.name ILIKE '%' || $2 || '%'`)
+		filters = append(filters, `p.name ILIKE '%' || $3 || '%'`)
 		args = append(args, productFilter)
 	}
 
@@ -501,55 +502,68 @@ func (r purchasesRepoImpl) GetTransferList(in *pb.TransferFilter) (*pb.TransferL
 		whereClause = "WHERE " + strings.Join(filters, " AND ")
 	}
 
-	var totalCount int
-	err := r.db.Get(&totalCount, fmt.Sprintf(`
-		SELECT COUNT(*)
-		FROM transfers t
-		JOIN transfer_products tp ON t.id = tp.product_transfers_id
-		JOIN products p ON tp.product_id = p.id
-		%s`, whereClause), args...)
-	if err != nil {
-		return nil, err
-	}
-
-	if totalCount == 0 {
-		return &pb.TransferList{TotalCount: 0, Transfers: []*pb.Transfer{}}, nil
-	}
-
+	// Запрос для подсчёта и выборки данных
 	query := fmt.Sprintf(`
-		SELECT t.id, t.transferred_by, t.from_branch_id, t.to_branch_id, t.description, t.created_at, t.company_id
-		FROM transfers t
-		LEFT JOIN transfer_products tp ON t.id = tp.product_transfers_id
-		LEFT JOIN products p ON tp.product_id = p.id
-		%s
-		ORDER BY t.created_at DESC`, whereClause)
+		WITH filtered_transfers AS (
+			SELECT t.id, t.transferred_by, t.from_branch_id, t.to_branch_id, t.description, t.created_at, t.company_id
+			FROM transfers t
+			LEFT JOIN transfer_products tp ON t.id = tp.product_transfers_id
+			LEFT JOIN products p ON tp.product_id = p.id
+			%s
+			ORDER BY t.created_at DESC
+		)
+		SELECT COUNT(*) OVER() AS total_count, *
+		FROM filtered_transfers
+	`, whereClause)
 
 	if in.Limit > 0 && in.Page > 0 {
-		query += " LIMIT $3 OFFSET $4"
+		query += " LIMIT $4 OFFSET $5"
 		args = append(args, in.Limit, (in.Page-1)*in.Limit)
 	}
 
+	// Выполнить запрос
 	rows, err := r.db.Queryx(query, args...)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to execute query: %w", err)
 	}
 	defer rows.Close()
 
+	// Обработка данных
+	var totalCount int64
 	transfers := []*pb.Transfer{}
 	for rows.Next() {
 		var transfer pb.Transfer
-		if err := rows.StructScan(&transfer); err != nil {
-			return nil, err
+		var count int64
+
+		// Сканируем данные из строки
+		err := rows.Scan(
+			&count,
+			&transfer.Id,
+			&transfer.TransferredBy,
+			&transfer.FromBranchId,
+			&transfer.ToBranchId,
+			&transfer.Description,
+			&transfer.CreatedAt,
+			&transfer.CompanyId,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan transfer data: %w", err)
 		}
+
+		// Запоминаем общий счётчик только один раз
+		if totalCount == 0 {
+			totalCount = count
+		}
+
 		transfers = append(transfers, &transfer)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to iterate over rows: %w", err)
 	}
 
 	return &pb.TransferList{
 		Transfers:  transfers,
-		TotalCount: int64(totalCount),
+		TotalCount: totalCount,
 	}, nil
 }
