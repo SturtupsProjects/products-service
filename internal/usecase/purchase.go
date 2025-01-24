@@ -291,7 +291,7 @@ func (p *PurchaseUseCase) CreateTransfers(in *pb.TransferReq) (*pb.Transfer, err
 
 func (p *PurchaseUseCase) GetTransfers(in *pb.TransferID) (*pb.Transfer, error) {
 
-	res, err := p.GetTransfers(in)
+	res, err := p.repo.GetTransfers(in)
 	if err != nil {
 		p.log.Error("Failed to fetch transfers", "error", err)
 		return nil, fmt.Errorf("error fetching transfers: %w", err)
@@ -302,7 +302,7 @@ func (p *PurchaseUseCase) GetTransfers(in *pb.TransferID) (*pb.Transfer, error) 
 
 func (p *PurchaseUseCase) GetTransferList(in *pb.TransferFilter) (*pb.TransferList, error) {
 
-	res, err := p.GetTransferList(in)
+	res, err := p.repo.GetTransferList(in)
 	if err != nil {
 		p.log.Error("Failed to fetch transfer list", "error", err)
 		return nil, fmt.Errorf("error fetching transfer list: %w", err)
