@@ -503,15 +503,27 @@ func (r purchasesRepoImpl) GetTransferList(in *pb.TransferFilter) (*pb.TransferL
 	argIndex := 3
 
 	// Дополнительный фильтр по имени продукта
-	productFilter := strings.TrimSpace(in.ProductName)
-	if productFilter != "" {
-		filters = append(filters, fmt.Sprintf("p.name ILIKE '%' || $%d || '%'", argIndex))
-		args = append(args, productFilter)
+	if productFilter := strings.TrimSpace(in.ProductName); productFilter != "" {
+		filters = append(filters, fmt.Sprintf("p.name ILIKE $%d", argIndex))
+		args = append(args, "%"+productFilter+"%")
 		argIndex++
 	}
 
 	// Сформировать WHERE-клаузу
 	whereClause := "WHERE " + strings.Join(filters, " AND ")
+
+	// Подсчитать общее количество записей (без учёта LIMIT и OFFSET)
+	countQuery := fmt.Sprintf(`
+		SELECT COUNT(DISTINCT t.id)
+		FROM transfers t
+		LEFT JOIN transfer_products tp ON t.id = tp.product_transfers_id
+		LEFT JOIN products p ON tp.product_id = p.id
+		%s`, whereClause)
+
+	var totalCount int64
+	if err := r.db.Get(&totalCount, countQuery, args...); err != nil {
+		return nil, fmt.Errorf("failed to count total records: %w", err)
+	}
 
 	// Основной запрос для выборки данных
 	query := fmt.Sprintf(`
@@ -548,7 +560,6 @@ func (r purchasesRepoImpl) GetTransferList(in *pb.TransferFilter) (*pb.TransferL
 
 	// Подготовить карту для группировки трансферов и продуктов
 	transfersMap := map[string]*pb.Transfer{}
-	var totalCount int64
 
 	// Обработка данных из запроса
 	for rows.Next() {
@@ -568,11 +579,6 @@ func (r purchasesRepoImpl) GetTransferList(in *pb.TransferFilter) (*pb.TransferL
 
 		if err := rows.StructScan(&row); err != nil {
 			return nil, fmt.Errorf("failed to scan transfer row: %w", err)
-		}
-
-		// Записываем общий счётчик только один раз
-		if totalCount == 0 {
-			totalCount = int64(len(transfersMap))
 		}
 
 		// Если трансфер не существует в карте, создаём новую запись

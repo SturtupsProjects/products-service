@@ -301,3 +301,14 @@ func (s *SalesUseCase) GetTopSuppliers(req *pb.GetTopEntitiesRequest) (*pb.GetTo
 
 	return &pb.GetTopEntitiesResponse{Entities: entities}, nil
 }
+
+func (s *SalesUseCase) GetSaleStatistics(in *pb.SaleStatisticsReq) (*pb.SaleStatistics, error) {
+
+	res, err := s.repo.GetSaleStatistics(in)
+	if err != nil {
+		s.log.Error("Error in Get Sales Statistics", "error", err)
+		return nil, err
+	}
+
+	return res, nil
+}

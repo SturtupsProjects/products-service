@@ -96,3 +96,13 @@ func (p *ProductsGrpc) GetNetProfit(ctx context.Context, in *pb.StatisticReq) (*
 
 	return res, nil
 }
+
+func (p *ProductsGrpc) GetBranchIncome(ctx context.Context, in *pb.BranchIncomeReq) (*pb.BranchIncomeRes, error) {
+
+	res, err := p.cashFlow.GetBranchIncome(in)
+	if err != nil {
+		return nil, err
+	}
+
+	return res, nil
+}

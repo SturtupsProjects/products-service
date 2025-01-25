@@ -147,6 +147,16 @@ func (p *ProductsGrpc) GetTopSuppliers(ctx context.Context, in *pb.GetTopEntitie
 	return res, err
 }
 
+func (p *ProductsGrpc) GetSaleStatistics(ctx context.Context, in *pb.SaleStatisticsReq) (*pb.SaleStatistics, error) {
+
+	res, err := p.sales.GetSaleStatistics(in)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "Failed to get sale statistics: %v", err)
+	}
+
+	return res, err
+}
+
 // Helper function to map SalesTotal entity to SaleResponse
 func mapSalesTotalToSaleResponse(total *entity.SalesTotal) *pb.SaleResponse {
 	var soldProducts []*pb.SalesItem
