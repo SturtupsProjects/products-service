@@ -437,13 +437,15 @@ func (r purchasesRepoImpl) CreateTransfers(in *pb.TransferReq) (*pb.Transfer, er
 }
 
 func (r purchasesRepoImpl) GetTransfers(in *pb.TransferID) (*pb.Transfer, error) {
-	var transfer pb.Transfer
-	var products []struct {
-		ID              string `db:"id"`
-		ProductID       string `db:"product_id"`
-		ProductQuantity int64  `db:"product_quantity"`
-		ProductName     string `db:"product_name"`
-		ProductImage    string `db:"product_image"`
+	// Подготовка структуры для трансфера
+	var transfer struct {
+		Id            string    `db:"id"`
+		TransferredBy string    `db:"transferred_by"`
+		FromBranchId  string    `db:"from_branch_id"`
+		ToBranchId    string    `db:"to_branch_id"`
+		Description   string    `db:"description"`
+		CreatedAt     time.Time `db:"created_at"`
+		CompanyId     string    `db:"company_id"`
 	}
 
 	// Шаг 1: Получить данные о трансфере
@@ -458,6 +460,15 @@ func (r purchasesRepoImpl) GetTransfers(in *pb.TransferID) (*pb.Transfer, error)
 			return nil, fmt.Errorf("transfer not found: CompanyID=%s, TransferID=%s", in.CompanyId, in.Id)
 		}
 		return nil, fmt.Errorf("failed to fetch transfer: %w", err)
+	}
+
+	// Подготовка структуры для списка продуктов
+	var products []struct {
+		Id              string  `db:"id"`
+		ProductId       string  `db:"product_id"`
+		ProductQuantity int64   `db:"product_quantity"`
+		ProductName     string  `db:"product_name"`
+		ProductImage    *string `db:"product_image"` // null-значения в базе
 	}
 
 	// Шаг 2: Получить список продуктов, связанных с трансфером
@@ -477,21 +488,37 @@ func (r purchasesRepoImpl) GetTransfers(in *pb.TransferID) (*pb.Transfer, error)
 		return nil, fmt.Errorf("failed to fetch transfer products: %w", err)
 	}
 
-	// Шаг 3: Сконвертировать продукты в формат `pb.TransfersProducts`
+	// Шаг 3: Преобразовать продукты в формат `pb.TransfersProducts`
 	transferProducts := make([]*pb.TransfersProducts, len(products))
 	for i, product := range products {
 		transferProducts[i] = &pb.TransfersProducts{
-			Id:              product.ID,
-			ProductId:       product.ProductID,
+			Id:              product.Id,
+			ProductId:       product.ProductId,
 			ProductQuantity: product.ProductQuantity,
 			ProductName:     product.ProductName,
-			ProductImage:    product.ProductImage,
+			ProductImage:    getStringValue(product.ProductImage), // Обработка null-значений
 		}
 	}
 
-	// Шаг 4: Добавить продукты в структуру трансфера
-	transfer.Products = transferProducts
-	return &transfer, nil
+	// Шаг 4: Сконструировать результат в формате Protobuf
+	return &pb.Transfer{
+		Id:            transfer.Id,
+		TransferredBy: transfer.TransferredBy,
+		FromBranchId:  transfer.FromBranchId,
+		ToBranchId:    transfer.ToBranchId,
+		Description:   transfer.Description,
+		CreatedAt:     transfer.CreatedAt.Format("2006-01-02 15:04:05"), // Формат даты
+		CompanyId:     transfer.CompanyId,
+		Products:      transferProducts,
+	}, nil
+}
+
+// Вспомогательная функция для обработки null-значений
+func getStringValue(input *string) string {
+	if input == nil {
+		return ""
+	}
+	return *input
 }
 
 func (r purchasesRepoImpl) GetTransferList(in *pb.TransferFilter) (*pb.TransferList, error) {

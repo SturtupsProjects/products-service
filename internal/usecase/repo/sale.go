@@ -450,12 +450,12 @@ func (r *salesRepoImpl) GetSaleStatistics(in *pb.SaleStatisticsReq) (*pb.SaleSta
 		CompanyId:  in.CompanyId,
 	}
 
-	// SQL-запрос с группировкой по датам и методам оплаты
+	// SQL-запрос с группировкой по датам и валютам
 	query := `
         SELECT 
             DATE_TRUNC($1, created_at) AS period,
             payment_method,
-            COALESCE(SUM(total_sale_price), 0) AS total_sales
+            SUM(total_sale_price) AS total_sales
         FROM sales
         WHERE 
             created_at BETWEEN $2 AND $3
@@ -465,10 +465,9 @@ func (r *salesRepoImpl) GetSaleStatistics(in *pb.SaleStatisticsReq) (*pb.SaleSta
         ORDER BY period;
     `
 
-	// Выполнение запроса
 	rows, err := r.db.Query(query, in.Period, in.StartDate, in.EndDate, in.CompanyId, in.BranchId)
 	if err != nil {
-		return nil, fmt.Errorf("failed to execute query: %w", err)
+		return nil, err
 	}
 	defer rows.Close()
 
@@ -481,36 +480,26 @@ func (r *salesRepoImpl) GetSaleStatistics(in *pb.SaleStatisticsReq) (*pb.SaleSta
 		var paymentMethod string
 		var totalSales float64
 
-		// Сканирование результатов запроса
 		if err := rows.Scan(&period, &paymentMethod, &totalSales); err != nil {
-			return nil, fmt.Errorf("failed to scan row: %w", err)
+			return nil, err
 		}
 
-		// Форматируем дату как строку
 		date := period.Format("2006-01-02")
 		if _, exists := dataMap[date]; !exists {
 			dataMap[date] = make(map[string]float64)
 		}
 
-		// Сохраняем данные в map
 		dataMap[date][paymentMethod] += totalSales
 		totalSum += totalSales
 	}
 
-	// Проверка на ошибки итерации
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("failed to iterate rows: %w", err)
-	}
-
 	// Формирование ответа
 	for date, paymentMethods := range dataMap {
-		// Создаём статистику для каждой даты
 		saleStatisticsDate := &pb.SaleStatisticsDate{
 			Date: date,
 		}
 
 		for method, total := range paymentMethods {
-			// Добавляем метод оплаты и сумму
 			saleStatisticsDate.Values = append(saleStatisticsDate.Values, &pb.Price{
 				ManyType:   method,
 				TotalPrice: total,
@@ -520,8 +509,6 @@ func (r *salesRepoImpl) GetSaleStatistics(in *pb.SaleStatisticsReq) (*pb.SaleSta
 		result.Data = append(result.Data, saleStatisticsDate)
 	}
 
-	// Устанавливаем общий итог
 	result.Total = totalSum
-
 	return result, nil
 }
