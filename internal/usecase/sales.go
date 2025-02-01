@@ -213,6 +213,7 @@ func (s *SalesUseCase) DeleteSales(req *pb.SaleID) (*pb.Message, error) {
 	// We assume that the cash flow related to this sale needs to be reversed or deleted.
 	cashFlowRequest := &pb.CashFlowRequest{
 		UserId:        sale.SoldBy,
+		BranchId:      req.BranchId,
 		Amount:        sale.TotalSalePrice,
 		Description:   fmt.Sprintf("Refund for sale ID %s", req.Id),
 		PaymentMethod: sale.PaymentMethod,
@@ -220,11 +221,13 @@ func (s *SalesUseCase) DeleteSales(req *pb.SaleID) (*pb.Message, error) {
 	}
 
 	// Delete the related cash flow entry
-	_, err = s.cash.CreateExpense(cashFlowRequest) // Assuming you have a Delete method in CashFlowRepo
+	a, err := s.cash.CreateExpense(cashFlowRequest) // Assuming you have a Delete method in CashFlowRepo
 	if err != nil {
 		s.log.Error("Error deleting cash flow for the sale", "saleID", req.Id, "error", err)
 		return nil, fmt.Errorf("error deleting cash flow: %w", err)
 	}
+
+	log.Println(a.Id)
 
 	// Log the successful deletion of sale and cash flow
 	s.log.Info("Successfully deleted sale and corresponding cash flow", "saleID", req.Id)

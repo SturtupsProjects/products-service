@@ -41,3 +41,5 @@
 {"time":"2025-02-01T16:03:52.910067889+05:00","level":"INFO","msg":"Created cash flow record","cashFlowID":"7265035b-d0ee-483e-bc95-0935d25caf37"}
 {"time":"2025-02-01T16:05:37.220088341+05:00","level":"INFO","msg":"Created cash flow record","cashFlowID":"32a3c9ab-89f8-4396-9d88-0ab12c2c1dfe"}
 {"time":"2025-02-01T16:08:54.953844853+05:00","level":"INFO","msg":"Created cash flow record","cashFlowID":"6e12e674-957e-4192-8bfb-f51696e1a806"}
+{"time":"2025-02-01T16:34:07.437241314+05:00","level":"ERROR","msg":"Error deleting cash flow for the sale","saleID":"ef46fcd8-423c-4fa5-8b8c-645526a197ba","error":"failed to create expense: pq: invalid input syntax for type uuid: \"\""}
+{"time":"2025-02-01T16:35:00.999359778+05:00","level":"ERROR","msg":"Error deleting sale","saleID":"ef46fcd8-423c-4fa5-8b8c-645526a197ba","error":"sale not found"}
