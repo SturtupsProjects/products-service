@@ -113,7 +113,6 @@ func (s *SalesUseCase) CreateSales(in *entity.SaleRequest) (*pb.SaleResponse, er
 	cashFlow, err := s.cash.CreateIncome(cashFlowRequest)
 	if err != nil {
 		s.log.Error("Error creating cash flow", "error", err)
-		return nil, fmt.Errorf("error creating cash flow: %w", err)
 	}
 
 	s.log.Info("Created cash flow record", "cashFlowID", cashFlow.Id)
