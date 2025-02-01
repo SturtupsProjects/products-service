@@ -34,3 +34,10 @@
 {"time":"2025-01-25T02:02:21.273079766+05:00","level":"ERROR","msg":"Failed to create transfers - 2","error":"pq: null value in column \"total_price\" of relation \"transfer_products\" violates not-null constraint"}
 {"time":"2025-01-25T02:03:07.404134941+05:00","level":"ERROR","msg":"Failed to create transfers - 2","error":"pq: got 6 parameters but the statement requires 5"}
 {"time":"2025-01-25T02:06:46.5200451+05:00","level":"ERROR","msg":"Failed to create transfers - 2","error":"pq: null value in column \"total_price\" of relation \"transfer_products\" violates not-null constraint"}
+{"time":"2025-02-01T15:58:15.699557423+05:00","level":"INFO","msg":"Created cash flow record","cashFlowID":"4c315a2d-6908-4709-9ef7-0ec3429fbfaa"}
+{"time":"2025-02-01T15:59:19.455359138+05:00","level":"INFO","msg":"Created cash flow record","cashFlowID":"3cb496fb-f0a7-4586-a1b5-8ce6071f1c9f"}
+{"time":"2025-02-01T16:01:54.09531191+05:00","level":"INFO","msg":"Created cash flow record","cashFlowID":"7661cb43-9262-4378-8689-f9b747ef4d88"}
+{"time":"2025-02-01T16:02:50.18045455+05:00","level":"INFO","msg":"Created cash flow record","cashFlowID":"bbc98410-8870-4ff3-87af-6b83572758cd"}
+{"time":"2025-02-01T16:03:52.910067889+05:00","level":"INFO","msg":"Created cash flow record","cashFlowID":"7265035b-d0ee-483e-bc95-0935d25caf37"}
+{"time":"2025-02-01T16:05:37.220088341+05:00","level":"INFO","msg":"Created cash flow record","cashFlowID":"32a3c9ab-89f8-4396-9d88-0ab12c2c1dfe"}
+{"time":"2025-02-01T16:08:54.953844853+05:00","level":"INFO","msg":"Created cash flow record","cashFlowID":"6e12e674-957e-4192-8bfb-f51696e1a806"}

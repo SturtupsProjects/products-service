@@ -36,19 +36,7 @@ func (r *salesRepoImpl) CreateSale(in *entity.SalesTotal) (*pb.SaleResponse, err
 		return nil, errors.New("cannot create sale without sold products")
 	}
 
-	sale := &pb.SaleResponse{}
-	query := `
-		INSERT INTO sales (company_id, branch_id, client_id, sold_by, total_sale_price, payment_method)
-		VALUES ($1, $2, $3, $4, $5, $6) 
-		RETURNING id, created_at
-	`
-
-	err := r.db.QueryRowx(query, in.CompanyID, in.BranchID, in.ClientID, in.SoldBy, in.TotalSalePrice, in.PaymentMethod).
-		Scan(&sale.Id, &sale.CreatedAt)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create sale: %w", err)
-	}
-
+	// Начинаем транзакцию сразу
 	tx, err := r.db.Beginx()
 	if err != nil {
 		return nil, fmt.Errorf("failed to begin transaction: %w", err)
@@ -59,28 +47,58 @@ func (r *salesRepoImpl) CreateSale(in *entity.SalesTotal) (*pb.SaleResponse, err
 		}
 	}()
 
-	for _, item := range in.SoldProducts {
-		item.SaleID = sale.Id
-		itemQuery := `
-			INSERT INTO sales_items (company_id, branch_id, sale_id, product_id, quantity, sale_price, total_price)
-			VALUES ($1, $2, $3, $4, $5, $6, $7)
-		`
-		_, err = tx.Exec(itemQuery, in.CompanyID, in.BranchID, item.SaleID, item.ProductID, item.Quantity, item.SalePrice, item.TotalPrice)
-		if err != nil {
-			return nil, fmt.Errorf("failed to insert sales item: %w", err)
-		}
+	// Вставляем продажу и получаем ID
+	var saleID string
+	var createdAt time.Time
+	query := `
+		INSERT INTO sales (company_id, branch_id, client_id, sold_by, total_sale_price, payment_method)
+		VALUES ($1, $2, $3, $4, $5, $6) 
+		RETURNING id, created_at
+	`
+	err = tx.QueryRowx(query, in.CompanyID, in.BranchID, in.ClientID, in.SoldBy, in.TotalSalePrice, in.PaymentMethod).
+		Scan(&saleID, &createdAt)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create sale: %w", err)
 	}
 
+	// Готовим batch-вставку для sales_items
+	var queryBuilder strings.Builder
+	args := []interface{}{}
+	queryBuilder.WriteString(`
+		INSERT INTO sales_items (company_id, branch_id, sale_id, product_id, quantity, sale_price, total_price) VALUES
+	`)
+	for i, item := range in.SoldProducts {
+		item.SaleID = saleID
+		startIdx := i * 7 // Учитываем кол-во параметров на один элемент
+
+		if i > 0 {
+			queryBuilder.WriteString(", ")
+		}
+		queryBuilder.WriteString(fmt.Sprintf("($%d, $%d, $%d, $%d, $%d, $%d, $%d)",
+			startIdx+1, startIdx+2, startIdx+3, startIdx+4, startIdx+5, startIdx+6, startIdx+7))
+
+		args = append(args, in.CompanyID, in.BranchID, saleID, item.ProductID, item.Quantity, item.SalePrice, item.TotalPrice)
+	}
+
+	// Выполняем batch-вставку
+	if _, err = tx.Exec(queryBuilder.String(), args...); err != nil {
+		return nil, fmt.Errorf("failed to insert sales items: %w", err)
+	}
+
+	// Фиксируем транзакцию
 	if err := tx.Commit(); err != nil {
 		return nil, fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
-	sale.TotalSalePrice = in.TotalSalePrice
-	sale.ClientId = in.ClientID
-	sale.SoldBy = in.SoldBy
-	sale.PaymentMethod = in.PaymentMethod
-
-	return sale, nil
+	// Возвращаем успешный результат
+	return &pb.SaleResponse{
+		Id:             saleID,
+		CreatedAt:      time.Now().String(),
+		TotalSalePrice: in.TotalSalePrice,
+		ClientId:       in.ClientID,
+		SoldBy:         in.SoldBy,
+		PaymentMethod:  in.PaymentMethod,
+	}, nil
 }
 
 // UpdateSale обновляет детали продажи

@@ -191,13 +191,14 @@ func (p *PurchaseUseCase) DeletePurchase(req *pb.PurchaseID) (*pb.Message, error
 		return nil, fmt.Errorf("purchase ID request is nil")
 	}
 
+	// 1. Получаем информацию о покупке
 	purchase, err := p.repo.GetPurchase(req)
 	if err != nil {
 		p.log.Error("Failed to fetch purchase data", "error", err)
 		return nil, fmt.Errorf("error fetching purchase data: %w", err)
 	}
 
-	// Удаляем запись о cash flow для покупки
+	// 2. Удаляем запись о cash flow
 	cashFlowRequest := &pb.CashFlowRequest{
 		UserId:        purchase.PurchasedBy,
 		Amount:        purchase.TotalCost,
@@ -212,30 +213,14 @@ func (p *PurchaseUseCase) DeletePurchase(req *pb.PurchaseID) (*pb.Message, error
 		return nil, fmt.Errorf("error deleting cash flow entry: %w", err)
 	}
 
-	// Удаляем товары из инвентаря
-	var wg sync.WaitGroup
-	semaphore := make(chan struct{}, 10)
-
-	for _, item := range purchase.Items {
-		wg.Add(1)
-		go func(item pb.PurchaseItemResponse) {
-			defer wg.Done()
-			semaphore <- struct{}{}
-			defer func() { <-semaphore }()
-
-			productQuantityReq := &entity.CountProductReq{
-				ID:    item.ProductId,
-				Count: int(item.Quantity),
-			}
-
-			if _, err := p.product.RemoveProduct(productQuantityReq); err != nil {
-				p.log.Error("Failed to remove product quantity", "productID", item.ProductId, "error", err)
-			}
-		}(*item)
+	// 3. Возвращаем товары на склад (замена горутин на 1 SQL-запрос)
+	err = p.product.RemoveProductsPurchase(purchase.Items)
+	if err != nil {
+		p.log.Error("Error adding product quantity back to stock", "error", err)
+		return nil, fmt.Errorf("error adding product quantity back to stock: %w", err)
 	}
 
-	wg.Wait()
-
+	// 4. Удаляем покупку
 	res, err := p.repo.DeletePurchase(req)
 	if err != nil {
 		p.log.Error("Failed to delete purchase", "error", err)

@@ -498,18 +498,105 @@ func (p *productQuantity) AddProduct(in *entity.CountProductReq) (*entity.Produc
 	return product, nil
 }
 
-func (p *productQuantity) RemoveProduct(in *entity.CountProductReq) (*entity.ProductNumber, error) {
-	res := &entity.ProductNumber{}
-
-	query := `UPDATE products SET total_count = total_count - $1
-	RETURNING id, total_count`
-
-	err := p.db.Get(res, query, in)
-	if err != nil {
-		return nil, err
+func (s *productQuantity) RemoveProducts(soldProducts []entity.SalesItem) error {
+	if len(soldProducts) == 0 {
+		return nil
 	}
 
-	return res, nil
+	// Готовим SQL-запрос с `CASE WHEN`
+	var queryBuilder strings.Builder
+	queryBuilder.WriteString("UPDATE products SET total_count = total_count - CASE id ")
+
+	args := []interface{}{}
+	for i, item := range soldProducts {
+		queryBuilder.WriteString(fmt.Sprintf("WHEN $%d THEN $%d ", i*2+1, i*2+2))
+		args = append(args, item.ProductID, item.Quantity)
+	}
+	queryBuilder.WriteString("ELSE total_count END WHERE id IN (")
+	for i, _ := range soldProducts {
+		if i > 0 {
+			queryBuilder.WriteString(", ")
+		}
+		queryBuilder.WriteString(fmt.Sprintf("$%d", i*2+1))
+	}
+	queryBuilder.WriteString(") RETURNING id, total_count")
+
+	// Выполняем запрос
+	rows, err := s.db.Queryx(queryBuilder.String(), args...)
+	if err != nil {
+		return fmt.Errorf("failed to update product stock: %w", err)
+	}
+	defer rows.Close()
+
+	// Проверяем, что все продукты обновились
+	updatedProducts := make(map[string]int)
+	for rows.Next() {
+		var id string
+		var count int
+		if err := rows.Scan(&id, &count); err != nil {
+			return fmt.Errorf("failed to scan updated products: %w", err)
+		}
+		updatedProducts[id] = count
+	}
+
+	// Проверяем, все ли товары обновились
+	for _, item := range soldProducts {
+		if _, ok := updatedProducts[item.ProductID]; !ok {
+			return fmt.Errorf("failed to update stock for product %s", item.ProductID)
+		}
+	}
+
+	return nil
+}
+func (s *productQuantity) RemoveProductsPurchase(soldProducts []*pb.PurchaseItemResponse) error {
+	if len(soldProducts) == 0 {
+		return nil
+	}
+
+	// Готовим SQL-запрос с `CASE WHEN`
+	var queryBuilder strings.Builder
+	queryBuilder.WriteString("UPDATE products SET total_count = total_count - CASE id ")
+
+	args := []interface{}{}
+	for i, item := range soldProducts {
+		queryBuilder.WriteString(fmt.Sprintf("WHEN $%d THEN $%d ", i*2+1, i*2+2))
+		args = append(args, item.ProductId, item.Quantity)
+	}
+	queryBuilder.WriteString("ELSE total_count END WHERE id IN (")
+	for i, _ := range soldProducts {
+		if i > 0 {
+			queryBuilder.WriteString(", ")
+		}
+		queryBuilder.WriteString(fmt.Sprintf("$%d", i*2+1))
+	}
+	queryBuilder.WriteString(") RETURNING id, total_count")
+
+	// Выполняем запрос
+	rows, err := s.db.Queryx(queryBuilder.String(), args...)
+	if err != nil {
+		return fmt.Errorf("failed to update product stock: %w", err)
+	}
+	defer rows.Close()
+
+	// Проверяем, что все продукты обновились
+	updatedProducts := make(map[string]int)
+	for rows.Next() {
+		var id string
+		var count int
+		if err := rows.Scan(&id, &count); err != nil {
+			return fmt.Errorf("failed to scan updated products: %w", err)
+		}
+		updatedProducts[id] = count
+	}
+
+	// Проверяем, все ли товары обновились
+	for _, item := range soldProducts {
+		if _, ok := updatedProducts[item.ProductId]; !ok {
+			return fmt.Errorf("failed to update stock for product %s", item.ProductId)
+		}
+	}
+
+	return nil
 }
 
 func (p *productQuantity) GetProductCount(in *entity.ProductID) (*entity.ProductNumber, error) {

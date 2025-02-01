@@ -81,64 +81,43 @@ func (s *SalesUseCase) CalculateTotalSales(in *entity.SaleRequest) (*entity.Sale
 	}, nil
 }
 
-// CreateSales creates a new sale record and a cash flow record for the sale.
 func (s *SalesUseCase) CreateSales(in *entity.SaleRequest) (*pb.SaleResponse, error) {
+
 	total, err := s.CalculateTotalSales(in)
 	if err != nil {
 		s.log.Error("Error calculating total sale cost", "error", err)
 		return nil, fmt.Errorf("error calculating total sale cost: %w", err)
 	}
 
-	// Create the sale record
+	err = s.product.RemoveProducts(in.SoldProducts)
+	if err != nil {
+		s.log.Error("Error removing product quantity", "error", err)
+		return nil, fmt.Errorf("error removing product quantity: %w", err)
+	}
+
 	res, err := s.repo.CreateSale(total)
 	if err != nil {
 		s.log.Error("Error creating sale", "error", err)
 		return nil, fmt.Errorf("error creating sale: %w", err)
 	}
 
-	// Create a cash flow record for this sale
 	cashFlowRequest := &pb.CashFlowRequest{
 		UserId:        in.SoldBy,
 		Amount:        total.TotalSalePrice,
-		Description:   fmt.Sprintf("Mahsulot Sotildi"),
+		Description:   "Mahsulot Sotildi",
 		PaymentMethod: in.PaymentMethod,
 		CompanyId:     in.CompanyID,
 		BranchId:      in.BranchID,
 	}
 
-	// Add to cash flow
 	cashFlow, err := s.cash.CreateIncome(cashFlowRequest)
 	if err != nil {
 		s.log.Error("Error creating cash flow", "error", err)
 		return nil, fmt.Errorf("error creating cash flow: %w", err)
 	}
 
-	// Log the successful creation of cash flow
 	s.log.Info("Created cash flow record", "cashFlowID", cashFlow.Id)
 
-	// Update stock quantities concurrently
-	var wg sync.WaitGroup
-	semaphore := make(chan struct{}, 10)
-
-	for _, item := range res.SoldProducts {
-		wg.Add(1)
-		go func(item pb.SalesItem) {
-			defer wg.Done()
-			semaphore <- struct{}{}
-			defer func() { <-semaphore }()
-
-			productQuantityReq := &entity.CountProductReq{
-				ID:    item.ProductId,
-				Count: int(item.Quantity),
-			}
-
-			if _, err := s.product.RemoveProduct(productQuantityReq); err != nil {
-				s.log.Error("Error removing product quantity during sale", "productID", item.ProductId, "error", err)
-			}
-		}(*item)
-	}
-
-	wg.Wait()
 	return res, nil
 }
 

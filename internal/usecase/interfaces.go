@@ -22,11 +22,12 @@ type ProductsRepo interface {
 
 type ProductQuantity interface {
 	AddProduct(in *entity.CountProductReq) (*entity.ProductNumber, error)
-	RemoveProduct(in *entity.CountProductReq) (*entity.ProductNumber, error)
+	RemoveProducts(soldProducts []entity.SalesItem) error
 	GetProductCount(in *entity.ProductID) (*entity.ProductNumber, error)
 	ProductCountChecker(in *entity.CountProductReq) (bool, error)
 
 	TransferProducts(in *pb.TransferReq) error
+	RemoveProductsPurchase(soldProducts []*pb.PurchaseItemResponse) error
 }
 
 type PurchasesRepo interface {
