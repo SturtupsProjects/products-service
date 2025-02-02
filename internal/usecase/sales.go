@@ -92,7 +92,7 @@ func (s *SalesUseCase) CreateSales(in *entity.SaleRequest) (*pb.SaleResponse, er
 	err = s.product.RemoveProducts(in.SoldProducts)
 	if err != nil {
 		s.log.Error("Error removing product quantity", "error", err)
-		return nil, fmt.Errorf("error removing product quantity: %w", err)
+		//return nil, fmt.Errorf("error removing product quantity: %w", err)
 	}
 
 	res, err := s.repo.CreateSale(total)
