@@ -19,18 +19,24 @@ import (
 const _ = grpc.SupportPackageIsVersion8
 
 const (
-	CompanyService_CreateCompany_FullMethodName       = "/company.CompanyService/CreateCompany"
-	CompanyService_GetCompany_FullMethodName          = "/company.CompanyService/GetCompany"
-	CompanyService_UpdateCompany_FullMethodName       = "/company.CompanyService/UpdateCompany"
-	CompanyService_DeleteCompany_FullMethodName       = "/company.CompanyService/DeleteCompany"
-	CompanyService_ListCompanies_FullMethodName       = "/company.CompanyService/ListCompanies"
-	CompanyService_ListCompanyUsers_FullMethodName    = "/company.CompanyService/ListCompanyUsers"
-	CompanyService_CreateUserToCompany_FullMethodName = "/company.CompanyService/CreateUserToCompany"
-	CompanyService_CreateBranch_FullMethodName        = "/company.CompanyService/CreateBranch"
-	CompanyService_GetBranch_FullMethodName           = "/company.CompanyService/GetBranch"
-	CompanyService_UpdateBranch_FullMethodName        = "/company.CompanyService/UpdateBranch"
-	CompanyService_DeleteBranch_FullMethodName        = "/company.CompanyService/DeleteBranch"
-	CompanyService_ListBranches_FullMethodName        = "/company.CompanyService/ListBranches"
+	CompanyService_CreateCompany_FullMethodName        = "/company.CompanyService/CreateCompany"
+	CompanyService_GetCompany_FullMethodName           = "/company.CompanyService/GetCompany"
+	CompanyService_UpdateCompany_FullMethodName        = "/company.CompanyService/UpdateCompany"
+	CompanyService_DeleteCompany_FullMethodName        = "/company.CompanyService/DeleteCompany"
+	CompanyService_ListCompanies_FullMethodName        = "/company.CompanyService/ListCompanies"
+	CompanyService_ListCompanyUsers_FullMethodName     = "/company.CompanyService/ListCompanyUsers"
+	CompanyService_CreateUserToCompany_FullMethodName  = "/company.CompanyService/CreateUserToCompany"
+	CompanyService_CreateBranch_FullMethodName         = "/company.CompanyService/CreateBranch"
+	CompanyService_GetBranch_FullMethodName            = "/company.CompanyService/GetBranch"
+	CompanyService_UpdateBranch_FullMethodName         = "/company.CompanyService/UpdateBranch"
+	CompanyService_DeleteBranch_FullMethodName         = "/company.CompanyService/DeleteBranch"
+	CompanyService_ListBranches_FullMethodName         = "/company.CompanyService/ListBranches"
+	CompanyService_CreateCompanyBalance_FullMethodName = "/company.CompanyService/CreateCompanyBalance"
+	CompanyService_GetCompanyBalance_FullMethodName    = "/company.CompanyService/GetCompanyBalance"
+	CompanyService_UpdateCompanyBalance_FullMethodName = "/company.CompanyService/UpdateCompanyBalance"
+	CompanyService_GetUsersBalanceList_FullMethodName  = "/company.CompanyService/GetUsersBalanceList"
+	CompanyService_DeleteCompanyBalance_FullMethodName = "/company.CompanyService/DeleteCompanyBalance"
+	CompanyService_SendSMS_FullMethodName              = "/company.CompanyService/SendSMS"
 )
 
 // CompanyServiceClient is the client API for CompanyService service.
@@ -50,6 +56,12 @@ type CompanyServiceClient interface {
 	UpdateBranch(ctx context.Context, in *UpdateBranchRequest, opts ...grpc.CallOption) (*BranchResponse, error)
 	DeleteBranch(ctx context.Context, in *DeleteBranchRequest, opts ...grpc.CallOption) (*Message, error)
 	ListBranches(ctx context.Context, in *ListBranchesRequest, opts ...grpc.CallOption) (*ListBranchesResponse, error)
+	CreateCompanyBalance(ctx context.Context, in *CompanyBalanceRequest, opts ...grpc.CallOption) (*CompanyBalanceResponse, error)
+	GetCompanyBalance(ctx context.Context, in *Id, opts ...grpc.CallOption) (*CompanyBalanceResponse, error)
+	UpdateCompanyBalance(ctx context.Context, in *CompanyBalanceRequest, opts ...grpc.CallOption) (*CompanyBalanceResponse, error)
+	GetUsersBalanceList(ctx context.Context, in *FilterCompanyBalanceRequest, opts ...grpc.CallOption) (*CompanyBalanceListResponse, error)
+	DeleteCompanyBalance(ctx context.Context, in *Id, opts ...grpc.CallOption) (*Message, error)
+	SendSMS(ctx context.Context, in *SmsRequest, opts ...grpc.CallOption) (*Message, error)
 }
 
 type companyServiceClient struct {
@@ -180,6 +192,66 @@ func (c *companyServiceClient) ListBranches(ctx context.Context, in *ListBranche
 	return out, nil
 }
 
+func (c *companyServiceClient) CreateCompanyBalance(ctx context.Context, in *CompanyBalanceRequest, opts ...grpc.CallOption) (*CompanyBalanceResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CompanyBalanceResponse)
+	err := c.cc.Invoke(ctx, CompanyService_CreateCompanyBalance_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *companyServiceClient) GetCompanyBalance(ctx context.Context, in *Id, opts ...grpc.CallOption) (*CompanyBalanceResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CompanyBalanceResponse)
+	err := c.cc.Invoke(ctx, CompanyService_GetCompanyBalance_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *companyServiceClient) UpdateCompanyBalance(ctx context.Context, in *CompanyBalanceRequest, opts ...grpc.CallOption) (*CompanyBalanceResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CompanyBalanceResponse)
+	err := c.cc.Invoke(ctx, CompanyService_UpdateCompanyBalance_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *companyServiceClient) GetUsersBalanceList(ctx context.Context, in *FilterCompanyBalanceRequest, opts ...grpc.CallOption) (*CompanyBalanceListResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CompanyBalanceListResponse)
+	err := c.cc.Invoke(ctx, CompanyService_GetUsersBalanceList_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *companyServiceClient) DeleteCompanyBalance(ctx context.Context, in *Id, opts ...grpc.CallOption) (*Message, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Message)
+	err := c.cc.Invoke(ctx, CompanyService_DeleteCompanyBalance_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *companyServiceClient) SendSMS(ctx context.Context, in *SmsRequest, opts ...grpc.CallOption) (*Message, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Message)
+	err := c.cc.Invoke(ctx, CompanyService_SendSMS_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // CompanyServiceServer is the server API for CompanyService service.
 // All implementations must embed UnimplementedCompanyServiceServer
 // for forward compatibility
@@ -197,6 +269,12 @@ type CompanyServiceServer interface {
 	UpdateBranch(context.Context, *UpdateBranchRequest) (*BranchResponse, error)
 	DeleteBranch(context.Context, *DeleteBranchRequest) (*Message, error)
 	ListBranches(context.Context, *ListBranchesRequest) (*ListBranchesResponse, error)
+	CreateCompanyBalance(context.Context, *CompanyBalanceRequest) (*CompanyBalanceResponse, error)
+	GetCompanyBalance(context.Context, *Id) (*CompanyBalanceResponse, error)
+	UpdateCompanyBalance(context.Context, *CompanyBalanceRequest) (*CompanyBalanceResponse, error)
+	GetUsersBalanceList(context.Context, *FilterCompanyBalanceRequest) (*CompanyBalanceListResponse, error)
+	DeleteCompanyBalance(context.Context, *Id) (*Message, error)
+	SendSMS(context.Context, *SmsRequest) (*Message, error)
 	mustEmbedUnimplementedCompanyServiceServer()
 }
 
@@ -239,6 +317,24 @@ func (UnimplementedCompanyServiceServer) DeleteBranch(context.Context, *DeleteBr
 }
 func (UnimplementedCompanyServiceServer) ListBranches(context.Context, *ListBranchesRequest) (*ListBranchesResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListBranches not implemented")
+}
+func (UnimplementedCompanyServiceServer) CreateCompanyBalance(context.Context, *CompanyBalanceRequest) (*CompanyBalanceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateCompanyBalance not implemented")
+}
+func (UnimplementedCompanyServiceServer) GetCompanyBalance(context.Context, *Id) (*CompanyBalanceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetCompanyBalance not implemented")
+}
+func (UnimplementedCompanyServiceServer) UpdateCompanyBalance(context.Context, *CompanyBalanceRequest) (*CompanyBalanceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateCompanyBalance not implemented")
+}
+func (UnimplementedCompanyServiceServer) GetUsersBalanceList(context.Context, *FilterCompanyBalanceRequest) (*CompanyBalanceListResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetUsersBalanceList not implemented")
+}
+func (UnimplementedCompanyServiceServer) DeleteCompanyBalance(context.Context, *Id) (*Message, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteCompanyBalance not implemented")
+}
+func (UnimplementedCompanyServiceServer) SendSMS(context.Context, *SmsRequest) (*Message, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SendSMS not implemented")
 }
 func (UnimplementedCompanyServiceServer) mustEmbedUnimplementedCompanyServiceServer() {}
 
@@ -469,6 +565,114 @@ func _CompanyService_ListBranches_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CompanyService_CreateCompanyBalance_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CompanyBalanceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CompanyServiceServer).CreateCompanyBalance(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CompanyService_CreateCompanyBalance_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CompanyServiceServer).CreateCompanyBalance(ctx, req.(*CompanyBalanceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CompanyService_GetCompanyBalance_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Id)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CompanyServiceServer).GetCompanyBalance(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CompanyService_GetCompanyBalance_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CompanyServiceServer).GetCompanyBalance(ctx, req.(*Id))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CompanyService_UpdateCompanyBalance_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CompanyBalanceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CompanyServiceServer).UpdateCompanyBalance(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CompanyService_UpdateCompanyBalance_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CompanyServiceServer).UpdateCompanyBalance(ctx, req.(*CompanyBalanceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CompanyService_GetUsersBalanceList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FilterCompanyBalanceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CompanyServiceServer).GetUsersBalanceList(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CompanyService_GetUsersBalanceList_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CompanyServiceServer).GetUsersBalanceList(ctx, req.(*FilterCompanyBalanceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CompanyService_DeleteCompanyBalance_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Id)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CompanyServiceServer).DeleteCompanyBalance(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CompanyService_DeleteCompanyBalance_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CompanyServiceServer).DeleteCompanyBalance(ctx, req.(*Id))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CompanyService_SendSMS_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SmsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CompanyServiceServer).SendSMS(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CompanyService_SendSMS_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CompanyServiceServer).SendSMS(ctx, req.(*SmsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // CompanyService_ServiceDesc is the grpc.ServiceDesc for CompanyService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -523,6 +727,30 @@ var CompanyService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListBranches",
 			Handler:    _CompanyService_ListBranches_Handler,
+		},
+		{
+			MethodName: "CreateCompanyBalance",
+			Handler:    _CompanyService_CreateCompanyBalance_Handler,
+		},
+		{
+			MethodName: "GetCompanyBalance",
+			Handler:    _CompanyService_GetCompanyBalance_Handler,
+		},
+		{
+			MethodName: "UpdateCompanyBalance",
+			Handler:    _CompanyService_UpdateCompanyBalance_Handler,
+		},
+		{
+			MethodName: "GetUsersBalanceList",
+			Handler:    _CompanyService_GetUsersBalanceList_Handler,
+		},
+		{
+			MethodName: "DeleteCompanyBalance",
+			Handler:    _CompanyService_DeleteCompanyBalance_Handler,
+		},
+		{
+			MethodName: "SendSMS",
+			Handler:    _CompanyService_SendSMS_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

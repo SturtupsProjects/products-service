@@ -296,6 +296,11 @@ func (p *productRepo) UpdateProduct(in *pb.UpdateProductRequest) (*pb.Product, e
 		args = append(args, in.ImageUrl)
 		argCounter++
 	}
+	if in.Quantity != 0 {
+		query += fmt.Sprintf("total_count = $%d, ", argCounter)
+		args = append(args, in.Quantity)
+		argCounter++
+	}
 
 	if len(args) == 0 {
 		return nil, fmt.Errorf("no fields to update")

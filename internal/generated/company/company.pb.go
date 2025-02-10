@@ -1296,6 +1296,281 @@ func (x *Message) GetMessage() string {
 	return ""
 }
 
+type CompanyBalanceRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	CompanyId string `protobuf:"bytes,1,opt,name=company_id,json=companyId,proto3" json:"company_id,omitempty"`
+	Balance   int64  `protobuf:"varint,2,opt,name=balance,proto3" json:"balance,omitempty"`
+}
+
+func (x *CompanyBalanceRequest) Reset() {
+	*x = CompanyBalanceRequest{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_user_company_proto_msgTypes[20]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *CompanyBalanceRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CompanyBalanceRequest) ProtoMessage() {}
+
+func (x *CompanyBalanceRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_user_company_proto_msgTypes[20]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CompanyBalanceRequest.ProtoReflect.Descriptor instead.
+func (*CompanyBalanceRequest) Descriptor() ([]byte, []int) {
+	return file_user_company_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *CompanyBalanceRequest) GetCompanyId() string {
+	if x != nil {
+		return x.CompanyId
+	}
+	return ""
+}
+
+func (x *CompanyBalanceRequest) GetBalance() int64 {
+	if x != nil {
+		return x.Balance
+	}
+	return 0
+}
+
+type CompanyBalanceResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	CompanyId string `protobuf:"bytes,1,opt,name=company_id,json=companyId,proto3" json:"company_id,omitempty"`
+	Balance   int64  `protobuf:"varint,2,opt,name=balance,proto3" json:"balance,omitempty"`
+}
+
+func (x *CompanyBalanceResponse) Reset() {
+	*x = CompanyBalanceResponse{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_user_company_proto_msgTypes[21]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *CompanyBalanceResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CompanyBalanceResponse) ProtoMessage() {}
+
+func (x *CompanyBalanceResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_user_company_proto_msgTypes[21]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CompanyBalanceResponse.ProtoReflect.Descriptor instead.
+func (*CompanyBalanceResponse) Descriptor() ([]byte, []int) {
+	return file_user_company_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *CompanyBalanceResponse) GetCompanyId() string {
+	if x != nil {
+		return x.CompanyId
+	}
+	return ""
+}
+
+func (x *CompanyBalanceResponse) GetBalance() int64 {
+	if x != nil {
+		return x.Balance
+	}
+	return 0
+}
+
+type FilterCompanyBalanceRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Page  int32 `protobuf:"varint,1,opt,name=page,proto3" json:"page,omitempty"`
+	Limit int32 `protobuf:"varint,2,opt,name=limit,proto3" json:"limit,omitempty"`
+}
+
+func (x *FilterCompanyBalanceRequest) Reset() {
+	*x = FilterCompanyBalanceRequest{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_user_company_proto_msgTypes[22]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *FilterCompanyBalanceRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FilterCompanyBalanceRequest) ProtoMessage() {}
+
+func (x *FilterCompanyBalanceRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_user_company_proto_msgTypes[22]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FilterCompanyBalanceRequest.ProtoReflect.Descriptor instead.
+func (*FilterCompanyBalanceRequest) Descriptor() ([]byte, []int) {
+	return file_user_company_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *FilterCompanyBalanceRequest) GetPage() int32 {
+	if x != nil {
+		return x.Page
+	}
+	return 0
+}
+
+func (x *FilterCompanyBalanceRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+type CompanyBalanceListResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Users []*CompanyBalanceResponse `protobuf:"bytes,1,rep,name=users,proto3" json:"users,omitempty"`
+}
+
+func (x *CompanyBalanceListResponse) Reset() {
+	*x = CompanyBalanceListResponse{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_user_company_proto_msgTypes[23]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *CompanyBalanceListResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CompanyBalanceListResponse) ProtoMessage() {}
+
+func (x *CompanyBalanceListResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_user_company_proto_msgTypes[23]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CompanyBalanceListResponse.ProtoReflect.Descriptor instead.
+func (*CompanyBalanceListResponse) Descriptor() ([]byte, []int) {
+	return file_user_company_proto_rawDescGZIP(), []int{23}
+}
+
+func (x *CompanyBalanceListResponse) GetUsers() []*CompanyBalanceResponse {
+	if x != nil {
+		return x.Users
+	}
+	return nil
+}
+
+type SmsRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Phone     string `protobuf:"bytes,1,opt,name=phone,proto3" json:"phone,omitempty"`
+	Message   string `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	CompanyId string `protobuf:"bytes,3,opt,name=company_id,json=companyId,proto3" json:"company_id,omitempty"`
+}
+
+func (x *SmsRequest) Reset() {
+	*x = SmsRequest{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_user_company_proto_msgTypes[24]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *SmsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SmsRequest) ProtoMessage() {}
+
+func (x *SmsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_user_company_proto_msgTypes[24]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SmsRequest.ProtoReflect.Descriptor instead.
+func (*SmsRequest) Descriptor() ([]byte, []int) {
+	return file_user_company_proto_rawDescGZIP(), []int{24}
+}
+
+func (x *SmsRequest) GetPhone() string {
+	if x != nil {
+		return x.Phone
+	}
+	return ""
+}
+
+func (x *SmsRequest) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+func (x *SmsRequest) GetCompanyId() string {
+	if x != nil {
+		return x.CompanyId
+	}
+	return ""
+}
+
 var File_user_company_proto protoreflect.FileDescriptor
 
 var file_user_company_proto_rawDesc = []byte{
@@ -1435,8 +1710,34 @@ var file_user_company_proto_rawDesc = []byte{
 	0x43, 0x6f, 0x6d, 0x70, 0x61, 0x6e, 0x79, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x52,
 	0x09, 0x63, 0x6f, 0x6d, 0x70, 0x61, 0x6e, 0x69, 0x65, 0x73, 0x22, 0x23, 0x0a, 0x07, 0x4d, 0x65,
 	0x73, 0x73, 0x61, 0x67, 0x65, 0x12, 0x18, 0x0a, 0x07, 0x6d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65,
-	0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x6d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x32,
-	0xf8, 0x06, 0x0a, 0x0e, 0x43, 0x6f, 0x6d, 0x70, 0x61, 0x6e, 0x79, 0x53, 0x65, 0x72, 0x76, 0x69,
+	0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x6d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x22,
+	0x50, 0x0a, 0x15, 0x43, 0x6f, 0x6d, 0x70, 0x61, 0x6e, 0x79, 0x42, 0x61, 0x6c, 0x61, 0x6e, 0x63,
+	0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x1d, 0x0a, 0x0a, 0x63, 0x6f, 0x6d, 0x70,
+	0x61, 0x6e, 0x79, 0x5f, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x09, 0x63, 0x6f,
+	0x6d, 0x70, 0x61, 0x6e, 0x79, 0x49, 0x64, 0x12, 0x18, 0x0a, 0x07, 0x62, 0x61, 0x6c, 0x61, 0x6e,
+	0x63, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x03, 0x52, 0x07, 0x62, 0x61, 0x6c, 0x61, 0x6e, 0x63,
+	0x65, 0x22, 0x51, 0x0a, 0x16, 0x43, 0x6f, 0x6d, 0x70, 0x61, 0x6e, 0x79, 0x42, 0x61, 0x6c, 0x61,
+	0x6e, 0x63, 0x65, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x1d, 0x0a, 0x0a, 0x63,
+	0x6f, 0x6d, 0x70, 0x61, 0x6e, 0x79, 0x5f, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52,
+	0x09, 0x63, 0x6f, 0x6d, 0x70, 0x61, 0x6e, 0x79, 0x49, 0x64, 0x12, 0x18, 0x0a, 0x07, 0x62, 0x61,
+	0x6c, 0x61, 0x6e, 0x63, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x03, 0x52, 0x07, 0x62, 0x61, 0x6c,
+	0x61, 0x6e, 0x63, 0x65, 0x22, 0x47, 0x0a, 0x1b, 0x46, 0x69, 0x6c, 0x74, 0x65, 0x72, 0x43, 0x6f,
+	0x6d, 0x70, 0x61, 0x6e, 0x79, 0x42, 0x61, 0x6c, 0x61, 0x6e, 0x63, 0x65, 0x52, 0x65, 0x71, 0x75,
+	0x65, 0x73, 0x74, 0x12, 0x12, 0x0a, 0x04, 0x70, 0x61, 0x67, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28,
+	0x05, 0x52, 0x04, 0x70, 0x61, 0x67, 0x65, 0x12, 0x14, 0x0a, 0x05, 0x6c, 0x69, 0x6d, 0x69, 0x74,
+	0x18, 0x02, 0x20, 0x01, 0x28, 0x05, 0x52, 0x05, 0x6c, 0x69, 0x6d, 0x69, 0x74, 0x22, 0x53, 0x0a,
+	0x1a, 0x43, 0x6f, 0x6d, 0x70, 0x61, 0x6e, 0x79, 0x42, 0x61, 0x6c, 0x61, 0x6e, 0x63, 0x65, 0x4c,
+	0x69, 0x73, 0x74, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x35, 0x0a, 0x05, 0x75,
+	0x73, 0x65, 0x72, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x1f, 0x2e, 0x63, 0x6f, 0x6d,
+	0x70, 0x61, 0x6e, 0x79, 0x2e, 0x43, 0x6f, 0x6d, 0x70, 0x61, 0x6e, 0x79, 0x42, 0x61, 0x6c, 0x61,
+	0x6e, 0x63, 0x65, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x52, 0x05, 0x75, 0x73, 0x65,
+	0x72, 0x73, 0x22, 0x5b, 0x0a, 0x0a, 0x53, 0x6d, 0x73, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74,
+	0x12, 0x14, 0x0a, 0x05, 0x70, 0x68, 0x6f, 0x6e, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52,
+	0x05, 0x70, 0x68, 0x6f, 0x6e, 0x65, 0x12, 0x18, 0x0a, 0x07, 0x6d, 0x65, 0x73, 0x73, 0x61, 0x67,
+	0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x6d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65,
+	0x12, 0x1d, 0x0a, 0x0a, 0x63, 0x6f, 0x6d, 0x70, 0x61, 0x6e, 0x79, 0x5f, 0x69, 0x64, 0x18, 0x03,
+	0x20, 0x01, 0x28, 0x09, 0x52, 0x09, 0x63, 0x6f, 0x6d, 0x70, 0x61, 0x6e, 0x79, 0x49, 0x64, 0x32,
+	0xb8, 0x0a, 0x0a, 0x0e, 0x43, 0x6f, 0x6d, 0x70, 0x61, 0x6e, 0x79, 0x53, 0x65, 0x72, 0x76, 0x69,
 	0x63, 0x65, 0x12, 0x48, 0x0a, 0x0d, 0x43, 0x72, 0x65, 0x61, 0x74, 0x65, 0x43, 0x6f, 0x6d, 0x70,
 	0x61, 0x6e, 0x79, 0x12, 0x1d, 0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x61, 0x6e, 0x79, 0x2e, 0x43, 0x72,
 	0x65, 0x61, 0x74, 0x65, 0x43, 0x6f, 0x6d, 0x70, 0x61, 0x6e, 0x79, 0x52, 0x65, 0x71, 0x75, 0x65,
@@ -1491,7 +1792,35 @@ var file_user_company_proto_rawDesc = []byte{
 	0x63, 0x6f, 0x6d, 0x70, 0x61, 0x6e, 0x79, 0x2e, 0x4c, 0x69, 0x73, 0x74, 0x42, 0x72, 0x61, 0x6e,
 	0x63, 0x68, 0x65, 0x73, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x1d, 0x2e, 0x63, 0x6f,
 	0x6d, 0x70, 0x61, 0x6e, 0x79, 0x2e, 0x4c, 0x69, 0x73, 0x74, 0x42, 0x72, 0x61, 0x6e, 0x63, 0x68,
-	0x65, 0x73, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x42, 0x1c, 0x5a, 0x1a, 0x69, 0x6e,
+	0x65, 0x73, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x57, 0x0a, 0x14, 0x43, 0x72,
+	0x65, 0x61, 0x74, 0x65, 0x43, 0x6f, 0x6d, 0x70, 0x61, 0x6e, 0x79, 0x42, 0x61, 0x6c, 0x61, 0x6e,
+	0x63, 0x65, 0x12, 0x1e, 0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x61, 0x6e, 0x79, 0x2e, 0x43, 0x6f, 0x6d,
+	0x70, 0x61, 0x6e, 0x79, 0x42, 0x61, 0x6c, 0x61, 0x6e, 0x63, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65,
+	0x73, 0x74, 0x1a, 0x1f, 0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x61, 0x6e, 0x79, 0x2e, 0x43, 0x6f, 0x6d,
+	0x70, 0x61, 0x6e, 0x79, 0x42, 0x61, 0x6c, 0x61, 0x6e, 0x63, 0x65, 0x52, 0x65, 0x73, 0x70, 0x6f,
+	0x6e, 0x73, 0x65, 0x12, 0x41, 0x0a, 0x11, 0x47, 0x65, 0x74, 0x43, 0x6f, 0x6d, 0x70, 0x61, 0x6e,
+	0x79, 0x42, 0x61, 0x6c, 0x61, 0x6e, 0x63, 0x65, 0x12, 0x0b, 0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x61,
+	0x6e, 0x79, 0x2e, 0x49, 0x64, 0x1a, 0x1f, 0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x61, 0x6e, 0x79, 0x2e,
+	0x43, 0x6f, 0x6d, 0x70, 0x61, 0x6e, 0x79, 0x42, 0x61, 0x6c, 0x61, 0x6e, 0x63, 0x65, 0x52, 0x65,
+	0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x57, 0x0a, 0x14, 0x55, 0x70, 0x64, 0x61, 0x74, 0x65,
+	0x43, 0x6f, 0x6d, 0x70, 0x61, 0x6e, 0x79, 0x42, 0x61, 0x6c, 0x61, 0x6e, 0x63, 0x65, 0x12, 0x1e,
+	0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x61, 0x6e, 0x79, 0x2e, 0x43, 0x6f, 0x6d, 0x70, 0x61, 0x6e, 0x79,
+	0x42, 0x61, 0x6c, 0x61, 0x6e, 0x63, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x1f,
+	0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x61, 0x6e, 0x79, 0x2e, 0x43, 0x6f, 0x6d, 0x70, 0x61, 0x6e, 0x79,
+	0x42, 0x61, 0x6c, 0x61, 0x6e, 0x63, 0x65, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12,
+	0x60, 0x0a, 0x13, 0x47, 0x65, 0x74, 0x55, 0x73, 0x65, 0x72, 0x73, 0x42, 0x61, 0x6c, 0x61, 0x6e,
+	0x63, 0x65, 0x4c, 0x69, 0x73, 0x74, 0x12, 0x24, 0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x61, 0x6e, 0x79,
+	0x2e, 0x46, 0x69, 0x6c, 0x74, 0x65, 0x72, 0x43, 0x6f, 0x6d, 0x70, 0x61, 0x6e, 0x79, 0x42, 0x61,
+	0x6c, 0x61, 0x6e, 0x63, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x23, 0x2e, 0x63,
+	0x6f, 0x6d, 0x70, 0x61, 0x6e, 0x79, 0x2e, 0x43, 0x6f, 0x6d, 0x70, 0x61, 0x6e, 0x79, 0x42, 0x61,
+	0x6c, 0x61, 0x6e, 0x63, 0x65, 0x4c, 0x69, 0x73, 0x74, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73,
+	0x65, 0x12, 0x35, 0x0a, 0x14, 0x44, 0x65, 0x6c, 0x65, 0x74, 0x65, 0x43, 0x6f, 0x6d, 0x70, 0x61,
+	0x6e, 0x79, 0x42, 0x61, 0x6c, 0x61, 0x6e, 0x63, 0x65, 0x12, 0x0b, 0x2e, 0x63, 0x6f, 0x6d, 0x70,
+	0x61, 0x6e, 0x79, 0x2e, 0x49, 0x64, 0x1a, 0x10, 0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x61, 0x6e, 0x79,
+	0x2e, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x12, 0x30, 0x0a, 0x07, 0x53, 0x65, 0x6e, 0x64,
+	0x53, 0x4d, 0x53, 0x12, 0x13, 0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x61, 0x6e, 0x79, 0x2e, 0x53, 0x6d,
+	0x73, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x10, 0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x61,
+	0x6e, 0x79, 0x2e, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x42, 0x1c, 0x5a, 0x1a, 0x69, 0x6e,
 	0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c, 0x2f, 0x67, 0x65, 0x6e, 0x65, 0x72, 0x61, 0x74, 0x65, 0x64,
 	0x2f, 0x63, 0x6f, 0x6d, 0x70, 0x61, 0x6e, 0x79, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
@@ -1508,62 +1837,80 @@ func file_user_company_proto_rawDescGZIP() []byte {
 	return file_user_company_proto_rawDescData
 }
 
-var file_user_company_proto_msgTypes = make([]protoimpl.MessageInfo, 20)
+var file_user_company_proto_msgTypes = make([]protoimpl.MessageInfo, 25)
 var file_user_company_proto_goTypes = []any{
-	(*BranchResponse)(nil),             // 0: company.BranchResponse
-	(*CreateBranchRequest)(nil),        // 1: company.CreateBranchRequest
-	(*GetBranchRequest)(nil),           // 2: company.GetBranchRequest
-	(*UpdateBranchRequest)(nil),        // 3: company.UpdateBranchRequest
-	(*DeleteBranchRequest)(nil),        // 4: company.DeleteBranchRequest
-	(*ListBranchesRequest)(nil),        // 5: company.ListBranchesRequest
-	(*ListBranchesResponse)(nil),       // 6: company.ListBranchesResponse
-	(*Id)(nil),                         // 7: company.Id
-	(*CreateUserToCompanyRequest)(nil), // 8: company.CreateUserToCompanyRequest
-	(*ListCompanyUsersRequest)(nil),    // 9: company.ListCompanyUsersRequest
-	(*ListCompanyUsersResponse)(nil),   // 10: company.ListCompanyUsersResponse
-	(*UserResponse)(nil),               // 11: company.UserResponse
-	(*CreateCompanyRequest)(nil),       // 12: company.CreateCompanyRequest
-	(*GetCompanyRequest)(nil),          // 13: company.GetCompanyRequest
-	(*UpdateCompanyRequest)(nil),       // 14: company.UpdateCompanyRequest
-	(*DeleteCompanyRequest)(nil),       // 15: company.DeleteCompanyRequest
-	(*CompanyResponse)(nil),            // 16: company.CompanyResponse
-	(*ListCompaniesRequest)(nil),       // 17: company.ListCompaniesRequest
-	(*ListCompaniesResponse)(nil),      // 18: company.ListCompaniesResponse
-	(*Message)(nil),                    // 19: company.Message
+	(*BranchResponse)(nil),              // 0: company.BranchResponse
+	(*CreateBranchRequest)(nil),         // 1: company.CreateBranchRequest
+	(*GetBranchRequest)(nil),            // 2: company.GetBranchRequest
+	(*UpdateBranchRequest)(nil),         // 3: company.UpdateBranchRequest
+	(*DeleteBranchRequest)(nil),         // 4: company.DeleteBranchRequest
+	(*ListBranchesRequest)(nil),         // 5: company.ListBranchesRequest
+	(*ListBranchesResponse)(nil),        // 6: company.ListBranchesResponse
+	(*Id)(nil),                          // 7: company.Id
+	(*CreateUserToCompanyRequest)(nil),  // 8: company.CreateUserToCompanyRequest
+	(*ListCompanyUsersRequest)(nil),     // 9: company.ListCompanyUsersRequest
+	(*ListCompanyUsersResponse)(nil),    // 10: company.ListCompanyUsersResponse
+	(*UserResponse)(nil),                // 11: company.UserResponse
+	(*CreateCompanyRequest)(nil),        // 12: company.CreateCompanyRequest
+	(*GetCompanyRequest)(nil),           // 13: company.GetCompanyRequest
+	(*UpdateCompanyRequest)(nil),        // 14: company.UpdateCompanyRequest
+	(*DeleteCompanyRequest)(nil),        // 15: company.DeleteCompanyRequest
+	(*CompanyResponse)(nil),             // 16: company.CompanyResponse
+	(*ListCompaniesRequest)(nil),        // 17: company.ListCompaniesRequest
+	(*ListCompaniesResponse)(nil),       // 18: company.ListCompaniesResponse
+	(*Message)(nil),                     // 19: company.Message
+	(*CompanyBalanceRequest)(nil),       // 20: company.CompanyBalanceRequest
+	(*CompanyBalanceResponse)(nil),      // 21: company.CompanyBalanceResponse
+	(*FilterCompanyBalanceRequest)(nil), // 22: company.FilterCompanyBalanceRequest
+	(*CompanyBalanceListResponse)(nil),  // 23: company.CompanyBalanceListResponse
+	(*SmsRequest)(nil),                  // 24: company.SmsRequest
 }
 var file_user_company_proto_depIdxs = []int32{
 	0,  // 0: company.ListBranchesResponse.branches:type_name -> company.BranchResponse
 	11, // 1: company.ListCompanyUsersResponse.users:type_name -> company.UserResponse
 	16, // 2: company.ListCompaniesResponse.companies:type_name -> company.CompanyResponse
-	12, // 3: company.CompanyService.CreateCompany:input_type -> company.CreateCompanyRequest
-	13, // 4: company.CompanyService.GetCompany:input_type -> company.GetCompanyRequest
-	14, // 5: company.CompanyService.UpdateCompany:input_type -> company.UpdateCompanyRequest
-	15, // 6: company.CompanyService.DeleteCompany:input_type -> company.DeleteCompanyRequest
-	17, // 7: company.CompanyService.ListCompanies:input_type -> company.ListCompaniesRequest
-	9,  // 8: company.CompanyService.ListCompanyUsers:input_type -> company.ListCompanyUsersRequest
-	8,  // 9: company.CompanyService.CreateUserToCompany:input_type -> company.CreateUserToCompanyRequest
-	1,  // 10: company.CompanyService.CreateBranch:input_type -> company.CreateBranchRequest
-	2,  // 11: company.CompanyService.GetBranch:input_type -> company.GetBranchRequest
-	3,  // 12: company.CompanyService.UpdateBranch:input_type -> company.UpdateBranchRequest
-	4,  // 13: company.CompanyService.DeleteBranch:input_type -> company.DeleteBranchRequest
-	5,  // 14: company.CompanyService.ListBranches:input_type -> company.ListBranchesRequest
-	16, // 15: company.CompanyService.CreateCompany:output_type -> company.CompanyResponse
-	16, // 16: company.CompanyService.GetCompany:output_type -> company.CompanyResponse
-	16, // 17: company.CompanyService.UpdateCompany:output_type -> company.CompanyResponse
-	19, // 18: company.CompanyService.DeleteCompany:output_type -> company.Message
-	18, // 19: company.CompanyService.ListCompanies:output_type -> company.ListCompaniesResponse
-	10, // 20: company.CompanyService.ListCompanyUsers:output_type -> company.ListCompanyUsersResponse
-	7,  // 21: company.CompanyService.CreateUserToCompany:output_type -> company.Id
-	0,  // 22: company.CompanyService.CreateBranch:output_type -> company.BranchResponse
-	0,  // 23: company.CompanyService.GetBranch:output_type -> company.BranchResponse
-	0,  // 24: company.CompanyService.UpdateBranch:output_type -> company.BranchResponse
-	19, // 25: company.CompanyService.DeleteBranch:output_type -> company.Message
-	6,  // 26: company.CompanyService.ListBranches:output_type -> company.ListBranchesResponse
-	15, // [15:27] is the sub-list for method output_type
-	3,  // [3:15] is the sub-list for method input_type
-	3,  // [3:3] is the sub-list for extension type_name
-	3,  // [3:3] is the sub-list for extension extendee
-	0,  // [0:3] is the sub-list for field type_name
+	21, // 3: company.CompanyBalanceListResponse.users:type_name -> company.CompanyBalanceResponse
+	12, // 4: company.CompanyService.CreateCompany:input_type -> company.CreateCompanyRequest
+	13, // 5: company.CompanyService.GetCompany:input_type -> company.GetCompanyRequest
+	14, // 6: company.CompanyService.UpdateCompany:input_type -> company.UpdateCompanyRequest
+	15, // 7: company.CompanyService.DeleteCompany:input_type -> company.DeleteCompanyRequest
+	17, // 8: company.CompanyService.ListCompanies:input_type -> company.ListCompaniesRequest
+	9,  // 9: company.CompanyService.ListCompanyUsers:input_type -> company.ListCompanyUsersRequest
+	8,  // 10: company.CompanyService.CreateUserToCompany:input_type -> company.CreateUserToCompanyRequest
+	1,  // 11: company.CompanyService.CreateBranch:input_type -> company.CreateBranchRequest
+	2,  // 12: company.CompanyService.GetBranch:input_type -> company.GetBranchRequest
+	3,  // 13: company.CompanyService.UpdateBranch:input_type -> company.UpdateBranchRequest
+	4,  // 14: company.CompanyService.DeleteBranch:input_type -> company.DeleteBranchRequest
+	5,  // 15: company.CompanyService.ListBranches:input_type -> company.ListBranchesRequest
+	20, // 16: company.CompanyService.CreateCompanyBalance:input_type -> company.CompanyBalanceRequest
+	7,  // 17: company.CompanyService.GetCompanyBalance:input_type -> company.Id
+	20, // 18: company.CompanyService.UpdateCompanyBalance:input_type -> company.CompanyBalanceRequest
+	22, // 19: company.CompanyService.GetUsersBalanceList:input_type -> company.FilterCompanyBalanceRequest
+	7,  // 20: company.CompanyService.DeleteCompanyBalance:input_type -> company.Id
+	24, // 21: company.CompanyService.SendSMS:input_type -> company.SmsRequest
+	16, // 22: company.CompanyService.CreateCompany:output_type -> company.CompanyResponse
+	16, // 23: company.CompanyService.GetCompany:output_type -> company.CompanyResponse
+	16, // 24: company.CompanyService.UpdateCompany:output_type -> company.CompanyResponse
+	19, // 25: company.CompanyService.DeleteCompany:output_type -> company.Message
+	18, // 26: company.CompanyService.ListCompanies:output_type -> company.ListCompaniesResponse
+	10, // 27: company.CompanyService.ListCompanyUsers:output_type -> company.ListCompanyUsersResponse
+	7,  // 28: company.CompanyService.CreateUserToCompany:output_type -> company.Id
+	0,  // 29: company.CompanyService.CreateBranch:output_type -> company.BranchResponse
+	0,  // 30: company.CompanyService.GetBranch:output_type -> company.BranchResponse
+	0,  // 31: company.CompanyService.UpdateBranch:output_type -> company.BranchResponse
+	19, // 32: company.CompanyService.DeleteBranch:output_type -> company.Message
+	6,  // 33: company.CompanyService.ListBranches:output_type -> company.ListBranchesResponse
+	21, // 34: company.CompanyService.CreateCompanyBalance:output_type -> company.CompanyBalanceResponse
+	21, // 35: company.CompanyService.GetCompanyBalance:output_type -> company.CompanyBalanceResponse
+	21, // 36: company.CompanyService.UpdateCompanyBalance:output_type -> company.CompanyBalanceResponse
+	23, // 37: company.CompanyService.GetUsersBalanceList:output_type -> company.CompanyBalanceListResponse
+	19, // 38: company.CompanyService.DeleteCompanyBalance:output_type -> company.Message
+	19, // 39: company.CompanyService.SendSMS:output_type -> company.Message
+	22, // [22:40] is the sub-list for method output_type
+	4,  // [4:22] is the sub-list for method input_type
+	4,  // [4:4] is the sub-list for extension type_name
+	4,  // [4:4] is the sub-list for extension extendee
+	0,  // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_user_company_proto_init() }
@@ -1812,6 +2159,66 @@ func file_user_company_proto_init() {
 				return nil
 			}
 		}
+		file_user_company_proto_msgTypes[20].Exporter = func(v any, i int) any {
+			switch v := v.(*CompanyBalanceRequest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_user_company_proto_msgTypes[21].Exporter = func(v any, i int) any {
+			switch v := v.(*CompanyBalanceResponse); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_user_company_proto_msgTypes[22].Exporter = func(v any, i int) any {
+			switch v := v.(*FilterCompanyBalanceRequest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_user_company_proto_msgTypes[23].Exporter = func(v any, i int) any {
+			switch v := v.(*CompanyBalanceListResponse); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_user_company_proto_msgTypes[24].Exporter = func(v any, i int) any {
+			switch v := v.(*SmsRequest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -1819,7 +2226,7 @@ func file_user_company_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_user_company_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   20,
+			NumMessages:   25,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
