@@ -204,6 +204,7 @@ func (p *PurchaseUseCase) DeletePurchase(req *pb.PurchaseID) (*pb.Message, error
 		Amount:        purchase.TotalCost,
 		Description:   fmt.Sprintf("Refund for purchase ID %v", req.Id),
 		PaymentMethod: purchase.PaymentMethod,
+		BranchId:      req.BranchId,
 		CompanyId:     purchase.CompanyId,
 	}
 
