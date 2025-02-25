@@ -202,10 +202,10 @@ func (p *PurchaseUseCase) DeletePurchase(req *pb.PurchaseID) (*pb.Message, error
 	cashFlowRequest := &pb.CashFlowRequest{
 		UserId:        purchase.PurchasedBy,
 		Amount:        purchase.TotalCost,
-		Description:   fmt.Sprintf("Refund for purchase ID %v", req.Id),
+		Description:   fmt.Sprintf("Product kirimi ochirildi"),
 		PaymentMethod: purchase.PaymentMethod,
 		BranchId:      req.BranchId,
-		CompanyId:     purchase.CompanyId,
+		CompanyId:     req.CompanyId,
 	}
 
 	_, err = p.cash.CreateIncome(cashFlowRequest) // предполагаем наличие метода Delete в CashFlowRepo
