@@ -65,7 +65,7 @@ type StatisticsRepo interface {
 type CashFlowRepo interface {
 	CreateIncome(in *pb.CashFlowRequest) (*pb.CashFlow, error)
 	CreateExpense(in *pb.CashFlowRequest) (*pb.CashFlow, error)
-	Get(in *pb.StatisticReq) (*pb.ListCashFlow, error)
+	Get(in *pb.CashFlowReq) (*pb.ListCashFlow, error)
 	GetTotalIncome(req *pb.StatisticReq) (*pb.PriceProducts, error)
 	GetTotalExpense(req *pb.StatisticReq) (*pb.PriceProducts, error)
 	GetNetProfit(req *pb.StatisticReq) (*pb.PriceProducts, error)

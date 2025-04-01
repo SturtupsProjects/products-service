@@ -43,3 +43,11 @@
 {"time":"2025-02-01T16:08:54.953844853+05:00","level":"INFO","msg":"Created cash flow record","cashFlowID":"6e12e674-957e-4192-8bfb-f51696e1a806"}
 {"time":"2025-02-01T16:34:07.437241314+05:00","level":"ERROR","msg":"Error deleting cash flow for the sale","saleID":"ef46fcd8-423c-4fa5-8b8c-645526a197ba","error":"failed to create expense: pq: invalid input syntax for type uuid: \"\""}
 {"time":"2025-02-01T16:35:00.999359778+05:00","level":"ERROR","msg":"Error deleting sale","saleID":"ef46fcd8-423c-4fa5-8b8c-645526a197ba","error":"sale not found"}
+{"time":"2025-04-01T23:02:30.018960194+05:00","level":"ERROR","msg":"GetListCategory","error":"failed to execute query: pq: column \"crated_by\" does not exist"}
+{"time":"2025-04-01T23:10:27.325374771+05:00","level":"ERROR","msg":"Failed to fetch purchase list","error":"failed to get total count: pq: got 4 parameters but the statement requires 2"}
+{"time":"2025-04-01T23:12:23.445215816+05:00","level":"ERROR","msg":"Failed to fetch purchase list","error":"failed to get total count: pq: operator does not exist: uuid ~~* unknown"}
+{"time":"2025-04-01T23:14:40.459745013+05:00","level":"ERROR","msg":"Failed to fetch purchase list","error":"failed to get total count: pq: operator does not exist: uuid ~~* unknown"}
+{"time":"2025-04-01T23:15:09.979805795+05:00","level":"ERROR","msg":"Failed to fetch purchase list","error":"failed to get total count: pq: invalid input syntax for type uuid: \"%6aff3630-6117-446e-a03a-5abb6f770689%\""}
+{"time":"2025-04-01T23:15:19.654706327+05:00","level":"ERROR","msg":"Failed to fetch purchase list","error":"failed to get total count: pq: invalid input syntax for type uuid: \"%6aff3630-6117-446e-a03a-5abb6f770689%\""}
+{"time":"2025-04-01T23:15:36.485830725+05:00","level":"ERROR","msg":"Failed to fetch purchase list","error":"failed to get total count: pq: invalid input syntax for type uuid: \"%c8c0679d-6b07-402c-94ed-b22881b845b8%\""}
+{"time":"2025-04-01T23:15:59.050869792+05:00","level":"ERROR","msg":"Failed to fetch purchase list","error":"failed to get total count: pq: invalid input syntax for type uuid: \"%c8c0679d-6b07-402c-94ed-b22881b845b8%\""}

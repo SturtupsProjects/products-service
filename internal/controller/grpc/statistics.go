@@ -37,7 +37,7 @@ func (p *ProductsGrpc) TotalPurchaseProducts(ctx context.Context, in *pb.Statist
 
 // --------------------------------------------------- Cash Flow -------------------------------------------------------
 
-func (p *ProductsGrpc) GetCashFlow(ctx context.Context, in *pb.StatisticReq) (*pb.ListCashFlow, error) {
+func (p *ProductsGrpc) GetCashFlow(ctx context.Context, in *pb.CashFlowReq) (*pb.ListCashFlow, error) {
 
 	res, err := p.cashFlow.Get(in)
 	if err != nil {

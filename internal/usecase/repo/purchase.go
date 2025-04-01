@@ -58,7 +58,6 @@ func (r *purchasesRepoImpl) CreatePurchase(in *entity.PurchaseRequest) (*pb.Purc
 		return nil, fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
-	// Заполнение дополнительных данных
 	purchase.SupplierId = in.SupplierID
 	purchase.PurchasedBy = in.PurchasedBy
 	purchase.TotalCost = in.TotalCost
@@ -209,61 +208,91 @@ func (r *purchasesRepoImpl) GetPurchaseList(in *pb.FilterPurchase) (*pb.Purchase
 	var args []interface{}
 	argIndex := 3
 
-	// Основные фильтры для закупок
 	filters := []string{"p.company_id = $1", "p.branch_id = $2"}
 	args = append(args, in.CompanyId, in.BranchId)
 
-	// Фильтры
 	if in.SupplierId != "" {
-		filters = append(filters, fmt.Sprintf("p.supplier_id ILIKE '%%' || $%d || '%%'", argIndex))
+		filters = append(filters, fmt.Sprintf("p.supplier_id = $%d", argIndex))
 		args = append(args, in.SupplierId)
 		argIndex++
 	}
 	if in.Description != "" {
-		filters = append(filters, fmt.Sprintf("p.description ILIKE '%%' || $%d || '%%'", argIndex))
-		args = append(args, in.Description)
+		filters = append(filters, fmt.Sprintf("p.description ILIKE $%d", argIndex))
+		args = append(args, "%"+in.Description+"%")
+		argIndex++
+	}
+	if in.PurchasedBy != "" {
+		filters = append(filters, fmt.Sprintf("p.purchased_by = $%d", argIndex))
+		args = append(args, in.PurchasedBy)
+		argIndex++
+	}
+	if in.TotalCost != 0 {
+		filters = append(filters, fmt.Sprintf("p.total_cost = $%d", argIndex))
+		args = append(args, in.TotalCost)
+		argIndex++
+	}
+	if in.CreatedAt != "" {
+		filters = append(filters, fmt.Sprintf("p.created_at::text ILIKE $%d", argIndex))
+		args = append(args, "%"+in.CreatedAt+"%")
 		argIndex++
 	}
 
-	// Подсчёт общего количества записей закупок
-	countQuery := fmt.Sprintf(`
-		SELECT COUNT(*)
-		FROM purchases p
-		WHERE %s`, strings.Join(filters, " AND "))
+	// Создаем копию args для countQuery (чтобы не учитывать LIMIT и OFFSET)
+	countArgs := make([]interface{}, len(args))
+	copy(countArgs, args)
 
+	// SQL-запрос для общего количества записей
+	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM purchases p WHERE %s", strings.Join(filters, " AND "))
 	var totalCount int64
-	if err := r.db.Get(&totalCount, countQuery, args...); err != nil {
+	if err := r.db.Get(&totalCount, countQuery, countArgs...); err != nil {
 		return nil, fmt.Errorf("failed to get total count: %w", err)
 	}
 
-	// Запрос для получения списка закупок
-	mainQuery := fmt.Sprintf(`
-		SELECT 
-			p.id, p.supplier_id, p.purchased_by, p.total_cost, p.payment_method, p.description, p.branch_id, p.company_id, p.created_at
-		FROM purchases p
-		WHERE %s
-		ORDER BY p.created_at DESC`, strings.Join(filters, " AND "))
-
-	// Пагинация
+	// Добавляем LIMIT и OFFSET
+	limitOffset := ""
 	if in.Limit > 0 && in.Page > 0 {
-		mainQuery += fmt.Sprintf(" LIMIT $%d OFFSET $%d", argIndex, argIndex+1)
+		limitOffset = fmt.Sprintf(" LIMIT $%d OFFSET $%d", argIndex, argIndex+1)
 		args = append(args, in.Limit, (in.Page-1)*in.Limit)
 	}
 
-	// Выполнение основного запроса
-	rows, err := r.db.Queryx(mainQuery, args...)
+	// Основной SQL-запрос
+	query := fmt.Sprintf(`
+		WITH purchases_data AS (
+			SELECT p.id, p.supplier_id, p.purchased_by, p.total_cost, p.payment_method, 
+			       p.description, p.branch_id, p.company_id, p.created_at
+			FROM purchases p
+			WHERE %s
+			ORDER BY p.created_at DESC
+			%s
+		)
+		SELECT 
+			pd.id, pd.supplier_id, pd.purchased_by, pd.total_cost, pd.payment_method, 
+			pd.description, pd.branch_id, pd.company_id, pd.created_at,
+			pi.id AS item_id, pi.product_id, pi.quantity, pi.purchase_price, pi.total_price,
+			pr.name AS product_name, pr.image_url
+		FROM purchases_data pd
+		LEFT JOIN purchase_items pi ON pi.purchase_id = pd.id
+		LEFT JOIN products pr ON pi.product_id = pr.id
+	`, strings.Join(filters, " AND "), limitOffset)
+
+	rows, err := r.db.Queryx(query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch purchases: %w", err)
 	}
 	defer rows.Close()
 
-	// Карта для хранения закупок
 	purchaseMap := make(map[string]*pb.PurchaseResponse)
 
 	for rows.Next() {
+		var purchaseID string
 		var purchase pb.PurchaseResponse
+		var itemID sql.NullString
+		var item pb.PurchaseItemResponse
+		var productName sql.NullString
+		var productImage sql.NullString
+
 		err = rows.Scan(
-			&purchase.Id,
+			&purchaseID,
 			&purchase.SupplierId,
 			&purchase.PurchasedBy,
 			&purchase.TotalCost,
@@ -272,64 +301,45 @@ func (r *purchasesRepoImpl) GetPurchaseList(in *pb.FilterPurchase) (*pb.Purchase
 			&purchase.BranchId,
 			&purchase.CompanyId,
 			&purchase.CreatedAt,
+			&itemID,
+			&item.ProductId,
+			&item.Quantity,
+			&item.PurchasePrice,
+			&item.TotalPrice,
+			&productName,
+			&productImage,
 		)
 		if err != nil {
-			return nil, fmt.Errorf("failed to scan purchase row: %w", err)
+			return nil, fmt.Errorf("failed to scan row: %w", err)
 		}
 
-		purchaseMap[purchase.Id] = &purchase
+		if existingPurchase, exists := purchaseMap[purchaseID]; exists {
+			if itemID.Valid {
+				item.Id = itemID.String
+				if productName.Valid {
+					item.ProductName = productName.String
+				}
+				if productImage.Valid {
+					item.ProductImage = productImage.String
+				}
+				existingPurchase.Items = append(existingPurchase.Items, &item)
+			}
+		} else {
+			purchase.Id = purchaseID
+			if itemID.Valid {
+				item.Id = itemID.String
+				if productName.Valid {
+					item.ProductName = productName.String
+				}
+				if productImage.Valid {
+					item.ProductImage = productImage.String
+				}
+				purchase.Items = []*pb.PurchaseItemResponse{&item}
+			}
+			purchaseMap[purchaseID] = &purchase
+		}
 	}
 
-	// Получение связанных товаров для каждой закупки
-	for purchaseID, purchase := range purchaseMap {
-		itemsQuery := `
-			SELECT 
-				i.id, i.product_id, i.quantity, i.purchase_price, i.total_price,
-				pr.name AS product_name, pr.image_url
-			FROM purchase_items i
-			LEFT JOIN products pr ON i.product_id = pr.id
-			WHERE i.purchase_id = $1`
-
-		itemRows, err := r.db.Queryx(itemsQuery, purchaseID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to fetch purchase items for purchase_id %s: %w", purchaseID, err)
-		}
-
-		var items []*pb.PurchaseItemResponse
-		for itemRows.Next() {
-			var item pb.PurchaseItemResponse
-			var productName sql.NullString
-			var productImage sql.NullString
-
-			err = itemRows.Scan(
-				&item.Id,
-				&item.ProductId,
-				&item.Quantity,
-				&item.PurchasePrice,
-				&item.TotalPrice,
-				&productName,
-				&productImage,
-			)
-			if err != nil {
-				return nil, fmt.Errorf("failed to scan purchase item: %w", err)
-			}
-
-			if productName.Valid {
-				item.ProductName = productName.String
-			}
-			if productImage.Valid {
-				item.ProductImage = productImage.String
-			}
-
-			items = append(items, &item)
-		}
-		itemRows.Close()
-
-		// Добавляем товары к закупке
-		purchase.Items = items
-	}
-
-	// Формируем список закупок
 	for _, purchase := range purchaseMap {
 		purchases = append(purchases, purchase)
 	}
@@ -399,7 +409,6 @@ func (r purchasesRepoImpl) CreateTransfers(in *pb.TransferReq) (*pb.Transfer, er
 		}
 	}()
 
-	// Вставка в таблицу transfers
 	_, err = tx.Exec(`
 		INSERT INTO transfers (id, transferred_by, from_branch_id, to_branch_id, description, company_id, created_at)
 		VALUES ($1, $2, $3, $4, $5, $6, NOW())`,
@@ -409,7 +418,6 @@ func (r purchasesRepoImpl) CreateTransfers(in *pb.TransferReq) (*pb.Transfer, er
 		return nil, fmt.Errorf("failed to insert transfer: %w", err)
 	}
 
-	// Подготовка данных для пакетной вставки в transfer_products
 	values := []interface{}{}
 	query := `INSERT INTO transfer_products (id, product_transfers_id, product_id, quantity) VALUES `
 	for i, product := range in.Products {
@@ -418,13 +426,11 @@ func (r purchasesRepoImpl) CreateTransfers(in *pb.TransferReq) (*pb.Transfer, er
 	}
 	query = query[:len(query)-1] // Удалить последнюю запятую
 
-	// Выполнить пакетную вставку
 	_, err = tx.Exec(query, values...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to insert transfer products: %w", err)
 	}
 
-	// Возврат данных для подтверждения
 	return &pb.Transfer{
 		Id:            transferID,
 		TransferredBy: in.TransferredBy,
@@ -437,7 +443,6 @@ func (r purchasesRepoImpl) CreateTransfers(in *pb.TransferReq) (*pb.Transfer, er
 }
 
 func (r purchasesRepoImpl) GetTransfers(in *pb.TransferID) (*pb.Transfer, error) {
-	// Подготовка структуры для трансфера
 	var transfer struct {
 		Id            string    `db:"id"`
 		TransferredBy string    `db:"transferred_by"`
@@ -448,7 +453,6 @@ func (r purchasesRepoImpl) GetTransfers(in *pb.TransferID) (*pb.Transfer, error)
 		CompanyId     string    `db:"company_id"`
 	}
 
-	// Шаг 1: Получить данные о трансфере
 	err := r.db.Get(&transfer, `
 		SELECT id, transferred_by, from_branch_id, to_branch_id, description, created_at, company_id
 		FROM transfers
@@ -462,7 +466,6 @@ func (r purchasesRepoImpl) GetTransfers(in *pb.TransferID) (*pb.Transfer, error)
 		return nil, fmt.Errorf("failed to fetch transfer: %w", err)
 	}
 
-	// Подготовка структуры для списка продуктов
 	var products []struct {
 		Id              string  `db:"id"`
 		ProductId       string  `db:"product_id"`
@@ -471,7 +474,6 @@ func (r purchasesRepoImpl) GetTransfers(in *pb.TransferID) (*pb.Transfer, error)
 		ProductImage    *string `db:"product_image"` // null-значения в базе
 	}
 
-	// Шаг 2: Получить список продуктов, связанных с трансфером
 	err = r.db.Select(&products, `
 		SELECT 
 			tp.id, 
@@ -488,7 +490,6 @@ func (r purchasesRepoImpl) GetTransfers(in *pb.TransferID) (*pb.Transfer, error)
 		return nil, fmt.Errorf("failed to fetch transfer products: %w", err)
 	}
 
-	// Шаг 3: Преобразовать продукты в формат `pb.TransfersProducts`
 	transferProducts := make([]*pb.TransfersProducts, len(products))
 	for i, product := range products {
 		transferProducts[i] = &pb.TransfersProducts{
@@ -500,7 +501,6 @@ func (r purchasesRepoImpl) GetTransfers(in *pb.TransferID) (*pb.Transfer, error)
 		}
 	}
 
-	// Шаг 4: Сконструировать результат в формате Protobuf
 	return &pb.Transfer{
 		Id:            transfer.Id,
 		TransferredBy: transfer.TransferredBy,
@@ -522,73 +522,77 @@ func getStringValue(input *string) string {
 }
 
 func (r purchasesRepoImpl) GetTransferList(in *pb.TransferFilter) (*pb.TransferList, error) {
-	// Начальные фильтры (обязательные)
+
 	filters := []string{"t.company_id = $1", "t.from_branch_id = $2"}
 	args := []interface{}{in.CompanyId, in.BranchId}
-
-	// Счётчик текущего индекса для аргументов
 	argIndex := 3
 
-	// Дополнительный фильтр по имени продукта
 	if productFilter := strings.TrimSpace(in.ProductName); productFilter != "" {
 		filters = append(filters, fmt.Sprintf("p.name ILIKE $%d", argIndex))
 		args = append(args, "%"+productFilter+"%")
 		argIndex++
 	}
 
-	// Сформировать WHERE-клаузу
+	if transferredBy := strings.TrimSpace(in.TransferredBy); transferredBy != "" {
+		filters = append(filters, fmt.Sprintf("t.transferred_by ILIKE $%d", argIndex))
+		args = append(args, "%"+transferredBy+"%")
+		argIndex++
+	}
+
+	if desc := strings.TrimSpace(in.Description); desc != "" {
+		filters = append(filters, fmt.Sprintf("t.description ILIKE $%d", argIndex))
+		args = append(args, "%"+desc+"%")
+		argIndex++
+	}
+
 	whereClause := "WHERE " + strings.Join(filters, " AND ")
 
-	// Подсчитать общее количество записей (без учёта LIMIT и OFFSET)
-	countQuery := fmt.Sprintf(`
-		SELECT COUNT(DISTINCT t.id)
-		FROM transfers t
-		LEFT JOIN transfer_products tp ON t.id = tp.product_transfers_id
-		LEFT JOIN products p ON tp.product_id = p.id
-		%s`, whereClause)
-
-	var totalCount int64
-	if err := r.db.Get(&totalCount, countQuery, args...); err != nil {
-		return nil, fmt.Errorf("failed to count total records: %w", err)
-	}
-
-	// Основной запрос для выборки данных
-	query := fmt.Sprintf(`
-		SELECT 
-			t.id AS transfer_id,
-			t.transferred_by,
-			t.from_branch_id,
-			t.to_branch_id,
-			t.description,
-			t.created_at,
-			t.company_id,
-			tp.id AS product_id,
-			tp.quantity AS product_quantity,
-			p.name AS product_name,
-			p.image_url AS product_image
-		FROM transfers t
-		LEFT JOIN transfer_products tp ON t.id = tp.product_transfers_id
-		LEFT JOIN products p ON tp.product_id = p.id
-		%s
-		ORDER BY t.created_at DESC`, whereClause)
-
-	// Добавить пагинацию, если указаны Limit и Page
+	paginationClause := ""
 	if in.Limit > 0 && in.Page > 0 {
-		query += fmt.Sprintf(" LIMIT $%d OFFSET $%d", argIndex, argIndex+1)
+		paginationClause = fmt.Sprintf(" LIMIT $%d OFFSET $%d", argIndex, argIndex+1)
 		args = append(args, in.Limit, (in.Page-1)*in.Limit)
+		argIndex += 2
 	}
 
-	// Выполнить запрос
+	query := fmt.Sprintf(`
+		WITH base AS (
+			SELECT 
+				t.id AS transfer_id,
+				t.transferred_by,
+				t.from_branch_id,
+				t.to_branch_id,
+				t.description,
+				t.created_at,
+				t.company_id,
+				tp.id AS product_id,
+				tp.quantity AS product_quantity,
+				p.name AS product_name,
+				p.image_url AS product_image
+			FROM transfers t
+			LEFT JOIN transfer_products tp ON t.id = tp.product_transfers_id
+			LEFT JOIN products p ON tp.product_id = p.id
+			%s
+		)
+		SELECT 
+			base.*,
+			total_count.total AS total_count
+		FROM base
+		CROSS JOIN (
+			SELECT COUNT(*) AS total 
+			FROM (SELECT DISTINCT transfer_id FROM base) AS sub
+		) total_count
+		ORDER BY created_at DESC
+		%s
+	`, whereClause, paginationClause)
+
 	rows, err := r.db.Queryx(query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute query: %w", err)
 	}
 	defer rows.Close()
 
-	// Подготовить карту для группировки трансферов и продуктов
 	transfersMap := map[string]*pb.Transfer{}
 
-	// Обработка данных из запроса
 	for rows.Next() {
 		var row struct {
 			TransferID      string  `db:"transfer_id"`
@@ -602,13 +606,13 @@ func (r purchasesRepoImpl) GetTransferList(in *pb.TransferFilter) (*pb.TransferL
 			ProductQuantity *int64  `db:"product_quantity"`
 			ProductName     *string `db:"product_name"`
 			ProductImage    *string `db:"product_image"`
+			TotalCount      int64   `db:"total_count"`
 		}
 
 		if err := rows.StructScan(&row); err != nil {
 			return nil, fmt.Errorf("failed to scan transfer row: %w", err)
 		}
 
-		// Если трансфер не существует в карте, создаём новую запись
 		transfer, exists := transfersMap[row.TransferID]
 		if !exists {
 			transfer = &pb.Transfer{
@@ -624,7 +628,6 @@ func (r purchasesRepoImpl) GetTransferList(in *pb.TransferFilter) (*pb.TransferL
 			transfersMap[row.TransferID] = transfer
 		}
 
-		// Если есть продукт, добавляем его к трансферу
 		if row.ProductID != nil {
 			transfer.Products = append(transfer.Products, &pb.TransfersProducts{
 				Id:              *row.ProductID,
@@ -640,13 +643,12 @@ func (r purchasesRepoImpl) GetTransferList(in *pb.TransferFilter) (*pb.TransferL
 		return nil, fmt.Errorf("failed to iterate over rows: %w", err)
 	}
 
-	// Преобразовать карту в массив
 	transfers := make([]*pb.Transfer, 0, len(transfersMap))
+	var totalCount int64
 	for _, transfer := range transfersMap {
 		transfers = append(transfers, transfer)
 	}
 
-	// Возврат итогового результата
 	return &pb.TransferList{
 		Transfers:  transfers,
 		TotalCount: totalCount,

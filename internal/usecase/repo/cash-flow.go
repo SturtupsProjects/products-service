@@ -59,39 +59,56 @@ func (c *cashFlow) CreateExpense(in *pb.CashFlowRequest) (*pb.CashFlow, error) {
 	return &cashFlow, nil
 }
 
-func (c *cashFlow) Get(in *pb.StatisticReq) (*pb.ListCashFlow, error) {
-
-	baseQuery := `
-		SELECT id, user_id, transaction_date, amount, transaction_type, description, payment_method, company_id, branch_id
+func (c *cashFlow) Get(in *pb.CashFlowReq) (*pb.ListCashFlow, error) {
+	// Базовый запрос с обязательными фильтрами и оконной функцией для подсчёта общего количества
+	query := `
+		SELECT 
+			id, user_id, transaction_date, amount, transaction_type, description, payment_method, company_id, branch_id,
+			COUNT(*) OVER() AS total_count
 		FROM cash_flow
-		WHERE company_id = $1 AND branch_id = $2
-		AND transaction_date BETWEEN $3 AND $4
+		WHERE company_id = $1 
+		  AND branch_id = $2
+		  AND transaction_date BETWEEN $3 AND $4
 	`
 	args := []interface{}{in.CompanyId, in.BranchId, in.StartDate, in.EndDate}
 	index := 5
 
+	// Дополнительные фильтры
 	if in.Description != "" {
-		baseQuery += fmt.Sprintf(" AND description ILIKE $%d", index)
+		query += fmt.Sprintf(" AND description ILIKE $%d", index)
 		args = append(args, "%"+in.Description+"%")
 		index++
 	}
-
-	baseQuery += " ORDER BY transaction_date DESC"
-
-	if in.Limit > 0 && in.Page > 0 {
-		baseQuery += fmt.Sprintf(" LIMIT $%d OFFSET $%d", index, index+1)
-		args = append(args, in.Limit, (in.Page-1)*in.Limit)
+	if in.TransactionType != "" {
+		query += fmt.Sprintf(" AND transaction_type = $%d", index)
+		args = append(args, in.TransactionType)
+		index++
+	}
+	if in.PaymentMethod != "" {
+		query += fmt.Sprintf(" AND payment_method = $%d", index)
+		args = append(args, in.PaymentMethod)
+		index++
 	}
 
-	rows, err := c.db.Queryx(baseQuery, args...)
+	query += " ORDER BY transaction_date DESC"
+	if in.Limit > 0 && in.Page > 0 {
+		query += fmt.Sprintf(" LIMIT $%d OFFSET $%d", index, index+1)
+		args = append(args, in.Limit, (in.Page-1)*in.Limit)
+		index += 2
+	}
+
+	rows, err := c.db.Queryx(query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute query: %w", err)
 	}
 	defer rows.Close()
 
 	var cashFlows []*pb.CashFlow
+	var totalCount int64
+
 	for rows.Next() {
 		var cashFlow pb.CashFlow
+		var cnt int64
 		if err := rows.Scan(
 			&cashFlow.Id,
 			&cashFlow.UserId,
@@ -102,32 +119,17 @@ func (c *cashFlow) Get(in *pb.StatisticReq) (*pb.ListCashFlow, error) {
 			&cashFlow.PaymentMethod,
 			&cashFlow.CompanyId,
 			&cashFlow.BranchId,
+			&cnt,
 		); err != nil {
 			return nil, fmt.Errorf("failed to scan row: %w", err)
 		}
+
+		totalCount = cnt
 		cashFlows = append(cashFlows, &cashFlow)
 	}
 
-	if len(cashFlows) == 0 {
-		return &pb.ListCashFlow{Cash: nil, TotalCount: 0}, nil
-	}
-
-	countQuery := `
-		SELECT COUNT(*)
-		FROM cash_flow
-		WHERE company_id = $1 AND branch_id = $2
-		AND transaction_date BETWEEN $3 AND $4
-	`
-	countArgs := []interface{}{in.CompanyId, in.BranchId, in.StartDate, in.EndDate}
-
-	if in.Description != "" {
-		countQuery += " AND description ILIKE $5"
-		countArgs = append(countArgs, "%"+in.Description+"%")
-	}
-
-	var totalCount int64
-	if err := c.db.QueryRow(countQuery, countArgs...).Scan(&totalCount); err != nil {
-		return nil, fmt.Errorf("failed to count total cash flows: %w", err)
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating rows: %w", err)
 	}
 
 	return &pb.ListCashFlow{

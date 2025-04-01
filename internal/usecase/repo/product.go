@@ -130,21 +130,33 @@ func (p *productRepo) GetProductCategory(in *pb.GetCategoryRequest) (*pb.Categor
 func (p *productRepo) GetListProductCategory(in *pb.CategoryName) (*pb.CategoryList, error) {
 	var categories []*pb.Category
 	var args []interface{}
+	var index = 3
 
-	var queryBuilder strings.Builder
-	queryBuilder.WriteString("SELECT id, name, image_url, created_by, company_id, branch_id, created_at, COUNT(*) OVER() AS total_count FROM product_categories WHERE company_id = $1 AND branch_id = $2")
+	queryBuilder := strings.Builder{}
+	queryBuilder.WriteString(`
+        SELECT id, name, image_url, created_by, company_id, branch_id, created_at,
+               COUNT(*) OVER() AS total_count
+        FROM product_categories
+        WHERE company_id = $1 AND branch_id = $2`)
 
 	args = append(args, in.CompanyId, in.BranchId)
 
 	if in.Name != "" {
-		queryBuilder.WriteString(" AND name ILIKE $3") // Use ILIKE for case-insensitive matching
+		queryBuilder.WriteString(fmt.Sprintf(" AND name ILIKE $%d", index))
 		args = append(args, "%"+in.Name+"%")
+		index++
+	}
+
+	if in.CreatedBy != "" {
+		queryBuilder.WriteString(fmt.Sprintf(" AND created_by = $%d", index))
+		args = append(args, in.CreatedBy)
+		index++
 	}
 
 	queryBuilder.WriteString(" ORDER BY created_at DESC")
 
 	if in.Limit > 0 && in.Page > 0 {
-		queryBuilder.WriteString(fmt.Sprintf(" LIMIT $%d OFFSET $%d", len(args)+1, len(args)+2))
+		queryBuilder.WriteString(fmt.Sprintf(" LIMIT $%d OFFSET $%d", index, index+1))
 		args = append(args, in.Limit, (in.Page-1)*in.Limit)
 	}
 
@@ -159,7 +171,6 @@ func (p *productRepo) GetListProductCategory(in *pb.CategoryName) (*pb.CategoryL
 	var totalCount int64
 	for rows.Next() {
 		var category pb.Category
-		var total int64
 		if err := rows.Scan(
 			&category.Id,
 			&category.Name,
@@ -168,11 +179,10 @@ func (p *productRepo) GetListProductCategory(in *pb.CategoryName) (*pb.CategoryL
 			&category.CompanyId,
 			&category.BranchId,
 			&category.CreatedAt,
-			&total, // Scanning total_count from the query
+			&totalCount, // total_count достается из первой строки и остается неизменным
 		); err != nil {
 			return nil, fmt.Errorf("failed to scan row: %w", err)
 		}
-		totalCount = total // Set the total count (will be the same for all rows)
 		categories = append(categories, &category)
 	}
 

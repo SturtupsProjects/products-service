@@ -19,18 +19,28 @@ import (
 const _ = grpc.SupportPackageIsVersion8
 
 const (
-	AuthService_RegisterAdmin_FullMethodName = "/auth.AuthService/RegisterAdmin"
-	AuthService_AddUser_FullMethodName       = "/auth.AuthService/AddUser"
-	AuthService_GetUser_FullMethodName       = "/auth.AuthService/GetUser"
-	AuthService_UpdateUser_FullMethodName    = "/auth.AuthService/UpdateUser"
-	AuthService_GetUserList_FullMethodName   = "/auth.AuthService/GetUserList"
-	AuthService_DeleteUser_FullMethodName    = "/auth.AuthService/DeleteUser"
-	AuthService_LogIn_FullMethodName         = "/auth.AuthService/LogIn"
-	AuthService_CreateClient_FullMethodName  = "/auth.AuthService/CreateClient"
-	AuthService_GetClient_FullMethodName     = "/auth.AuthService/GetClient"
-	AuthService_GetListClient_FullMethodName = "/auth.AuthService/GetListClient"
-	AuthService_UpdateClient_FullMethodName  = "/auth.AuthService/UpdateClient"
-	AuthService_DeleteClient_FullMethodName  = "/auth.AuthService/DeleteClient"
+	AuthService_RegisterAdmin_FullMethodName     = "/auth.AuthService/RegisterAdmin"
+	AuthService_AddUser_FullMethodName           = "/auth.AuthService/AddUser"
+	AuthService_GetUser_FullMethodName           = "/auth.AuthService/GetUser"
+	AuthService_UpdateUser_FullMethodName        = "/auth.AuthService/UpdateUser"
+	AuthService_GetUserList_FullMethodName       = "/auth.AuthService/GetUserList"
+	AuthService_DeleteUser_FullMethodName        = "/auth.AuthService/DeleteUser"
+	AuthService_LogIn_FullMethodName             = "/auth.AuthService/LogIn"
+	AuthService_CreateClient_FullMethodName      = "/auth.AuthService/CreateClient"
+	AuthService_GetClient_FullMethodName         = "/auth.AuthService/GetClient"
+	AuthService_GetListClient_FullMethodName     = "/auth.AuthService/GetListClient"
+	AuthService_UpdateClient_FullMethodName      = "/auth.AuthService/UpdateClient"
+	AuthService_DeleteClient_FullMethodName      = "/auth.AuthService/DeleteClient"
+	AuthService_CreateSalary_FullMethodName      = "/auth.AuthService/CreateSalary"
+	AuthService_UpdateSalary_FullMethodName      = "/auth.AuthService/UpdateSalary"
+	AuthService_GetSalaryByID_FullMethodName     = "/auth.AuthService/GetSalaryByID"
+	AuthService_ListSalaries_FullMethodName      = "/auth.AuthService/ListSalaries"
+	AuthService_CreateAdjustment_FullMethodName  = "/auth.AuthService/CreateAdjustment"
+	AuthService_UpdateAdjustment_FullMethodName  = "/auth.AuthService/UpdateAdjustment"
+	AuthService_CloseAdjustment_FullMethodName   = "/auth.AuthService/CloseAdjustment"
+	AuthService_GetAdjustmentByID_FullMethodName = "/auth.AuthService/GetAdjustmentByID"
+	AuthService_ListAdjustments_FullMethodName   = "/auth.AuthService/ListAdjustments"
+	AuthService_GetWorkerAllInfo_FullMethodName  = "/auth.AuthService/GetWorkerAllInfo"
 )
 
 // AuthServiceClient is the client API for AuthService service.
@@ -51,6 +61,18 @@ type AuthServiceClient interface {
 	GetListClient(ctx context.Context, in *FilterClientRequest, opts ...grpc.CallOption) (*ClientListResponse, error)
 	UpdateClient(ctx context.Context, in *ClientUpdateRequest, opts ...grpc.CallOption) (*ClientResponse, error)
 	DeleteClient(ctx context.Context, in *UserIDRequest, opts ...grpc.CallOption) (*MessageResponse, error)
+	// Methods for salary
+	CreateSalary(ctx context.Context, in *SalaryRequest, opts ...grpc.CallOption) (*SalaryResponse, error)
+	UpdateSalary(ctx context.Context, in *SalaryUpdate, opts ...grpc.CallOption) (*SalaryResponse, error)
+	GetSalaryByID(ctx context.Context, in *ID, opts ...grpc.CallOption) (*SalaryResponse, error)
+	ListSalaries(ctx context.Context, in *GetSalaryRequest, opts ...grpc.CallOption) (*GetSalaryList, error)
+	// Methods for Bonuses
+	CreateAdjustment(ctx context.Context, in *AdjustmentRequest, opts ...grpc.CallOption) (*AdjustmentResponse, error)
+	UpdateAdjustment(ctx context.Context, in *AdjustmentUpdate, opts ...grpc.CallOption) (*AdjustmentResponse, error)
+	CloseAdjustment(ctx context.Context, in *ID, opts ...grpc.CallOption) (*AdjustmentResponse, error)
+	GetAdjustmentByID(ctx context.Context, in *ID, opts ...grpc.CallOption) (*AdjustmentResponse, error)
+	ListAdjustments(ctx context.Context, in *GetAdjustmentRequest, opts ...grpc.CallOption) (*AdjustmentList, error)
+	GetWorkerAllInfo(ctx context.Context, in *ID, opts ...grpc.CallOption) (*WorkerAllInfo, error)
 }
 
 type authServiceClient struct {
@@ -181,6 +203,106 @@ func (c *authServiceClient) DeleteClient(ctx context.Context, in *UserIDRequest,
 	return out, nil
 }
 
+func (c *authServiceClient) CreateSalary(ctx context.Context, in *SalaryRequest, opts ...grpc.CallOption) (*SalaryResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SalaryResponse)
+	err := c.cc.Invoke(ctx, AuthService_CreateSalary_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authServiceClient) UpdateSalary(ctx context.Context, in *SalaryUpdate, opts ...grpc.CallOption) (*SalaryResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SalaryResponse)
+	err := c.cc.Invoke(ctx, AuthService_UpdateSalary_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authServiceClient) GetSalaryByID(ctx context.Context, in *ID, opts ...grpc.CallOption) (*SalaryResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SalaryResponse)
+	err := c.cc.Invoke(ctx, AuthService_GetSalaryByID_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authServiceClient) ListSalaries(ctx context.Context, in *GetSalaryRequest, opts ...grpc.CallOption) (*GetSalaryList, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetSalaryList)
+	err := c.cc.Invoke(ctx, AuthService_ListSalaries_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authServiceClient) CreateAdjustment(ctx context.Context, in *AdjustmentRequest, opts ...grpc.CallOption) (*AdjustmentResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AdjustmentResponse)
+	err := c.cc.Invoke(ctx, AuthService_CreateAdjustment_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authServiceClient) UpdateAdjustment(ctx context.Context, in *AdjustmentUpdate, opts ...grpc.CallOption) (*AdjustmentResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AdjustmentResponse)
+	err := c.cc.Invoke(ctx, AuthService_UpdateAdjustment_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authServiceClient) CloseAdjustment(ctx context.Context, in *ID, opts ...grpc.CallOption) (*AdjustmentResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AdjustmentResponse)
+	err := c.cc.Invoke(ctx, AuthService_CloseAdjustment_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authServiceClient) GetAdjustmentByID(ctx context.Context, in *ID, opts ...grpc.CallOption) (*AdjustmentResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AdjustmentResponse)
+	err := c.cc.Invoke(ctx, AuthService_GetAdjustmentByID_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authServiceClient) ListAdjustments(ctx context.Context, in *GetAdjustmentRequest, opts ...grpc.CallOption) (*AdjustmentList, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AdjustmentList)
+	err := c.cc.Invoke(ctx, AuthService_ListAdjustments_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authServiceClient) GetWorkerAllInfo(ctx context.Context, in *ID, opts ...grpc.CallOption) (*WorkerAllInfo, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(WorkerAllInfo)
+	err := c.cc.Invoke(ctx, AuthService_GetWorkerAllInfo_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AuthServiceServer is the server API for AuthService service.
 // All implementations must embed UnimplementedAuthServiceServer
 // for forward compatibility
@@ -199,6 +321,18 @@ type AuthServiceServer interface {
 	GetListClient(context.Context, *FilterClientRequest) (*ClientListResponse, error)
 	UpdateClient(context.Context, *ClientUpdateRequest) (*ClientResponse, error)
 	DeleteClient(context.Context, *UserIDRequest) (*MessageResponse, error)
+	// Methods for salary
+	CreateSalary(context.Context, *SalaryRequest) (*SalaryResponse, error)
+	UpdateSalary(context.Context, *SalaryUpdate) (*SalaryResponse, error)
+	GetSalaryByID(context.Context, *ID) (*SalaryResponse, error)
+	ListSalaries(context.Context, *GetSalaryRequest) (*GetSalaryList, error)
+	// Methods for Bonuses
+	CreateAdjustment(context.Context, *AdjustmentRequest) (*AdjustmentResponse, error)
+	UpdateAdjustment(context.Context, *AdjustmentUpdate) (*AdjustmentResponse, error)
+	CloseAdjustment(context.Context, *ID) (*AdjustmentResponse, error)
+	GetAdjustmentByID(context.Context, *ID) (*AdjustmentResponse, error)
+	ListAdjustments(context.Context, *GetAdjustmentRequest) (*AdjustmentList, error)
+	GetWorkerAllInfo(context.Context, *ID) (*WorkerAllInfo, error)
 	mustEmbedUnimplementedAuthServiceServer()
 }
 
@@ -241,6 +375,36 @@ func (UnimplementedAuthServiceServer) UpdateClient(context.Context, *ClientUpdat
 }
 func (UnimplementedAuthServiceServer) DeleteClient(context.Context, *UserIDRequest) (*MessageResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteClient not implemented")
+}
+func (UnimplementedAuthServiceServer) CreateSalary(context.Context, *SalaryRequest) (*SalaryResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateSalary not implemented")
+}
+func (UnimplementedAuthServiceServer) UpdateSalary(context.Context, *SalaryUpdate) (*SalaryResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateSalary not implemented")
+}
+func (UnimplementedAuthServiceServer) GetSalaryByID(context.Context, *ID) (*SalaryResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetSalaryByID not implemented")
+}
+func (UnimplementedAuthServiceServer) ListSalaries(context.Context, *GetSalaryRequest) (*GetSalaryList, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListSalaries not implemented")
+}
+func (UnimplementedAuthServiceServer) CreateAdjustment(context.Context, *AdjustmentRequest) (*AdjustmentResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateAdjustment not implemented")
+}
+func (UnimplementedAuthServiceServer) UpdateAdjustment(context.Context, *AdjustmentUpdate) (*AdjustmentResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateAdjustment not implemented")
+}
+func (UnimplementedAuthServiceServer) CloseAdjustment(context.Context, *ID) (*AdjustmentResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CloseAdjustment not implemented")
+}
+func (UnimplementedAuthServiceServer) GetAdjustmentByID(context.Context, *ID) (*AdjustmentResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetAdjustmentByID not implemented")
+}
+func (UnimplementedAuthServiceServer) ListAdjustments(context.Context, *GetAdjustmentRequest) (*AdjustmentList, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListAdjustments not implemented")
+}
+func (UnimplementedAuthServiceServer) GetWorkerAllInfo(context.Context, *ID) (*WorkerAllInfo, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetWorkerAllInfo not implemented")
 }
 func (UnimplementedAuthServiceServer) mustEmbedUnimplementedAuthServiceServer() {}
 
@@ -471,6 +635,186 @@ func _AuthService_DeleteClient_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuthService_CreateSalary_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SalaryRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).CreateSalary(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_CreateSalary_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).CreateSalary(ctx, req.(*SalaryRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthService_UpdateSalary_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SalaryUpdate)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).UpdateSalary(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_UpdateSalary_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).UpdateSalary(ctx, req.(*SalaryUpdate))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthService_GetSalaryByID_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ID)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).GetSalaryByID(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_GetSalaryByID_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).GetSalaryByID(ctx, req.(*ID))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthService_ListSalaries_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetSalaryRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).ListSalaries(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_ListSalaries_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).ListSalaries(ctx, req.(*GetSalaryRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthService_CreateAdjustment_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AdjustmentRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).CreateAdjustment(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_CreateAdjustment_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).CreateAdjustment(ctx, req.(*AdjustmentRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthService_UpdateAdjustment_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AdjustmentUpdate)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).UpdateAdjustment(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_UpdateAdjustment_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).UpdateAdjustment(ctx, req.(*AdjustmentUpdate))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthService_CloseAdjustment_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ID)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).CloseAdjustment(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_CloseAdjustment_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).CloseAdjustment(ctx, req.(*ID))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthService_GetAdjustmentByID_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ID)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).GetAdjustmentByID(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_GetAdjustmentByID_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).GetAdjustmentByID(ctx, req.(*ID))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthService_ListAdjustments_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetAdjustmentRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).ListAdjustments(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_ListAdjustments_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).ListAdjustments(ctx, req.(*GetAdjustmentRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthService_GetWorkerAllInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ID)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).GetWorkerAllInfo(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_GetWorkerAllInfo_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).GetWorkerAllInfo(ctx, req.(*ID))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AuthService_ServiceDesc is the grpc.ServiceDesc for AuthService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -525,6 +869,46 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteClient",
 			Handler:    _AuthService_DeleteClient_Handler,
+		},
+		{
+			MethodName: "CreateSalary",
+			Handler:    _AuthService_CreateSalary_Handler,
+		},
+		{
+			MethodName: "UpdateSalary",
+			Handler:    _AuthService_UpdateSalary_Handler,
+		},
+		{
+			MethodName: "GetSalaryByID",
+			Handler:    _AuthService_GetSalaryByID_Handler,
+		},
+		{
+			MethodName: "ListSalaries",
+			Handler:    _AuthService_ListSalaries_Handler,
+		},
+		{
+			MethodName: "CreateAdjustment",
+			Handler:    _AuthService_CreateAdjustment_Handler,
+		},
+		{
+			MethodName: "UpdateAdjustment",
+			Handler:    _AuthService_UpdateAdjustment_Handler,
+		},
+		{
+			MethodName: "CloseAdjustment",
+			Handler:    _AuthService_CloseAdjustment_Handler,
+		},
+		{
+			MethodName: "GetAdjustmentByID",
+			Handler:    _AuthService_GetAdjustmentByID_Handler,
+		},
+		{
+			MethodName: "ListAdjustments",
+			Handler:    _AuthService_ListAdjustments_Handler,
+		},
+		{
+			MethodName: "GetWorkerAllInfo",
+			Handler:    _AuthService_GetWorkerAllInfo_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
