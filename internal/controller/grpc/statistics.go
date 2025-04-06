@@ -35,6 +35,16 @@ func (p *ProductsGrpc) TotalPurchaseProducts(ctx context.Context, in *pb.Statist
 	return res, nil
 }
 
+func (p *ProductsGrpc) GetClientDashboard(ctx context.Context, in *pb.GetClientDashboardRequest) (*pb.GetClientDashboardResponse, error) {
+
+	res, err := p.statistics.GetClientDashboard(in)
+	if err != nil {
+		return nil, err
+	}
+
+	return res, nil
+}
+
 // --------------------------------------------------- Cash Flow -------------------------------------------------------
 
 func (p *ProductsGrpc) GetCashFlow(ctx context.Context, in *pb.CashFlowReq) (*pb.ListCashFlow, error) {

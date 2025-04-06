@@ -60,6 +60,7 @@ type StatisticsRepo interface {
 	TotalPriceOfProducts(req *pb.StatisticReq) (*pb.PriceProducts, error)
 	TotalSoldProducts(req *pb.StatisticReq) (*pb.PriceProducts, error)
 	TotalPurchaseProducts(id *pb.StatisticReq) (*pb.PriceProducts, error)
+	GetClientDashboard(req *pb.GetClientDashboardRequest) (*pb.GetClientDashboardResponse, error)
 }
 
 type CashFlowRepo interface {

@@ -115,3 +115,46 @@ func (s *statisticsRepo) TotalPurchaseProducts(req *products.StatisticReq) (*pro
 
 	return result, nil
 }
+
+func (s *statisticsRepo) GetClientDashboard(req *products.GetClientDashboardRequest) (*products.GetClientDashboardResponse, error) {
+	query := `
+		SELECT 
+			COUNT(DISTINCT s.id) AS visit_count,
+			COALESCE(SUM(s.total_sale_price), 0) AS total_purchase_sum,
+			COALESCE(AVG(s.total_sale_price), 0) AS average_receipt,
+			COALESCE(MAX(s.total_sale_price), 0) AS top_transaction,
+			COALESCE(AVG(sub.total_quantity), 0) AS average_product_count
+		FROM sales s
+		LEFT JOIN (
+			SELECT sale_id, SUM(quantity) AS total_quantity
+			FROM sales_items
+			GROUP BY sale_id
+		) sub ON sub.sale_id = s.id
+		WHERE s.company_id = $1 AND s.branch_id = $2 AND s.client_id = $3;
+	`
+
+	type dashboardRow struct {
+		VisitCount          int             `db:"visit_count"`
+		TotalPurchaseSum    decimal.Decimal `db:"total_purchase_sum"`
+		AverageReceipt      decimal.Decimal `db:"average_receipt"`
+		TopTransaction      decimal.Decimal `db:"top_transaction"`
+		AverageProductCount decimal.Decimal `db:"average_product_count"`
+	}
+
+	var result dashboardRow
+
+	if err := s.db.Get(&result, query, req.GetCompanyId(), req.GetBranchId(), req.GetClientId()); err != nil {
+		return nil, fmt.Errorf("failed to fetch client dashboard: %w", err)
+	}
+
+	resp := &products.GetClientDashboardResponse{
+		VisitCount:          int32(result.VisitCount),
+		TotalPurchaseSum:    result.TotalPurchaseSum.InexactFloat64(),
+		AverageReceipt:      result.AverageReceipt.InexactFloat64(),
+		TopTransaction:      result.TopTransaction.InexactFloat64(),
+		AverageProductCount: result.AverageProductCount.InexactFloat64(),
+		AverageDiscount:     0,
+	}
+
+	return resp, nil
+}
