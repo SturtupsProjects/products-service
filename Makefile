@@ -20,3 +20,6 @@ mig-create:
 swag-gen:
 	~/go/bin/swag init -g internal/controller/http/router.go -o docs
 #   rm -r db/migrations
+
+run:
+	docker compose up -d --build

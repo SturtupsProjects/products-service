@@ -143,7 +143,7 @@ func (s *statisticsRepo) GetClientDashboard(req *products.GetClientDashboardRequ
 
 	var result dashboardRow
 
-	if err := s.db.Get(&result, query, req.GetCompanyId(), req.GetBranchId(), req.GetClientId()); err != nil {
+	if err := s.db.Get(&result, query, req.CompanyId, req.BranchId, req.ClientId); err != nil {
 		return nil, fmt.Errorf("failed to fetch client dashboard: %w", err)
 	}
 
