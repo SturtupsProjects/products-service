@@ -75,3 +75,15 @@ type SalesItem struct {
 	SalePrice  float64 `json:"sale_price" db:"sale_price"`
 	TotalPrice float64 `json:"total_price" db:"total_price"`
 }
+
+type ProductsDashboardDbRes struct {
+	ProductItems        int64           `db:"product_items"`
+	ProductUnits        int64           `db:"product_units"`
+	AmountDeliveryPrice []*ManyCurrency `db:"amount_delivery_price"`
+	AmountSalePrice     []*ManyCurrency `db:"amount_sale_price"`
+}
+
+type ManyCurrency struct {
+	Currency string  `json:"currency" db:"currency"`
+	Price    float64 `json:"price" db:"price"`
+}

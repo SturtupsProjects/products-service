@@ -149,3 +149,14 @@ func (p *ProductsGrpc) GetProductList(ctx context.Context, in *pb.ProductFilter)
 
 	return productList, nil
 }
+
+func (p *ProductsGrpc) GetProductDashboard(ctx context.Context, in *pb.GetProductsDashboardReq) (*pb.GetProductsDashboardRes, error) {
+
+	res, err := p.product.GetProductDashboard(in)
+
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "Failed to retrieve product dashboard: %v", err)
+	}
+
+	return res, nil
+}

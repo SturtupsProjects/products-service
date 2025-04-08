@@ -2,6 +2,9 @@ package usecase
 
 import (
 	pb "crm-admin/internal/generated/products"
+	"crm-admin/internal/webapi"
+	"github.com/shopspring/decimal"
+
 	"log/slog"
 )
 
@@ -133,6 +136,60 @@ func (p *ProductsUseCase) GetProductList(in *pb.ProductFilter) (*pb.ProductList,
 	if err != nil {
 		p.log.Error("GetProductList", "error", err.Error())
 		return nil, err
+	}
+
+	return res, nil
+}
+
+func (p *ProductsUseCase) GetProductDashboard(in *pb.GetProductsDashboardReq) (*pb.GetProductsDashboardRes, error) {
+	dbRes, err := p.repo.GetProductDashboard(in)
+	if err != nil {
+		p.log.Error("GetProductDashboard", "error", err.Error())
+		return nil, err
+	}
+
+	usdRate, err := webapi.GetUSDCourse()
+	if err != nil {
+		p.log.Error("GetProductDashboard", "error", err.Error())
+		return nil, err
+	}
+	usdRateDec := decimal.NewFromFloat(usdRate)
+
+	purchasePrice := decimal.Zero
+	salePrice := decimal.Zero
+
+	convertPrice := func(price decimal.Decimal, srcCurrency, targetCurrency string) decimal.Decimal {
+		switch targetCurrency {
+		case "usd":
+			if srcCurrency == "uzs" || srcCurrency == "card" {
+				return price.Div(usdRateDec)
+			}
+			return price
+		case "uzs":
+			if srcCurrency == "usd" {
+				return price.Mul(usdRateDec)
+			}
+			return price
+		default:
+			return price
+		}
+	}
+
+	for _, item := range dbRes.AmountDeliveryPrice {
+		price := decimal.NewFromFloat(item.Price)
+		purchasePrice = purchasePrice.Add(convertPrice(price, item.Currency, in.Currency))
+	}
+
+	for _, item := range dbRes.AmountSalePrice {
+		price := decimal.NewFromFloat(item.Price)
+		salePrice = salePrice.Add(convertPrice(price, item.Currency, in.Currency))
+	}
+
+	res := &pb.GetProductsDashboardRes{
+		ProductItems:        dbRes.ProductItems,
+		ProductUnits:        dbRes.ProductUnits,
+		AmountDeliveryPrice: purchasePrice.Round(1).InexactFloat64(),
+		AmountSalePrice:     salePrice.Round(1).InexactFloat64(),
 	}
 
 	return res, nil

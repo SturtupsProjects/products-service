@@ -18,6 +18,8 @@ type ProductsRepo interface {
 	DeleteProduct(in *pb.GetProductRequest) (*pb.Message, error)
 	GetProduct(in *pb.GetProductRequest) (*pb.Product, error)
 	GetProductList(in *pb.ProductFilter) (*pb.ProductList, error)
+
+	GetProductDashboard(in *pb.GetProductsDashboardReq) (*entity.ProductsDashboardDbRes, error)
 }
 
 type ProductQuantity interface {

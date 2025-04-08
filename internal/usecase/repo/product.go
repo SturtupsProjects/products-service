@@ -306,7 +306,7 @@ func (p *productRepo) UpdateProduct(in *pb.UpdateProductRequest) (*pb.Product, e
 		args = append(args, in.ImageUrl)
 		argCounter++
 	}
-	if in.Quantity != 0 {
+	if in.Quantity >= 0 {
 		query += fmt.Sprintf("total_count = $%d, ", argCounter)
 		args = append(args, in.Quantity)
 		argCounter++
@@ -799,3 +799,52 @@ func (p *productQuantity) ensureCategory(tx *sqlx.Tx, name string, branchID, com
 }
 
 //------------------- End Product Quantity CRUD ------------------------------------------------------------------
+
+func (s *productRepo) GetProductDashboard(in *pb.GetProductsDashboardReq) (*entity.ProductsDashboardDbRes, error) {
+	var res entity.ProductsDashboardDbRes
+
+	const queryProducts = `
+        SELECT COUNT(*) as product_items, SUM(total_count) as product_units
+        FROM products 
+        WHERE company_id = $1 AND branch_id = $2
+    `
+	if err := s.db.Get(&res, queryProducts, in.CompanyId, in.BranchId); err != nil {
+		return nil, err
+	}
+
+	type currencyAgg struct {
+		Currency      string  `db:"currency"`
+		DeliveryPrice float64 `db:"delivery_price"`
+		SalePrice     float64 `db:"sale_price"`
+	}
+
+	var aggStats []currencyAgg
+
+	const queryAggregates = `
+        SELECT bill_format as currency,
+               SUM(incoming_price) as delivery_price,
+               SUM(standard_price) as sale_price
+        FROM products 
+        WHERE company_id = $1 AND branch_id = $2
+        GROUP BY bill_format
+    `
+	if err := s.db.Select(&aggStats, queryAggregates, in.CompanyId, in.BranchId); err != nil {
+		return nil, err
+	}
+
+	res.AmountDeliveryPrice = make([]*entity.ManyCurrency, 0, len(aggStats))
+	res.AmountSalePrice = make([]*entity.ManyCurrency, 0, len(aggStats))
+
+	for _, agg := range aggStats {
+		res.AmountDeliveryPrice = append(res.AmountDeliveryPrice, &entity.ManyCurrency{
+			Currency: agg.Currency,
+			Price:    agg.DeliveryPrice,
+		})
+		res.AmountSalePrice = append(res.AmountSalePrice, &entity.ManyCurrency{
+			Currency: agg.Currency,
+			Price:    agg.SalePrice,
+		})
+	}
+
+	return &res, nil
+}
