@@ -208,7 +208,7 @@ func (p *productRepo) CreateProduct(in *pb.CreateProductRequest) (*pb.Product, e
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, COALESCE($10, 0))
 		RETURNING id, category_id, name, image_url, bill_format, incoming_price, standard_price, total_count, company_id, branch_id, created_by, created_at
 	`
-	err := p.db.QueryRowx(query, in.CategoryId, in.Name, in.ImageUrl, in.BillFormat, in.IncomingPrice, in.StandardPrice, in.CompanyId, in.BranchId, in.CreatedBy, 0).
+	err := p.db.QueryRowx(query, in.CategoryId, in.Name, in.ImageUrl, in.BillFormat, in.IncomingPrice, in.StandardPrice, in.CompanyId, in.BranchId, in.CreatedBy, in.TotalCount).
 		Scan(&product.Id, &product.CategoryId, &product.Name, &product.ImageUrl, &product.BillFormat, &product.IncomingPrice,
 			&product.StandardPrice, &product.TotalCount, &product.CompanyId, &product.BranchId, &product.CreatedBy, &product.CreatedAt)
 
