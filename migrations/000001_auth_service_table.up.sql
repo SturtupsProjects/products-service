@@ -40,6 +40,8 @@ CREATE TABLE sales
     client_id        UUID           NOT NULL,
     sold_by          UUID           NOT NULL,
     total_sale_price DECIMAL(15, 2) NOT NULL, -- общая сумма заказа
+    is_for_debt      BOOL NOT NULL,
+    paid_amount      DECIMAL(15, 2) NOT NULL,
     payment_method   payment_method DEFAULT 'uzs',
     branch_id        UUID           NOT NULL,
     company_id       UUID           NOT NULL,
@@ -103,23 +105,22 @@ CREATE TABLE purchase_items
 
 CREATE TABLE transfers
 (
-    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    id             UUID      DEFAULT gen_random_uuid() PRIMARY KEY,
     transferred_by UUID NOT NULL,
     from_branch_id UUID NOT NULL,
-    to_branch_id UUID NOT NULL,
-    description TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT NOW(),
-    company_id UUID NOT NULL
+    to_branch_id   UUID NOT NULL,
+    description    TEXT NOT NULL,
+    created_at     TIMESTAMP DEFAULT NOW(),
+    company_id     UUID NOT NULL
 );
 
 CREATE TABLE transfer_products
 (
-    id             UUID DEFAULT gen_random_uuid(),
-    product_transfers_id    UUID REFERENCES transfers (id) NOT NULL,
-    product_id     UUID REFERENCES products (id)  NOT NULL,
-    quantity       INT                            NOT NULL
+    id                   UUID DEFAULT gen_random_uuid(),
+    product_transfers_id UUID REFERENCES transfers (id) NOT NULL,
+    product_id           UUID REFERENCES products (id)  NOT NULL,
+    quantity             INT                            NOT NULL
 );
-
 
 
 -- Индексы для таблицы product_categories

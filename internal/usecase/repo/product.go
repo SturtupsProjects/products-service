@@ -822,8 +822,8 @@ func (s *productRepo) GetProductDashboard(in *pb.GetProductsDashboardReq) (*enti
 
 	const queryAggregates = `
         SELECT bill_format as currency,
-               SUM(incoming_price) as delivery_price,
-               SUM(standard_price) as sale_price
+               SUM(incoming_price * total_count) as delivery_price,
+               SUM(standard_price * total_count) as sale_price
         FROM products 
         WHERE company_id = $1 AND branch_id = $2
         GROUP BY bill_format
