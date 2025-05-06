@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
+	"github.com/shopspring/decimal"
 	"strings"
 )
 
@@ -800,51 +801,72 @@ func (p *productQuantity) ensureCategory(tx *sqlx.Tx, name string, branchID, com
 
 //------------------- End Product Quantity CRUD ------------------------------------------------------------------
 
-func (s *productRepo) GetProductDashboard(in *pb.GetProductsDashboardReq) (*entity.ProductsDashboardDbRes, error) {
-	var res entity.ProductsDashboardDbRes
-
-	const queryProducts = `
-        SELECT COUNT(*) as product_items, SUM(total_count) as product_units
-        FROM products 
-        WHERE company_id = $1 AND branch_id = $2
+func (r *productRepo) GetProductDashboard(in *pb.GetProductsDashboardReq) (*entity.ProductsDashboardDbRes, error) {
+	const sqlDashboard = `
+    WITH stats AS (
+      SELECT
+        COUNT(*) AS product_items,
+        COALESCE(SUM(total_count), 0) AS product_units
+      FROM products
+      WHERE company_id=$1 AND branch_id=$2
+    ),
+    agg AS (
+      SELECT
+        bill_format    AS currency,
+        COALESCE(SUM(incoming_price * total_count), 0) AS delivery_price,
+        COALESCE(SUM(standard_price * total_count), 0) AS sale_price
+      FROM products
+      WHERE company_id=$1 AND branch_id=$2
+      GROUP BY bill_format
+    )
+    SELECT
+      s.product_items,
+      s.product_units,
+      a.currency,
+      a.delivery_price,
+      a.sale_price
+    FROM stats s
+    LEFT JOIN agg a ON TRUE;
     `
-	if err := s.db.Get(&res, queryProducts, in.CompanyId, in.BranchId); err != nil {
-		return nil, err
+
+	// Структура для промежуточного сканирования
+	type row struct {
+		ProductItems  int64           `db:"product_items"`
+		ProductUnits  int64           `db:"product_units"`
+		Currency      string          `db:"currency"`
+		DeliveryPrice decimal.Decimal `db:"delivery_price"`
+		SalePrice     decimal.Decimal `db:"sale_price"`
 	}
 
-	type currencyAgg struct {
-		Currency      string  `db:"currency"`
-		DeliveryPrice float64 `db:"delivery_price"`
-		SalePrice     float64 `db:"sale_price"`
+	// Выполняем запрос
+	var rows []row
+	if err := r.db.Select(&rows, sqlDashboard, in.CompanyId, in.BranchId); err != nil {
+		return nil, fmt.Errorf("GetProductDashboard: failed to query dashboard: %w", err)
 	}
 
-	var aggStats []currencyAgg
-
-	const queryAggregates = `
-        SELECT bill_format as currency,
-               SUM(incoming_price * total_count) as delivery_price,
-               SUM(standard_price * total_count) as sale_price
-        FROM products 
-        WHERE company_id = $1 AND branch_id = $2
-        GROUP BY bill_format
-    `
-	if err := s.db.Select(&aggStats, queryAggregates, in.CompanyId, in.BranchId); err != nil {
-		return nil, err
+	// Если нет ни одной валюты, всё равно инициализируем нулевыми значениями
+	resp := &entity.ProductsDashboardDbRes{
+		AmountDeliveryPrice: make([]*entity.ManyCurrency, 0, len(rows)),
+		AmountSalePrice:     make([]*entity.ManyCurrency, 0, len(rows)),
 	}
 
-	res.AmountDeliveryPrice = make([]*entity.ManyCurrency, 0, len(aggStats))
-	res.AmountSalePrice = make([]*entity.ManyCurrency, 0, len(aggStats))
+	// Заполняем поля из первой строки
+	if len(rows) > 0 {
+		resp.ProductItems = rows[0].ProductItems
+		resp.ProductUnits = rows[0].ProductUnits
+	}
 
-	for _, agg := range aggStats {
-		res.AmountDeliveryPrice = append(res.AmountDeliveryPrice, &entity.ManyCurrency{
-			Currency: agg.Currency,
-			Price:    agg.DeliveryPrice,
+	// Собираем суммы по валютам
+	for _, r := range rows {
+		resp.AmountDeliveryPrice = append(resp.AmountDeliveryPrice, &entity.ManyCurrency{
+			Currency: r.Currency,
+			Price:    r.DeliveryPrice.InexactFloat64(),
 		})
-		res.AmountSalePrice = append(res.AmountSalePrice, &entity.ManyCurrency{
-			Currency: agg.Currency,
-			Price:    agg.SalePrice,
+		resp.AmountSalePrice = append(resp.AmountSalePrice, &entity.ManyCurrency{
+			Currency: r.Currency,
+			Price:    r.SalePrice.InexactFloat64(),
 		})
 	}
 
-	return &res, nil
+	return resp, nil
 }
